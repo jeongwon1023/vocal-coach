@@ -1234,6 +1234,67 @@ def apply(page: str = "홈") -> None:
             font-size: 0.78rem;
             color: #a1a1aa !important;
         }
+        /* 홈 — 로그인/회원가입 배너 (베타와 색 구분: 코랄·앰버 그라데이션) */
+        .vc-landing-auth-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 0.85rem 1.1rem;
+            margin-bottom: 0.85rem;
+            border-radius: 14px;
+            background: linear-gradient(120deg, rgba(234,88,12,0.22) 0%, rgba(245,158,11,0.14) 45%, rgba(99,102,241,0.1) 100%);
+            border: 1px solid rgba(251,146,60,0.45);
+            box-shadow: 0 4px 24px rgba(234,88,12,0.12);
+        }
+        .vc-landing-auth-tag {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.18rem 0.55rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ea580c, #f59e0b);
+            color: #fff !important;
+            margin-bottom: 0.35rem;
+        }
+        .vc-landing-auth-title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff7ed !important;
+            line-height: 1.35;
+        }
+        .vc-landing-auth-sub {
+            margin: 0.2rem 0 0;
+            font-size: 0.78rem;
+            color: #fdba74 !important;
+        }
+        .vc-auth-landing {
+            padding: 0.55rem 0.5rem !important;
+            font-size: 0.82rem !important;
+            margin-bottom: 0 !important;
+            border-radius: 10px !important;
+        }
+        .st-key-landing_auth_demo button {
+            background: linear-gradient(135deg, #ea580c, #f59e0b) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 700 !important;
+            min-height: 2.35rem !important;
+        }
+        .st-key-top_auth_popover button {
+            background: linear-gradient(135deg, rgba(234,88,12,0.25), rgba(245,158,11,0.18)) !important;
+            border: 1px solid rgba(251,146,60,0.5) !important;
+            color: #ffedd5 !important;
+            font-weight: 700 !important;
+        }
+        .st-key-top_auth_popover button:hover {
+            border-color: #fb923c !important;
+            color: #fff !important;
+        }
         /* 분석 완료 히어로 배너 */
         .vc-result-hero {
             position: relative;
@@ -1759,7 +1820,14 @@ def apply(page: str = "홈") -> None:
             min-height: 200px;
             max-height: 420px;
             overflow-y: auto;
+            overflow-x: hidden;
             border-bottom: 1px solid var(--vc-border);
+            scroll-behavior: smooth;
+        }
+        .st-key-vc_dm_thread [data-testid="stVerticalBlock"] {
+            max-height: 380px;
+            overflow-y: auto !important;
+            scroll-behavior: smooth;
         }
         .vc-detail-panel [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p,
         .vc-detail-panel [data-testid="stExpander"] [data-testid="stMarkdownContainer"] li {

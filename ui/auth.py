@@ -215,3 +215,50 @@ def require_login() -> bool:
         return True
     render_login_page()
     return False
+
+
+def render_landing_auth_banner() -> None:
+    """홈 랜딩 — 로그인/회원가입 강조 배너 (베타 배너와 색 구분)."""
+    base = auth_base_url()
+    g_ok = google_configured()
+    k_ok = kakao_configured()
+
+    st.markdown(
+        """
+        <div class="vc-landing-auth-banner">
+            <div class="vc-landing-auth-copy">
+                <span class="vc-landing-auth-tag">로그인 · 회원가입</span>
+                <p class="vc-landing-auth-title">30초면 시작 · 분석 기록이 마이 페이지에 쌓여요</p>
+                <p class="vc-landing-auth-sub">Google · 카카오 · 체험 계정 — 무료</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c1:
+        if g_ok:
+            st.markdown(
+                f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google vc-auth-landing">Google</a>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<span class="vc-auth-btn vc-auth-disabled vc-auth-landing">Google</span>',
+                unsafe_allow_html=True,
+            )
+    with c2:
+        if k_ok:
+            st.markdown(
+                f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao vc-auth-landing">카카오</a>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<span class="vc-auth-btn vc-auth-disabled vc-auth-landing">카카오</span>',
+                unsafe_allow_html=True,
+            )
+    with c3:
+        if st.button("✦ 체험 시작", key="landing_auth_demo", use_container_width=True, type="primary"):
+            start_demo()

@@ -145,6 +145,63 @@ def _rule_suggested_questions(session: dict[str, Any]) -> list[str]:
     return qs[:3]
 
 
+_EXTRA_SUGGESTIONS = (
+    "오늘 10분 루틴 짜 주세요",
+    "점수를 더 올리려면 뭐부터 할까요?",
+    "약한 영역만 0.5배속으로 연습하려면?",
+    "복식호흡부터 할까요?",
+    "고음 구간만 따로 연습법 알려주세요",
+    "다음 녹음 전 체크리스트 3가지",
+    "메트로놈 BPM은 몇부터 시작할까요?",
+    "롱톤 연습 순서 알려주세요",
+)
+
+
+def _suggestion_pool(session: dict[str, Any]) -> list[str]:
+    pool: list[str] = []
+    seen: set[str] = set()
+    for q in _rule_suggested_questions(session) + list(_EXTRA_SUGGESTIONS):
+        q = q.strip()
+        if q and q not in seen:
+            seen.add(q)
+            pool.append(q)
+    return pool
+
+
+def _rotate_suggestion(used: str, session: dict[str, Any]) -> None:
+    """사용한 pill 제거 → 풀에서 새 질문으로 3개 유지."""
+    used = used.strip()
+    if not used:
+        return
+    used_list: list[str] = list(st.session_state.get("coach_used_suggestions") or [])
+    if used not in used_list:
+        used_list.append(used)
+    st.session_state.coach_used_suggestions = used_list
+    used_set = set(used_list)
+
+    current = [q for q in (st.session_state.get("coach_suggested_questions") or []) if q.strip() != used]
+    pool = _suggestion_pool(session)
+    for q in pool:
+        if len(current) >= 3:
+            break
+        if q not in used_set and q not in current:
+            current.append(q)
+    while len(current) < 3:
+        added = False
+        for q in pool:
+            if q not in current:
+                current.append(q)
+                added = True
+                break
+        if not added:
+            break
+    st.session_state.coach_suggested_questions = current[:3]
+
+
+def _pill_key(question: str) -> str:
+    return hashlib.md5(question.encode()).hexdigest()[:10]
+
+
 def _rule_reply(session: dict[str, Any], user_message: str) -> str:
     report = session["report"]
     stages = report.stages[:3]
@@ -203,18 +260,23 @@ def _fetch_rag(user_text: str, session: dict[str, Any]) -> str:
 
 
 def _append_user_message(text: str) -> None:
-    """사용자 메시지 추가 + 타이핑 상태 (rerun은 호출하지 않음)."""
+    """사용자 메시지 추가."""
     normalized = _normalize_chat_markdown(text)
     if not normalized:
         return
     messages: list[dict[str, str]] = st.session_state.coach_chat_messages
     messages.append({"role": "user", "content": normalized})
-    st.session_state.coach_show_typing = True
-    st.session_state.coach_generating = False
 
 
 def _on_pill_click(question: str) -> None:
     st.session_state["coach_pending_message"] = question
+
+
+def _on_send_click() -> None:
+    text = (st.session_state.get("coach_dm_input") or "").strip()
+    if text:
+        st.session_state["coach_pending_message"] = text
+        st.session_state["coach_dm_input"] = ""
 
 
 def _generate_reply(session: dict[str, Any]) -> str:
@@ -258,6 +320,7 @@ def _init_chat(session: dict[str, Any]) -> None:
     st.session_state.coach_chat_fp = fp
     st.session_state.coach_chat_messages = [{"role": "assistant", "content": _normalize_chat_markdown(opening)}]
     st.session_state.coach_suggested_questions = suggestions[:3]
+    st.session_state.coach_used_suggestions = []
     st.session_state.coach_chat_ready = True
     st.session_state.coach_gpt_enhanced = bool(session.get("gpt_text"))
 
@@ -289,18 +352,17 @@ def _init_chat(session: dict[str, Any]) -> None:
 
 
 def _finish_generating(session: dict[str, Any]) -> None:
-    """타이핑 표시 후 답변 생성 → 말풍선 추가."""
+    """답변 생성 → 말풍선 추가."""
     reply = _generate_reply(session)
     st.session_state.coach_chat_messages.append(
         {"role": "assistant", "content": _normalize_chat_markdown(reply)}
     )
-    st.session_state.pop("coach_show_typing", None)
-    st.session_state.pop("coach_generating", None)
     from ui.loading import clear_loading
 
     clear_loading()
     if not st.session_state.get("coach_suggested_questions"):
         st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
+    st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
 
 
 def _render_result_hero(session: dict[str, Any]) -> None:
@@ -400,48 +462,42 @@ def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing:
             with pill_cols[i]:
                 st.button(
                     f"+ {_pill_label(q)}",
-                    key=f"coach_pill_{i}",
+                    key=f"coach_pill_{_pill_key(q)}",
                     use_container_width=False,
                     on_click=_on_pill_click,
                     args=(q,),
                 )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with st.form("coach_dm_form", clear_on_submit=True, border=False):
-        input_col, send_col = st.columns([6, 1], gap="small", vertical_alignment="bottom")
-        with input_col:
-            user_text = st.text_input(
-                "메시지",
-                placeholder=f"{user_name}님, 메시지 입력…",
-                label_visibility="collapsed",
-                disabled=show_typing,
-                key="coach_dm_input",
-            )
-        with send_col:
-            send = st.form_submit_button(
-                "➤",
-                type="primary",
-                disabled=show_typing,
-                use_container_width=True,
-            )
-        if send and user_text and user_text.strip():
-            st.session_state["coach_pending_message"] = user_text.strip()
+    input_col, send_col = st.columns([6, 1], gap="small", vertical_alignment="bottom")
+    with input_col:
+        st.text_input(
+            "메시지",
+            placeholder=f"{user_name}님, 메시지 입력…",
+            label_visibility="collapsed",
+            disabled=show_typing,
+            key="coach_dm_input",
+        )
+    with send_col:
+        st.button(
+            "➤",
+            type="primary",
+            disabled=show_typing,
+            use_container_width=True,
+            key="coach_dm_send",
+            on_click=_on_send_click,
+        )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-@st.fragment
-def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
-    """채팅 fragment — pill/전송 시 중복 rerun 방지."""
-    pending = st.session_state.pop("coach_pending_message", None)
-    if pending:
-        _append_user_message(pending)
-
-    messages = st.session_state.get("coach_chat_messages") or []
-    show_typing = bool(
-        st.session_state.get("coach_show_typing") or st.session_state.get("coach_generating")
-    )
-
+def _render_dm_panel(
+    session: dict[str, Any],
+    user_name: str,
+    messages: list[dict[str, str]],
+    *,
+    show_typing: bool,
+) -> None:
     with st.container(key="vc_dm_panel"):
         st.markdown(
             """
@@ -457,20 +513,36 @@ def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
             """,
             unsafe_allow_html=True,
         )
-
         with st.container(key="vc_dm_thread"):
             _render_dm_thread(messages, show_typing=show_typing)
-
         _render_dm_composer(session, user_name, show_typing=show_typing)
 
-    if st.session_state.get("coach_show_typing") and not st.session_state.get("coach_generating"):
-        st.session_state.coach_generating = True
+
+@st.fragment
+def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
+    """채팅 fragment — 단일 패널 · pill/전송 1회 렌더."""
+    _init_chat(session)
+
+    pending = st.session_state.pop("coach_pending_message", None)
+    if pending:
+        _append_user_message(pending)
+        _rotate_suggestion(pending, session)
+        st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
+        _render_dm_panel(session, user_name, st.session_state.coach_chat_messages, show_typing=True)
+        from ui.chat_scroll import scroll_chat_to_bottom
+
+        scroll_chat_to_bottom()
+        _finish_generating(session)
         st.rerun(scope="fragment")
         return
 
-    if st.session_state.get("coach_generating"):
-        _finish_generating(session)
-        st.rerun(scope="fragment")
+    messages = st.session_state.get("coach_chat_messages") or []
+    _render_dm_panel(session, user_name, messages, show_typing=False)
+
+    if int(st.session_state.get("coach_scroll_tick") or 0) > 0:
+        from ui.chat_scroll import scroll_chat_to_bottom
+
+        scroll_chat_to_bottom()
 
 
 def render_coach_dm(session: dict[str, Any]) -> None:
@@ -480,8 +552,6 @@ def render_coach_dm(session: dict[str, Any]) -> None:
 
     clear_analyze_stage()
     clear_loading()
-
-    _init_chat(session)
 
     from ui.auth import current_user
 

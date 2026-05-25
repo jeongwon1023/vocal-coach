@@ -489,6 +489,8 @@ def clear_results_state() -> None:
         "coach_show_typing",
         "coach_generating",
         "coach_pending_message",
+        "coach_used_suggestions",
+        "coach_scroll_tick",
     ):
         st.session_state.pop(key, None)
 

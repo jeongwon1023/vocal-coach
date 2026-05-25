@@ -199,6 +199,27 @@ def test_coach_rag() -> None:
     assert status["ready"]
 
 
+def test_suggestion_pool() -> None:
+    from ui.coach_chat import _pill_key, _suggestion_pool
+
+    class FakeStage:
+        def __init__(self, stage, score):
+            self.stage = stage
+            self.title = "t"
+            self.score = score
+            self.details = {}
+
+    class FakeReport:
+        overall_score = 70.0
+        stages = [FakeStage(1, 60), FakeStage(2, 55), FakeStage(3, 50)]
+        pitch_deviation_segments = []
+
+    pool = _suggestion_pool({"report": FakeReport(), "full_record": {}})
+    assert len(pool) >= 3
+    assert len(set(pool)) == len(pool)
+    assert len(_pill_key("테스트 질문")) == 10
+
+
 if __name__ == "__main__":
     test_ui_imports()
     test_navigation_pages()
@@ -211,4 +232,5 @@ if __name__ == "__main__":
     test_beta_feedback_save()
     test_feedback_trainer()
     test_coach_rag()
+    test_suggestion_pool()
     print("All UI smoke tests passed.")

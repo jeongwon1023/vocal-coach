@@ -8,6 +8,11 @@ from ui.navigation import go_to
 
 
 def render() -> None:
+    from ui.auth import is_logged_in, render_landing_auth_banner
+
+    if not is_logged_in():
+        render_landing_auth_banner()
+
     st.markdown(
         """
         <section class="vc-hero-main">
