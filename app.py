@@ -38,6 +38,10 @@ except Exception:
     st.code(traceback.format_exc())
     st.stop()
 
+from ui.runtime_env import configure_matplotlib
+
+configure_matplotlib()
+
 auth.init_auth()
 navigation.init_nav()
 
@@ -55,14 +59,21 @@ if page == "홈":
     landing.render()
 elif page == "분석":
     dashboard.render()
+elif page == "피드백":
+    from ui.user_feedback import render_feedback_page
+
+    render_feedback_page()
 else:
     if not auth.is_logged_in():
-        st.markdown("### 마이 페이지")
-        st.info("분석 기록을 저장하려면 **우측 상단 로그인 / 회원가입**을 눌러 주세요.")
+        st.markdown(
+            """
+            <div class="vc-page-head">
+                <h2 class="vc-page-title">마이 페이지 📈</h2>
+                <p class="vc-page-desc">분석 기록·성장 그래프는 로그인 후 이용할 수 있어요.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         auth.render_login_page()
         st.stop()
-    styles.section_title(
-        f"{auth.current_user().get('name', '학습자')}님의 성장 기록",
-        "날짜별 점수 · 그래프 · 기록 비교",
-    )
     my_page.render()

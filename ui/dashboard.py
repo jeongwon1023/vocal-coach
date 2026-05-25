@@ -105,7 +105,7 @@ def _render_login_gate() -> None:
             start_demo()
     with col2:
         st.markdown(
-            '<p class="vc-gate-hint">또는 우측 상단<br><b>로그인 / 회원가입</b> 클릭</p>',
+            '<p class="vc-gate-hint">또는 상단 <b>로그인 / 회원가입</b> 클릭</p>',
             unsafe_allow_html=True,
         )
 

@@ -62,8 +62,9 @@ FAST_ANALYSIS_SR = 16000
 FAST_MAX_DURATION_SEC = 120.0  # 빠른 모드: 앞 2분만 분석
 NORMALIZE_BEFORE_ANALYSIS = True  # 44.1kHz mono -14 LUFS 전처리
 
-plt.rcParams["font.family"] = "Malgun Gothic"
-plt.rcParams["axes.unicode_minus"] = False
+from ui.runtime_env import configure_matplotlib
+
+configure_matplotlib()
 
 FMIN = librosa.note_to_hz("C2")
 FMAX = librosa.note_to_hz("C7")
@@ -1953,17 +1954,21 @@ def run_full_session(
 
     plot_path = save_plot or PROJECT_DIR / "pitch_result.png"
     _prog(0.92, "음정 그래프 저장 중…")
-    plot_pitch(
-        report.times,
-        report.f0,
-        report.f0_reference,
-        report.stable_regions,
-        report.pitch_deviation_segments,
-        title=f"음정 맵 - {audio_path.name}",
-        save_path=plot_path,
-        dpi=72 if fast_mode else 150,
-    )
-    result["plot_path"] = plot_path
+    try:
+        plot_pitch(
+            report.times,
+            report.f0,
+            report.f0_reference,
+            report.stable_regions,
+            report.pitch_deviation_segments,
+            title=f"음정 맵 - {audio_path.name}",
+            save_path=plot_path,
+            dpi=72 if fast_mode else 150,
+        )
+        result["plot_path"] = plot_path
+    except Exception as exc:
+        result["plot_path"] = None
+        result["plot_error"] = str(exc)
     result["fast_mode"] = fast_mode
     _prog(1.0, "완료")
     return result
@@ -2097,6 +2102,35 @@ def print_report(report: CurriculumReport) -> None:
     print(format_action_plan(plan))
 
 
+def _pitch_hz_ylim(
+    f0: np.ndarray,
+    f0_reference: np.ndarray,
+    *,
+    default: tuple[float, float] = (80.0, 800.0),
+) -> tuple[float, float]:
+    """플롯 Y축 — 0Hz 미포함 (librosa midi 변환 NaN 방지)."""
+    chunks: list[np.ndarray] = []
+    for arr in (f0, f0_reference):
+        ok = np.isfinite(arr) & (arr > 0)
+        if np.any(ok):
+            chunks.append(arr[ok].astype(float))
+    if not chunks:
+        return default
+    vals = np.concatenate(chunks)
+    lo = float(np.min(vals))
+    hi = float(np.max(vals))
+    if not np.isfinite(lo) or not np.isfinite(hi):
+        return default
+    if hi <= lo:
+        hi = lo + 50.0
+    pad = max(20.0, (hi - lo) * 0.08)
+    lo = max(50.0, lo - pad)
+    hi = min(2500.0, hi + pad)
+    if lo >= hi:
+        return default
+    return lo, hi
+
+
 def plot_pitch(
     times: np.ndarray,
     f0: np.ndarray,
@@ -2138,9 +2172,18 @@ def plot_pitch(
         label="학생 F0",
     )
 
+    hz_lo, hz_hi = _pitch_hz_ylim(f0, f0_reference)
+    ax.set_ylim(hz_lo, hz_hi)
+    if len(times) > 0 and np.isfinite(times).any():
+        t_valid = times[np.isfinite(times)]
+        ax.set_xlim(float(np.min(t_valid)), float(np.max(t_valid)))
+
     ax2 = ax.twinx()
-    if np.any(voiced):
-        ax2.set_ylim(librosa.hz_to_midi(ax.get_ylim()))
+    midi_bounds = librosa.hz_to_midi(np.array([hz_lo, hz_hi], dtype=float))
+    if np.all(np.isfinite(midi_bounds)):
+        ax2.set_ylim(float(np.min(midi_bounds)), float(np.max(midi_bounds)))
+    else:
+        ax2.set_ylim(36.0, 84.0)
     ax2.set_yticks(np.arange(36, 96, 4))
     ax2.set_yticklabels(
         [librosa.midi_to_note(n, unicode=False) for n in np.arange(36, 96, 4)]

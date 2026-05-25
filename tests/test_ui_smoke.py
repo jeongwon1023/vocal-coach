@@ -38,6 +38,7 @@ def test_navigation_pages() -> None:
     assert "홈" in PAGES
     assert "분석" in PAGES
     assert "마이 페이지" in PAGES
+    assert "피드백" in PAGES
 
 
 def test_auth_login_compact_accepts_prefix() -> None:
@@ -82,6 +83,50 @@ def test_coach_chat_helpers() -> None:
     assert len(qs) == 3
 
 
+def test_pitch_hz_ylim_empty() -> None:
+    import numpy as np
+
+    from analysis import _pitch_hz_ylim
+
+    f0 = np.array([np.nan, np.nan])
+    ref = np.array([np.nan])
+    lo, hi = _pitch_hz_ylim(f0, ref)
+    assert lo == 80.0 and hi == 800.0
+    assert np.isfinite(lo) and np.isfinite(hi)
+
+
+def test_pitch_hz_ylim_with_data() -> None:
+    import numpy as np
+
+    from analysis import _pitch_hz_ylim
+
+    f0 = np.array([220.0, 440.0, np.nan])
+    ref = np.array([np.nan, 330.0])
+    lo, hi = _pitch_hz_ylim(f0, ref)
+    assert lo > 0 and hi > lo
+    assert np.isfinite(lo) and np.isfinite(hi)
+
+
+def test_beta_feedback_save() -> None:
+    import tempfile
+    from pathlib import Path
+
+    import feedback_store
+
+    tmp = Path(tempfile.mkdtemp())
+    feedback_store.FEEDBACK_DIR = tmp
+    path = feedback_store.save_beta_feedback(
+        message="테스트 피드백",
+        category="기능 제안",
+        rating=5,
+        user_name="tester",
+    )
+    assert path.exists()
+    items = feedback_store.list_beta_feedback()
+    assert len(items) == 1
+    assert items[0]["message"] == "테스트 피드백"
+
+
 if __name__ == "__main__":
     test_ui_imports()
     test_navigation_pages()
@@ -89,4 +134,7 @@ if __name__ == "__main__":
     test_load_session_for_job_missing()
     test_coach_chat_helpers()
     test_analysis_eta()
+    test_pitch_hz_ylim_empty()
+    test_pitch_hz_ylim_with_data()
+    test_beta_feedback_save()
     print("All UI smoke tests passed.")

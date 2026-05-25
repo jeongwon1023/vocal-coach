@@ -10,8 +10,9 @@ from typing import Any
 import matplotlib.pyplot as plt
 import streamlit as st
 
-plt.rcParams["font.family"] = "Malgun Gothic"
-plt.rcParams["axes.unicode_minus"] = False
+from ui.runtime_env import configure_matplotlib
+
+configure_matplotlib()
 
 from coaching_vocab import STAGE_NAMES, cent_to_words
 
@@ -386,6 +387,7 @@ def render_session_results(session: dict[str, Any]) -> None:
 
     with tab_graph:
         plot = session.get("plot_path")
+        plot_err = session.get("plot_error")
         if plot and Path(plot).exists():
             st.markdown(
                 """
@@ -401,10 +403,16 @@ def render_session_results(session: dict[str, Any]) -> None:
             st.image(str(plot), use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                '<p class="vc-empty-note">이번 분석에서는 음정 그래프 파일이 없어요.</p>',
-                unsafe_allow_html=True,
-            )
+            if plot_err:
+                st.markdown(
+                    f'<p class="vc-empty-note">음정 그래프는 생성되지 않았어요 ({plot_err}). 분석 점수·코칭은 정상이에요.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    '<p class="vc-empty-note">이번 분석에서는 음정 그래프 파일이 없어요.</p>',
+                    unsafe_allow_html=True,
+                )
         render_deviation_table(report)
 
     with tab_coach:

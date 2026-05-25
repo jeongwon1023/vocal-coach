@@ -13,6 +13,13 @@ from auth_service import (
     kakao_configured,
     resolve_session,
 )
+from ui.runtime_env import is_streamlit_cloud
+
+
+def _oauth_unconfigured_hint(provider: str) -> str:
+    if is_streamlit_cloud():
+        return f"{provider}: 베타 — **체험 계정**으로 이용해 주세요"
+    return f"{provider}: OAuth 미설정 (로컬 .env 참고)"
 
 
 def init_auth() -> None:
@@ -102,7 +109,7 @@ def render_login_compact(*, key_prefix: str = "auth_pop") -> None:
             '<span class="vc-auth-btn vc-auth-disabled vc-auth-sm">Google로 시작</span>',
             unsafe_allow_html=True,
         )
-        st.caption("Google: .env 설정 필요")
+        st.caption(_oauth_unconfigured_hint("Google"))
 
     if k_ok:
         st.markdown(
@@ -114,7 +121,7 @@ def render_login_compact(*, key_prefix: str = "auth_pop") -> None:
             '<span class="vc-auth-btn vc-auth-disabled vc-auth-sm">카카오로 시작</span>',
             unsafe_allow_html=True,
         )
-        st.caption("카카오: .env 설정 필요")
+        st.caption(_oauth_unconfigured_hint("카카오"))
 
     st.divider()
     if st.button("✦ 체험 계정으로 시작", key=f"{key_prefix}_demo", use_container_width=True):

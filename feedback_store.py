@@ -83,4 +83,52 @@ def list_disagree_feedback(limit: int = 50) -> list[dict[str, Any]]:
 def feedback_stats() -> dict[str, int]:
     agree = len(list((FEEDBACK_DIR / "agree").glob("feedback_*.json"))) if (FEEDBACK_DIR / "agree").exists() else 0
     disagree = len(list(DISAGREE_DIR.glob("feedback_*.json"))) if DISAGREE_DIR.exists() else 0
-    return {"agree": agree, "disagree": disagree, "total": agree + disagree}
+    beta = len(list((FEEDBACK_DIR / "beta").glob("beta_*.json"))) if (FEEDBACK_DIR / "beta").exists() else 0
+    return {"agree": agree, "disagree": disagree, "beta": beta, "total": agree + disagree + beta}
+
+
+def save_beta_feedback(
+    *,
+    message: str,
+    category: str,
+    rating: int | None = None,
+    user_id: str | None = None,
+    user_name: str | None = None,
+    page: str | None = None,
+    contact: str | None = None,
+) -> Path:
+    """베타 사용자 피드백 — 버그 · 기능 · UX · 분석 품질."""
+    beta_dir = FEEDBACK_DIR / "beta"
+    beta_dir.mkdir(parents=True, exist_ok=True)
+
+    entry = {
+        "feedback_id": uuid4().hex[:12],
+        "recorded_at": _now_iso(),
+        "type": "beta",
+        "category": category,
+        "rating": rating,
+        "message": (message or "").strip(),
+        "user_id": user_id,
+        "user_name": user_name,
+        "page": page,
+        "contact": (contact or "").strip() or None,
+    }
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = beta_dir / f"beta_{stamp}_{entry['feedback_id']}.json"
+    path.write_text(json.dumps(entry, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def list_beta_feedback(limit: int = 30) -> list[dict[str, Any]]:
+    beta_dir = FEEDBACK_DIR / "beta"
+    if not beta_dir.exists():
+        return []
+    out: list[dict[str, Any]] = []
+    for p in sorted(beta_dir.glob("beta_*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+        try:
+            out.append(json.loads(p.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+        if len(out) >= limit:
+            break
+    return out

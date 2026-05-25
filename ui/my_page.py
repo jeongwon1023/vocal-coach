@@ -1,4 +1,4 @@
-"""마이 페이지 — 로그인 사용자 전용 기록."""
+"""마이 페이지 — 로그인 사용자 전용 기록 · 성장."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ if str(PROJECT_DIR) not in sys.path:
 from progress_chart import generate_growth_chart
 from progress_tracker import compare_records, list_records, load_record
 from ui.auth import current_user, current_user_id
-from ui.components import render_radar_chart
-from ui.styles import section_title
+from ui.components import render_radar_chart, render_score_ring
+from ui.navigation import go_to
 
 
 def _format_date(record: dict) -> str:
@@ -24,12 +24,38 @@ def _format_date(record: dict) -> str:
     return ts.replace("T", " ")[:19] if ts else "날짜 없음"
 
 
+def _record_stats(records_paths: list[Path]) -> dict:
+    scores: list[float] = []
+    for p in records_paths:
+        try:
+            r = load_record(p)
+            scores.append(float(r.get("overall_score") or 0))
+        except Exception:
+            continue
+    if not scores:
+        return {"count": 0, "best": 0, "latest": 0, "avg": 0}
+    return {
+        "count": len(scores),
+        "best": max(scores),
+        "latest": scores[0] if scores else 0,
+        "avg": sum(scores) / len(scores),
+    }
+
+
 def render() -> None:
     user = current_user()
     user_id = current_user_id()
     name = user.get("name", "학습자") if user else "학습자"
 
-    section_title(f"{name}님의 레슨 기록", "로그인한 계정에 저장된 분석만 표시됩니다.")
+    st.markdown(
+        f"""
+        <div class="vc-page-head">
+            <h2 class="vc-page-title">{name}님의 레슨 기록 📈</h2>
+            <p class="vc-page-desc">분석 점수 · 성장 곡선 · 이전 기록과 비교</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if not user_id:
         st.warning("로그인 정보를 확인할 수 없습니다.")
@@ -40,84 +66,109 @@ def render() -> None:
     if not records_paths:
         st.markdown(
             """
-            <div class="sx-card" style="text-align:center;padding:2.5rem 1.5rem;">
-                <p style="margin:0;font-size:1.05rem;font-weight:700;">아직 기록이 없어요</p>
-                <p style="margin:0.75rem 0 0;color:#9ca3af;font-size:0.9rem;">
-                    「분석」 메뉴에서 녹음을 업로드하고<br>
-                    「기록 저장」을 켠 채 분석해 보세요.
-                </p>
+            <div class="vc-empty-card">
+                <p class="vc-empty-title">아직 기록이 없어요</p>
+                <p class="vc-empty-desc">「분석」에서 녹음을 올리고<br>「기록 저장」을 켠 채 분석해 보세요.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("분석하러 가기", type="primary"):
-            from ui.navigation import go_to
-
-            go_to("분석")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🎤 분석하러 가기", type="primary", use_container_width=True, key="mypage_go_analysis"):
+                go_to("분석")
+        with c2:
+            if st.button("💬 피드백 남기기", use_container_width=True, key="mypage_go_feedback"):
+                go_to("피드백")
         return
+
+    stats = _record_stats(records_paths)
+    st.markdown(
+        f"""
+        <div class="vc-mypage-stats">
+            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['count']}</span><span class="vc-mypage-stat-lbl">분석 횟수</span></div>
+            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['latest']:.0f}</span><span class="vc-mypage-stat-lbl">최근 점수</span></div>
+            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['best']:.0f}</span><span class="vc-mypage-stat-lbl">최고 점수</span></div>
+            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['avg']:.0f}</span><span class="vc-mypage-stat-lbl">평균</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("##### 📈 성장 곡선")
     chart_path = generate_growth_chart(user_id=user_id)
     if chart_path and chart_path.exists():
+        st.markdown('<div class="vc-graph-frame">', unsafe_allow_html=True)
         st.image(str(chart_path), use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.caption("기록이 더 쌓이면 성장 곡선이 그려져요.")
 
     st.divider()
     st.markdown("##### 📋 분석 이력")
 
-    rows = []
-    for p in records_paths:
+    for p in records_paths[:12]:
         try:
             r = load_record(p)
         except Exception:
             continue
         scores = r.get("stage_scores") or {}
-        rows.append({
-            "날짜": _format_date(r),
-            "곡": r.get("song_title") or r.get("user_recording") or "-",
-            "종합": f"{float(r.get('overall_score') or 0):.0f}",
-            "음정": f"{float(scores.get(1) or scores.get('1') or 0):.0f}",
-            "박자": f"{float(scores.get(2) or scores.get('2') or 0):.0f}",
-            "호흡": f"{float(scores.get(3) or scores.get('3') or 0):.0f}",
-        })
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+        overall = float(r.get("overall_score") or 0)
+        song = r.get("song_title") or r.get("user_recording") or "녹음"
+        st.markdown(
+            f"""
+            <div class="vc-record-row">
+                <div>
+                    <p class="vc-record-date">{_format_date(r)}</p>
+                    <p class="vc-record-song">{song}</p>
+                </div>
+                <div class="vc-record-scores">
+                    <span class="vc-record-overall">{overall:.0f}</span>
+                    <span class="vc-record-sub">음{float(scores.get(1) or scores.get('1') or 0):.0f} · 박{float(scores.get(2) or scores.get('2') or 0):.0f} · 호{float(scores.get(3) or scores.get('3') or 0):.0f}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.divider()
-    options = {f"{_format_date(load_record(p))}": p for p in records_paths}
+    options = {}
+    for p in records_paths:
+        try:
+            r = load_record(p)
+            options[f"{_format_date(r)} · {r.get('song_title') or '녹음'}"] = p
+        except Exception:
+            continue
+
+    if not options:
+        return
 
     c1, c2 = st.columns(2)
     with c1:
-        sel = st.selectbox("기록 선택", list(options.keys()))
+        sel = st.selectbox("상세 보기", list(options.keys()), key="mypage_sel")
     with c2:
-        compare_sel = st.selectbox("비교할 이전 기록", ["없음"] + list(options.keys()))
-
-    if not sel:
-        return
+        compare_sel = st.selectbox("비교할 기록", ["없음"] + list(options.keys()), key="mypage_cmp")
 
     path = options[sel]
     record = load_record(path)
     scores = record.get("stage_scores") or {}
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("종합", f"{float(record.get('overall_score') or 0):.0f}")
-    m2.metric("음정", f"{float(scores.get(1) or scores.get('1') or 0):.0f}")
-    m3.metric("박자", f"{float(scores.get(2) or scores.get('2') or 0):.0f}")
-    m4.metric("호흡·음색", f"{float(scores.get(3) or scores.get('3') or 0):.0f}")
-
-    left, right = st.columns(2)
+    left, right = st.columns([1, 1.2])
     with left:
-        render_radar_chart(scores)
+        render_score_ring(float(record.get("overall_score") or 0), label="선택 기록")
     with right:
-        st.markdown(f"**기준 멜로디**  \n{record.get('reference_source', '-')}")
-        teacher = (record.get("stage_details") or {}).get("teacher") or {}
-        strengths = teacher.get("strengths") or []
-        if strengths:
-            st.markdown("**선생님이 칭찬한 점**")
-            for s in strengths[:4]:
-                st.caption(f"· {s}")
+        render_radar_chart(scores)
+
+    teacher = (record.get("stage_details") or {}).get("teacher") or {}
+    strengths = teacher.get("strengths") or []
+    if strengths:
+        st.markdown("**🌟 선생님이 칭찬한 점**")
+        for s in strengths[:4]:
+            st.caption(f"· {s}")
 
     if compare_sel != "없음" and compare_sel in options and options[compare_sel] != path:
         st.markdown("##### 🔄 기록 비교")
-        st.text(compare_records(record, load_record(options[compare_sel])))
+        st.code(compare_records(record, load_record(options[compare_sel])))
 
     with st.expander("JSON 상세"):
         st.json(record)
@@ -127,4 +178,9 @@ def render() -> None:
         json.dumps(record, ensure_ascii=False, indent=2),
         file_name=path.name,
         mime="application/json",
+        key="mypage_dl_json",
     )
+
+    st.divider()
+    if st.button("💬 서비스 피드백 남기기", use_container_width=True, key="mypage_feedback"):
+        go_to("피드백")

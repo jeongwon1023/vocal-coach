@@ -14,8 +14,9 @@ from progress_tracker import load_record, list_records, user_records_dir
 PROJECT_DIR = Path(__file__).resolve().parent
 CHARTS_DIR = PROJECT_DIR / "charts"
 
-plt.rcParams["font.family"] = "Malgun Gothic"
-plt.rcParams["axes.unicode_minus"] = False
+from ui.runtime_env import configure_matplotlib
+
+configure_matplotlib()
 
 STAGE_LABELS = {1: "음정", 2: "박자·리듬", 3: "호흡·음색"}
 

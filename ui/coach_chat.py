@@ -338,6 +338,10 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     from ui.analysis_settings import render_settings_open_button
 
     render_settings_open_button(key="btn_open_analysis_settings_results")
+    if st.button("💬 피드백 남기기", use_container_width=True, key="btn_coach_feedback"):
+        from ui.navigation import go_to
+
+        go_to("피드백")
     if st.button("🎤 다른 곡 분석하기", use_container_width=True, key="btn_new_analysis"):
         for key in (
             "last_session",

@@ -1,10 +1,10 @@
-"""상단 네비게이션 — Yousician/Moises 스타일 글래스 헤더."""
+"""상단 네비게이션 — 클릭 가능한 브랜드 · 세그먼트 · 로그인."""
 
 from __future__ import annotations
 
 import streamlit as st
 
-from ui.navigation import PAGES, current_page, init_nav
+from ui.navigation import PAGES, current_page, go_to, init_nav
 
 
 def render_navbar() -> str:
@@ -14,30 +14,19 @@ def render_navbar() -> str:
     init_nav()
     current = current_page()
 
-    st.markdown(
-        """
-        <div class="vc-header-shell">
-            <div class="vc-header-glow"></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="vc-nav-anchor"></div>', unsafe_allow_html=True)
 
-    c_brand, c_nav, c_auth = st.columns([2.4, 4.2, 2.4], vertical_alignment="center")
+    c_brand, c_nav, c_auth = st.columns([2.3, 4.8, 2.3], vertical_alignment="center")
 
     with c_brand:
-        st.markdown(
-            """
-            <div class="vc-header-brand">
-                <span class="vc-header-logo">🎤</span>
-                <div class="vc-header-titles">
-                    <span class="vc-header-name">VOCAL COACH AI</span>
-                    <span class="vc-header-tag">AI 보컬 레슨실</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        if st.button(
+            "🎤 VOCAL COACH AI",
+            key="nav_brand_home",
+            help="홈으로 이동",
+            type="tertiary",
+            use_container_width=True,
+        ):
+            go_to("홈")
 
     with c_nav:
         picked = st.segmented_control(

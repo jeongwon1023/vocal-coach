@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from ui import styles
+from ui.runtime_env import default_use_queue
 
 
 def render_analysis_settings() -> None:
@@ -52,7 +53,7 @@ def render_analysis_settings() -> None:
     styles.sidebar_label("고급")
     st.checkbox("문제 구간 클립", key="export_clips", value=False)
     st.checkbox("성장 그래프", key="growth_chart", value=False)
-    st.checkbox("백그라운드 분석 큐", key="use_queue", value=True)
+    st.checkbox("백그라운드 분석 큐", key="use_queue", value=default_use_queue())
     st.divider()
     st.markdown(
         "<div class='tip-box' style='font-size:0.82rem;'>"

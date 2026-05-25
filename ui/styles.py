@@ -79,26 +79,54 @@ def apply(page: str = "홈") -> None:
             max-width: 1100px !important;
         }
 
-        /* ── Header bar (Moises / Yousician) ── */
+        /* ── Header bar — 클릭 방해 없음 ── */
         .vc-header-shell {
+            pointer-events: none !important;
+        }
+        .vc-nav-anchor + [data-testid="stHorizontalBlock"] {
             position: relative;
-            margin: -0.5rem -1rem 0;
-            padding: 0.85rem 1rem 0.25rem;
-            background: rgba(9, 9, 11, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--vc-border);
-            z-index: 999;
+            z-index: 100;
+            background: rgba(9, 9, 11, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--vc-border);
+            border-radius: 14px;
+            padding: 0.45rem 0.65rem !important;
+            margin: -0.25rem 0 0.35rem !important;
         }
         .vc-header-glow {
-            position: absolute;
-            top: 0; left: 20%; right: 20%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--vc-accent), transparent);
-            opacity: 0.6;
+            pointer-events: none !important;
         }
         .vc-header-divider {
-            height: 0.75rem;
+            height: 0.5rem;
+        }
+        .st-key-nav_brand_home button {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: #fafafa !important;
+            font-weight: 800 !important;
+            font-size: 0.82rem !important;
+            letter-spacing: -0.02em !important;
+            text-align: left !important;
+            padding: 0.35rem 0.25rem !important;
+            justify-content: flex-start !important;
+        }
+        .st-key-nav_brand_home button:hover {
+            color: #c4b5fd !important;
+            background: rgba(99,102,241,0.08) !important;
+        }
+        .st-key-nav_segment,
+        .st-key-top_auth_popover,
+        .st-key-top_auth_user {
+            position: relative;
+            z-index: 101;
+        }
+        .vc-beta-banner {
+            pointer-events: none;
+        }
+        .vc-beta-banner * {
+            pointer-events: none;
         }
         .vc-header-brand {
             display: flex;
@@ -147,11 +175,12 @@ def apply(page: str = "홈") -> None:
         .st-key-nav_segment [role="radio"] {
             color: var(--vc-muted) !important;
             font-weight: 600 !important;
-            font-size: 0.85rem !important;
+            font-size: 0.78rem !important;
             border-radius: 9px !important;
             border: none !important;
             background: transparent !important;
             box-shadow: none !important;
+            padding: 0.35rem 0.25rem !important;
         }
         .st-key-nav_segment button[aria-checked="true"],
         .st-key-nav_segment button[data-checked="true"],
@@ -1558,6 +1587,128 @@ def apply(page: str = "홈") -> None:
             color: #71717a !important;
             padding: 0.65rem 0;
         }
+
+        /* 마이 페이지 */
+        .vc-mypage-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.55rem;
+            margin-bottom: 1rem;
+        }
+        .vc-mypage-stat {
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+            border-radius: 12px;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+        }
+        .vc-mypage-stat-val {
+            display: block;
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: #fafafa !important;
+        }
+        .vc-mypage-stat-lbl {
+            display: block;
+            font-size: 0.65rem;
+            color: #71717a !important;
+            margin-top: 0.15rem;
+        }
+        .vc-empty-card {
+            text-align: center;
+            padding: 2rem 1.25rem;
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+        }
+        .vc-empty-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fafafa !important;
+        }
+        .vc-empty-desc {
+            margin: 0.65rem 0 0;
+            font-size: 0.85rem;
+            color: #71717a !important;
+            line-height: 1.5;
+        }
+        .vc-record-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            margin-bottom: 0.45rem;
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+            border-radius: 12px;
+        }
+        .vc-record-date {
+            margin: 0;
+            font-size: 0.72rem;
+            color: #71717a !important;
+        }
+        .vc-record-song {
+            margin: 0.15rem 0 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #e4e4e7 !important;
+        }
+        .vc-record-scores { text-align: right; }
+        .vc-record-overall {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #c4b5fd !important;
+        }
+        .vc-record-sub {
+            font-size: 0.65rem;
+            color: #71717a !important;
+        }
+
+        /* 피드백 */
+        .vc-feedback-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .vc-feedback-stat {
+            font-size: 0.75rem;
+            color: #a1a1aa !important;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+        }
+        .vc-feedback-card {
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+            border-radius: 12px;
+            padding: 0.75rem 0.9rem;
+            margin-bottom: 0.45rem;
+        }
+        .vc-feedback-card-meta {
+            margin: 0;
+            font-size: 0.68rem;
+            color: #a78bfa !important;
+            font-weight: 700;
+        }
+        .vc-feedback-card-msg {
+            margin: 0.35rem 0 0;
+            font-size: 0.82rem;
+            color: #d4d4d8 !important;
+            line-height: 1.45;
+        }
+        .st-key-beta_feedback_shortcut button {
+            background: rgba(99,102,241,0.15) !important;
+            color: #c4b5fd !important;
+            border: 1px solid rgba(129,140,248,0.35) !important;
+            font-weight: 700 !important;
+            min-height: 2.4rem !important;
+        }
         [data-testid="stTabs"] [data-baseweb="tab-list"] {
             gap: 0.35rem;
         }
@@ -1599,7 +1750,10 @@ def apply(page: str = "홈") -> None:
             .vc-header-name { font-size: 0.78rem; }
             .vc-header-tag { display: none; }
             .vc-header-logo { width: 34px; height: 34px; font-size: 1rem; }
-            .st-key-nav_segment button { font-size: 0.72rem !important; padding: 0.3rem 0.2rem !important; }
+            .st-key-nav_segment button { font-size: 0.62rem !important; padding: 0.28rem 0.12rem !important; }
+            .st-key-nav_brand_home button { font-size: 0.72rem !important; }
+            .st-key-beta_feedback_shortcut button { font-size: 0.72rem !important; }
+            .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-top_auth_popover,
             .st-key-top_auth_user { max-width: 100%; }
             .st-key-top_auth_popover > div > button,
@@ -1608,12 +1762,27 @@ def apply(page: str = "홈") -> None:
                 padding: 0.4rem 0.5rem !important;
             }
             [data-testid="column"] { min-width: 0 !important; }
+            .vc-login-gate [data-testid="column"] {
+                flex: 1 1 100% !important;
+                width: 100% !important;
+            }
+            .vc-gate-hint { text-align: center !important; margin-top: 0.5rem; }
+            .vc-score-strip { justify-content: center; }
+            .vc-score-chip { min-width: 56px; font-size: 0.95rem; }
+            .vc-result-hero-inner { flex-direction: column; text-align: center; }
+            .vc-result-hero-score { width: 100%; }
+            [data-testid="stFileUploader"] section { padding: 0.5rem !important; }
+            [data-testid="stChatInput"] { padding-bottom: env(safe-area-inset-bottom, 0); }
             .vc-hero-h1 { font-size: clamp(1.75rem, 8vw, 2.4rem); }
+            .st-key-landing_cta, .st-key-landing_cta_bottom,
+            .st-key-landing_my, .st-key-btn_open_analysis_settings,
+            .st-key-btn_open_analysis_settings_results,
+            .st-key-btn_start_analysis, .st-key-btn_new_analysis {
+                width: 100% !important;
+            }
             .vc-steps-row { flex-direction: column; }
             .vc-step-arrow { display: none; }
             .vc-step-card { min-width: 100%; }
-            .st-key-landing_cta, .st-key-landing_my,
-            .st-key-landing_cta_bottom { width: 100% !important; }
         }
         @media (max-width: 900px) {
             .vc-header-shell + div [data-testid="column"]:nth-child(1) { flex: 1.2 !important; }
