@@ -12,24 +12,24 @@ def render() -> None:
         """
         <section class="vc-hero-main">
             <div class="vc-hero-badge-row">
-                <span class="vc-hero-pill">✦ 무료 AI 보컬 분석</span>
+                <span class="vc-hero-pill">✦ 100% 무료 · 회원가입 30초</span>
                 <span class="vc-hero-pill vc-hero-pill-live">
                     <span class="vc-live-dot"></span>지금 바로 1분 안에 결과
                 </span>
             </div>
             <h1 class="vc-hero-h1">
-                내 노래,<br>
-                <span class="vc-gradient-text">어디가 아쉬운지</span> 알려드릴게요
+                노래 실력,<br>
+                <span class="vc-gradient-text">감 말고 점수</span>로 확인하세요
             </h1>
             <p class="vc-hero-lead">
-                학원 1회 레슨비 없이, 녹음 한 번이면 끝.<br>
-                <b>음정 · 박자 · 호흡 · 음색</b>을 AI가 듣고, 선생님처럼
-                「잘한 점 → 고칠 점 → 연습법」 순서로 코칭해 드려요.
+                「나 잘 부르는 것 같은데…」 혼자 연습할 때 가장 답답하죠.<br>
+                녹음 <b>한 번</b>만 올리면 <b>음정 · 박자 · 호흡 · 음색</b> 점수와<br>
+                선생님처럼 <b>「잘한 점 → 고칠 점 → 오늘 연습법」</b>을 DM으로 받아요.
             </p>
             <div class="vc-trust-row">
-                <div class="vc-trust-item"><strong>4</strong><span>분석 영역</span></div>
-                <div class="vc-trust-item"><strong>~1분</strong><span>결과 확인</span></div>
-                <div class="vc-trust-item"><strong>0원</strong><span>무료 체험</span></div>
+                <div class="vc-trust-item"><strong>~1분</strong><span>분석 완료</span></div>
+                <div class="vc-trust-item"><strong>0원</strong><span>레슨비</span></div>
+                <div class="vc-trust-item"><strong>4영역</strong><span>정밀 점수</span></div>
                 <div class="vc-trust-item"><strong>24/7</strong><span>언제든</span></div>
             </div>
         </section>
@@ -40,57 +40,57 @@ def render() -> None:
     cta1, cta2 = st.columns([3, 1])
     with cta1:
         if st.button(
-            "🎤 무료로 분석 시작하기",
+            "🎤 내 노래 무료 분석받기",
             type="primary",
             use_container_width=True,
             key="landing_cta",
         ):
-            go_to("분석")
+            go_to("마이 페이지")
     with cta2:
-        if st.button("성장 기록 보기", use_container_width=True, key="landing_my"):
+        if st.button("성장 기록", use_container_width=True, key="landing_my"):
             go_to("마이 페이지")
 
     st.markdown(
         """
-        <p class="vc-section-eyebrow">WHY VOCAL COACH AI</p>
-        <h2 class="vc-section-h2">혼자 연습할 때, 이런 고민 있지 않나요?</h2>
+        <p class="vc-section-eyebrow">WHY NOW</p>
+        <h2 class="vc-section-h2">혼자 연습할 때, 이런 순간 있지 않나요?</h2>
         <div class="vc-pain-grid">
-            <div class="vc-pain-card">😶 「음정은 맞는 것 같은데… 뭔가 어색해」</div>
-            <div class="vc-pain-card">🎧 「MR 깔고 불러도 원곡이랑 다른 느낌」</div>
+            <div class="vc-pain-card">😶 「분명 맞게 부른 것 같은데, 왜 어색하지?」</div>
+            <div class="vc-pain-card">🎧 「MR 깔고 불러도 원곡이랑 느낌이 달라」</div>
             <div class="vc-pain-card">📉 「매일 하는데 실력이 늘었는지 모르겠어」</div>
         </div>
         <p class="vc-section-sub">
-            Vocal Coach AI는 녹음을 <b>객관적으로</b> 들어 드리고,
-            틀린 구간·연습 루틴까지 짚어 줍니다.
+            Vocal Coach AI는 <b>객관적인 점수</b>로 어디가 아쉬운지 보여 주고,
+            <b>다음에 뭘 연습할지</b>까지 짚어 드려요. 레슨비 걱정 없이, 지금 바로.
         </p>
 
-        <p class="vc-section-eyebrow">FEATURES</p>
-        <h2 class="vc-section-h2">이런 걸 한 번에 받아보세요</h2>
+        <p class="vc-section-eyebrow">WHAT YOU GET</p>
+        <h2 class="vc-section-h2">1분 뒤, 이런 결과를 받아요</h2>
         <div class="vc-tech-grid">
             <article class="vc-tech-card vc-tech-card-accent">
                 <span class="vc-tech-icon">🎯</span>
                 <h3>음정 · 멜로디</h3>
-                <p>틀린 구간을 초 단위로 표시. 원곡 가이드와 비교해 어디를 연습할지 바로 알 수 있어요.</p>
+                <p>틀린 구간을 초 단위로 표시. 원곡 가이드와 비교해 「여기만 연습하면 돼」가 바로 보여요.</p>
+            </article>
+            <article class="vc-tech-card">
+                <span class="vc-tech-icon">⏱️</span>
+                <h3>박자 · 리듬</h3>
+                <p>박이 밀리는 구간, 프레이즈 타이밍까지 짚어 줘요. 메트로놈 없이도 약점이 보여요.</p>
             </article>
             <article class="vc-tech-card">
                 <span class="vc-tech-icon">🫁</span>
-                <h3>호흡 · 다이내믹</h3>
-                <p>프레이즈마다 호흡이 흔들리는지, 크레센도는 자연스러운지 분석해요.</p>
+                <h3>호흡 · 음색</h3>
+                <p>호흡이 흔들리는 구간, 목소리 톤의 차이를 수치로. 「예쁘게 부르는 법」의 힌트까지.</p>
             </article>
             <article class="vc-tech-card">
-                <span class="vc-tech-icon">🎨</span>
-                <h3>음색 · 배음</h3>
-                <p>목소리만의 톤과 프로급 발성의 차이를 수치로 보여 드려요.</p>
-            </article>
-            <article class="vc-tech-card">
-                <span class="vc-tech-icon">📈</span>
-                <h3>성장 기록</h3>
-                <p>로그인하면 점수가 쌓여요. 같은 곡을 다시 불러도 얼마나 나아졌는지 비교.</p>
+                <span class="vc-tech-icon">💬</span>
+                <h3>AI 코치 DM</h3>
+                <p>분석 후 선생님이 DM처럼 코칭. 「10분 루틴 짜줘」처럼 궁금한 것도 바로 물어보세요.</p>
             </article>
         </div>
 
         <p class="vc-section-eyebrow">HOW IT WORKS</p>
-        <h2 class="vc-section-h2">3단계면 끝나요</h2>
+        <h2 class="vc-section-h2">딱 3단계 · 1분이면 끝</h2>
         <div class="vc-steps-row">
             <div class="vc-step-card">
                 <span class="vc-step-num">01</span>
@@ -101,18 +101,18 @@ def render() -> None:
             <div class="vc-step-card">
                 <span class="vc-step-num">02</span>
                 <strong>AI 분석</strong>
-                <small>약 1분 · 음정·박자·호흡·음색</small>
+                <small>약 1분 · 4영역 점수 + 그래프</small>
             </div>
             <div class="vc-step-arrow">→</div>
             <div class="vc-step-card">
                 <span class="vc-step-num">03</span>
                 <strong>맞춤 코칭</strong>
-                <small>연습법 · 마이 페이지 저장</small>
+                <small>연습법 · 마이 페이지에 기록 저장</small>
             </div>
         </div>
 
         <div class="vc-featured-card">
-            <span class="vc-featured-tag">🔥 가장 많이 쓰는 기능</span>
+            <span class="vc-featured-tag">🔥 가장 인기 있는 기능</span>
             <h3>유튜브 가이드 레슨</h3>
             <p>
                 곡 제목만 입력하면 원곡 MR·가이드 보컬과 내 목소리를 비교해요.
@@ -121,17 +121,17 @@ def render() -> None:
         </div>
 
         <blockquote class="vc-testimonial">
-            <p>「점수 0점이 아니라, <b>다음에 연습할 것</b>을 알려주는 나침반이에요.」</p>
-            <cite>— Vocal Coach AI · 보컬 선생님 철학</cite>
+            <p>「점수만 주는 게 아니라, <b>오늘 밤에 뭘 연습할지</b> 알려주는 나침반이에요.」</p>
+            <cite>— 베타 테스터 · Vocal Coach AI</cite>
         </blockquote>
 
         <footer class="vc-footer">
-            <p>VOCAL COACH AI · 보컬 학원을 대체하는 AI 레슨실</p>
-            <p class="vc-footer-sub">Google · 카카오 로그인 · 체험 계정 지원</p>
+            <p>VOCAL COACH AI · 레슨비 없이, 내 노래를 객관적으로 듣는 AI</p>
+            <p class="vc-footer-sub">Google · 카카오 로그인 · 체험 계정으로 30초 만에 시작</p>
         </footer>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("🎤 지금 바로 무료 분석하기", type="primary", use_container_width=True, key="landing_cta_bottom"):
-        go_to("분석")
+    if st.button("🎤 지금 내 노래 분석받기 — 무료", type="primary", use_container_width=True, key="landing_cta_bottom"):
+        go_to("마이 페이지")

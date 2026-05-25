@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 from typing import Any
 
 import streamlit as st
@@ -219,7 +220,7 @@ def _render_result_hero(session: dict[str, Any]) -> None:
 
     s4 = next((s for s in report.stages if s.stage == 4), None)
     strengths = (s4.details.get("teacher_strengths") if s4 else None) or []
-    strength_line = strengths[0] if strengths else "오늘도 연습하러 와 줘서 고마워요"
+    strength_line = html.escape(strengths[0] if strengths else "오늘도 연습하러 와 줘서 고마워요")
 
     weakest = min(stages, key=lambda s: s.score) if stages else None
     focus_line = ""
@@ -237,7 +238,7 @@ def _render_result_hero(session: dict[str, Any]) -> None:
             <div class="vc-result-hero-inner">
                 <div class="vc-result-hero-left">
                     <span class="vc-result-badge">레슨 완료 ✓</span>
-                    <h2 class="vc-result-hero-title">{name}님, 수고했어요!</h2>
+                    <h2 class="vc-result-hero-title">{html.escape(name)}님, 수고했어요!</h2>
                     <p class="vc-result-hero-strength">🌟 {strength_line}</p>
                     <p class="vc-result-hero-focus">{focus_line}</p>
                 </div>
@@ -343,13 +344,7 @@ def render_coach_dm(session: dict[str, Any]) -> None:
 
         go_to("피드백")
     if st.button("🎤 다른 곡 분석하기", use_container_width=True, key="btn_new_analysis"):
-        for key in (
-            "last_session",
-            "last_log",
-            "coach_chat_fp",
-            "coach_chat_messages",
-            "coach_suggested_questions",
-            "coach_gpt_enhanced",
-        ):
-            st.session_state.pop(key, None)
+        from ui.dashboard import clear_results_state
+
+        clear_results_state()
         st.rerun()

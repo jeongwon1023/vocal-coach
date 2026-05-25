@@ -84,7 +84,7 @@ def render_feedback_page() -> None:
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🎤 분석하러 가기", use_container_width=True, key="fb_go_analysis"):
-            go_to("분석")
+            go_to("마이 페이지")
     with c2:
         if st.button("📈 마이 페이지", use_container_width=True, key="fb_go_mypage"):
             go_to("마이 페이지")

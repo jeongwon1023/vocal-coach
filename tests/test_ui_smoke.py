@@ -36,9 +36,9 @@ def test_navigation_pages() -> None:
     from ui.navigation import PAGES
 
     assert "홈" in PAGES
-    assert "분석" in PAGES
     assert "마이 페이지" in PAGES
     assert "피드백" in PAGES
+    assert "분석" not in PAGES
 
 
 def test_auth_login_compact_accepts_prefix() -> None:

@@ -83,10 +83,10 @@ def apply(page: str = "홈") -> None:
         .vc-header-shell {
             pointer-events: none !important;
         }
-        .vc-nav-anchor + [data-testid="stHorizontalBlock"] {
+        .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
             position: relative;
-            z-index: 100;
-            background: rgba(9, 9, 11, 0.92);
+            z-index: 200;
+            background: rgba(9, 9, 11, 0.95);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--vc-border);
@@ -94,11 +94,24 @@ def apply(page: str = "홈") -> None:
             padding: 0.45rem 0.65rem !important;
             margin: -0.25rem 0 0.35rem !important;
         }
-        .vc-header-glow {
-            pointer-events: none !important;
+        [class*="st-key-nav_btn_"] {
+            position: relative;
+            z-index: 201;
         }
-        .vc-header-divider {
-            height: 0.5rem;
+        [class*="st-key-nav_btn_"] button {
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            padding: 0.35rem 0.25rem !important;
+            min-height: 2.1rem !important;
+        }
+        [class*="st-key-nav_btn_"] button[kind="primary"] {
+            background: rgba(99,102,241,0.35) !important;
+            border: 1px solid rgba(129,140,248,0.5) !important;
+            color: #e0e7ff !important;
+        }
+        .st-key-nav_brand_home {
+            position: relative;
+            z-index: 201;
         }
         .st-key-nav_brand_home button {
             background: transparent !important;
@@ -1656,6 +1669,61 @@ def apply(page: str = "홈") -> None:
             font-weight: 600;
             color: #e4e4e7 !important;
         }
+        .vc-record-sub {
+            margin: 0;
+            font-size: 0.68rem;
+            color: #52525b !important;
+        }
+        .vc-history-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.35rem;
+            background: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, var(--vc-card) 45%);
+            border: 1px solid rgba(129,140,248,0.28);
+            border-left: 3px solid var(--banner-accent, #6366f1);
+            border-radius: 14px;
+        }
+        .vc-history-banner-left { flex: 1; min-width: 0; }
+        .vc-history-date {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #a5b4fc !important;
+            background: rgba(99,102,241,0.18);
+            padding: 0.15rem 0.45rem;
+            border-radius: 6px;
+            margin-bottom: 0.35rem;
+        }
+        .vc-history-song {
+            margin: 0;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #fafafa !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vc-history-sub {
+            margin: 0.25rem 0 0;
+            font-size: 0.72rem;
+            color: #71717a !important;
+        }
+        .vc-history-score { text-align: center; flex-shrink: 0; }
+        .vc-history-overall {
+            display: block;
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--banner-accent, #c4b5fd) !important;
+            line-height: 1;
+        }
+        .vc-history-score-label {
+            display: block;
+            font-size: 0.65rem;
+            color: #71717a !important;
+        }
         .vc-record-scores { text-align: right; }
         .vc-record-overall {
             display: block;
@@ -1750,8 +1818,8 @@ def apply(page: str = "홈") -> None:
             .vc-header-name { font-size: 0.78rem; }
             .vc-header-tag { display: none; }
             .vc-header-logo { width: 34px; height: 34px; font-size: 1rem; }
-            .st-key-nav_segment button { font-size: 0.62rem !important; padding: 0.28rem 0.12rem !important; }
             .st-key-nav_brand_home button { font-size: 0.72rem !important; }
+            [class*="st-key-nav_btn_"] button { font-size: 0.65rem !important; padding: 0.28rem 0.1rem !important; }
             .st-key-beta_feedback_shortcut button { font-size: 0.72rem !important; }
             .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-top_auth_popover,

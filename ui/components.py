@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import io
 import json
 from pathlib import Path
@@ -84,19 +85,20 @@ def render_stage_score_cards(stages: list[Any]) -> None:
         color = _score_color(stage.score)
         pct = min(max(stage.score, 0), 100)
         title = stage.title.split(":")[-1].strip() if ":" in stage.title else short
+        caption = stage.summary[:48] + ("…" if len(stage.summary) > 48 else "")
         cards.append(
             f"""
             <div class="vc-stage-card" style="--accent:{color}">
                 <div class="vc-stage-card-top">
                     <span class="vc-stage-icon">{emoji}</span>
-                    <span class="vc-stage-label">{title}</span>
+                    <span class="vc-stage-label">{html.escape(title)}</span>
                 </div>
                 <div class="vc-stage-score-row">
                     <span class="vc-stage-score">{stage.score:.0f}</span>
                     <span class="vc-stage-grade">{_score_grade(stage.score)}</span>
                 </div>
                 <div class="vc-stage-bar"><div style="width:{pct:.0f}%"></div></div>
-                <p class="vc-stage-caption">{stage.summary[:48]}{"…" if len(stage.summary) > 48 else ""}</p>
+                <p class="vc-stage-caption">{html.escape(caption)}</p>
             </div>
             """
         )
@@ -162,7 +164,7 @@ def render_coaching_stages(report: Any) -> None:
             expanded=(stage.stage == 4),
         ):
             st.markdown(
-                f'<p class="vc-coach-summary" style="border-left:3px solid {color}">{stage.summary}</p>',
+                f'<p class="vc-coach-summary" style="border-left:3px solid {color}">{html.escape(stage.summary)}</p>',
                 unsafe_allow_html=True,
             )
             for j, block in enumerate(stage.coaching_blocks, 1):

@@ -16,23 +16,26 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 st.set_page_config(
-    page_title="Vocal Coach AI",
+    page_title="Vocal Coach AI — 무료 보컬 분석",
     page_icon="🎤",
     layout="wide",
     initial_sidebar_state="collapsed",
+    menu_items={
+        "About": "Vocal Coach AI — 녹음 한 번으로 음정·박자·호흡 분석 + AI 코칭. 무료 체험 가능.",
+    },
 )
 
 
 def _import_ui():
     from gpt_coach import load_dotenv_if_present
-    from ui import auth, dashboard, landing, my_page, navbar, navigation, styles
+    from ui import auth, landing, my_page, navbar, navigation, styles
 
     load_dotenv_if_present(PROJECT_DIR)
-    return auth, dashboard, landing, my_page, navbar, navigation, styles
+    return auth, landing, my_page, navbar, navigation, styles
 
 
 try:
-    auth, dashboard, landing, my_page, navbar, navigation, styles = _import_ui()
+    auth, landing, my_page, navbar, navigation, styles = _import_ui()
 except Exception:
     st.error("모듈을 불러오지 못했습니다.")
     st.code(traceback.format_exc())
@@ -57,8 +60,6 @@ render_beta_banner()
 
 if page == "홈":
     landing.render()
-elif page == "분석":
-    dashboard.render()
 elif page == "피드백":
     from ui.user_feedback import render_feedback_page
 

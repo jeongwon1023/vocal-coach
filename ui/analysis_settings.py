@@ -78,3 +78,9 @@ def render_settings_open_button(*, key: str = "btn_open_analysis_settings") -> N
         help="정밀 분석 · 유튜브 · GPT 등",
     ):
         open_analysis_settings_dialog()
+
+
+def render_analysis_settings_expander(*, expanded: bool = True) -> None:
+    """인라인 분석 설정 — 기본 펼침."""
+    with st.expander("⚙️ 분석 설정", expanded=expanded):
+        render_analysis_settings()

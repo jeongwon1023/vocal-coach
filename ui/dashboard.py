@@ -1,4 +1,4 @@
-"""분석 대시보드 — 로그인 필수 · 친화형 진행 UI · 결과 화면."""
+"""분석 대시보드 — 마이 페이지에서 호출 · 업로드 · 진행 · 결과."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 from ui.analysis_eta import format_eta, remaining_seconds
-from ui.beta import render_beta_footer
 from ui.coach_chat import render_coach_dm
 from ui.progress import make_callback, render_stepper
 
@@ -45,7 +44,7 @@ def _analysis_options() -> dict:
     }
 
 
-def _is_analyzing() -> bool:
+def is_analyzing() -> bool:
     return bool(st.session_state.get("pending_job_id") or st.session_state.get("sync_audio_path"))
 
 
@@ -70,7 +69,7 @@ def _mark_analysis_started(opts: dict) -> None:
     st.session_state["analysis_use_gpt"] = opts["use_gpt"]
 
 
-def _clear_analysis_state() -> None:
+def clear_analysis_state() -> None:
     for key in (
         "pending_job_id",
         "sync_audio_path",
@@ -81,78 +80,19 @@ def _clear_analysis_state() -> None:
         st.session_state.pop(key, None)
 
 
-def _render_login_gate() -> None:
-    from ui.auth import start_demo
+def _persist_session_cache(session: dict, opts: dict) -> None:
+    user_id = opts.get("user_id")
+    if not user_id:
+        return
+    try:
+        from ui.session_cache import save_session_cache
 
-    st.markdown(
-        """
-        <div class="vc-login-gate">
-            <div class="vc-chat-card vc-login-card">
-                <div class="vc-chat-avatar">🔐</div>
-                <div class="vc-chat-body">
-                    <p class="vc-chat-name">Vocal Coach AI</p>
-                    <p class="vc-chat-msg">분석을 시작하려면 로그인이 필요해요.<br>
-                    카카오 · Google · 체험 계정 중 하나를 선택해 주세요.</p>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("✦ 체험 계정으로 시작", type="primary", use_container_width=True, key="gate_demo"):
-            start_demo()
-    with col2:
-        st.markdown(
-            '<p class="vc-gate-hint">또는 상단 <b>로그인 / 회원가입</b> 클릭</p>',
-            unsafe_allow_html=True,
-        )
-
-
-def _render_settings_summary(opts: dict) -> None:
-    """현재 설정 요약 + 설정 열기 버튼."""
-    from ui.analysis_settings import render_settings_open_button
-
-    mode = _mode_label(opts)
-    yt = "ON" if opts["use_youtube"] else "OFF"
-    gpt = "ON" if opts["use_gpt"] else "OFF"
-    st.markdown(
-        f"""
-        <div class="vc-settings-pill-row">
-            <span class="vc-settings-pill">⚡ {mode}</span>
-            <span class="vc-settings-pill">📺 유튜브 {yt}</span>
-            <span class="vc-settings-pill">🤖 GPT {gpt}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<p class="vc-sidebar-hint-text">아래 <b>분석 설정</b> 버튼에서 정밀 분석 · 유튜브 · GPT를 바꿀 수 있어요</p>',
-        unsafe_allow_html=True,
-    )
-    render_settings_open_button()
-
-
-def _render_page_head(opts: dict) -> None:
-    from ui.auth import current_user
-
-    user = current_user()
-    name = user.get("name", "학습자") if user else "학습자"
-    st.markdown(
-        f"""
-        <div class="vc-page-head">
-            <h2 class="vc-page-title">안녕하세요, {name}님 👋</h2>
-            <p class="vc-page-desc">녹음 파일을 올리면 1분 안에 코칭 결과를 받아요.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    _render_settings_summary(opts)
+        save_session_cache(user_id, session, session.get("record_path"))
+    except Exception:
+        pass
 
 
 def _render_analyzing_view(pct: float, message: str, opts: dict) -> tuple:
-    """분석 중 전용 화면 — 채팅형 카드 + 남은 시간."""
     mode = _mode_label(opts)
     eta = _eta_for_progress(pct, opts)
     st.markdown(
@@ -197,6 +137,8 @@ def _poll_queue_job(job_id: str, stepper_ph, opts: dict) -> str:
         session = load_session_for_job(job_id)
         if session:
             st.session_state["last_session"] = session
+            _persist_session_cache(session, opts)
+            st.session_state["mypage_show_result"] = True
             return "done"
         st.warning("결과를 불러오지 못했습니다. 다시 시도해 주세요.")
         return "failed"
@@ -242,14 +184,12 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
             )
         st.session_state["last_session"] = session
         st.session_state["last_log"] = buf.getvalue()
+        _persist_session_cache(session, opts)
+        st.session_state["mypage_show_result"] = True
         return True
     except Exception as exc:
         st.error(f"분석 실패: {exc}")
         return False
-
-
-def _render_results_view() -> None:
-    render_coach_dm(st.session_state["last_session"])
 
 
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
@@ -278,26 +218,28 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
     sample = PROJECT_DIR / "sample.mp3"
     use_sample = st.toggle(
         "샘플(sample.mp3)으로 테스트",
-        value=uploaded is None and sample.exists() and not disabled,
+        value=False,
         key="use_sample_check",
         disabled=disabled,
     )
 
-    if uploaded is None and not use_sample and not disabled:
-        from ui.help_guide import render_youtube_guide_inline
-        from ui.welcome import render as render_welcome
-
-        render_youtube_guide_inline()
-        render_welcome()
-        return
+    has_file = uploaded is not None or (use_sample and sample.exists())
 
     if uploaded is not None and not disabled:
         ext = uploaded.name.rsplit(".", 1)[-1].lower()
         st.audio(uploaded.getvalue(), format=f"audio/{ext}")
 
+    if not has_file and not disabled:
+        st.warning("녹음 파일을 업로드하지 않았어요. 파일을 선택한 뒤 분석을 시작해 주세요.")
+        from ui.help_guide import render_youtube_guide_inline
+        from ui.welcome import render as render_welcome
+
+        render_youtube_guide_inline()
+        render_welcome()
+
     mode_label = _mode_label(opts)
     st.markdown(
-        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · <b>분석 설정</b> 버튼에서 변경</p>',
+        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 위 <b>분석 설정</b>에서 변경</p>',
         unsafe_allow_html=True,
     )
     if st.button(
@@ -305,7 +247,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         type="primary",
         use_container_width=True,
         key="btn_start_analysis",
-        disabled=disabled,
+        disabled=disabled or not has_file,
     ):
         upload_dir = PROJECT_DIR / ".cache" / "uploads"
         upload_dir.mkdir(parents=True, exist_ok=True)
@@ -316,7 +258,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         elif use_sample and sample.exists():
             audio_path = sample
         else:
-            st.warning("녹음 파일을 선택하거나 샘플 테스트를 켜 주세요.")
+            st.warning("녹음 파일을 업로드하지 않았어요. 파일을 선택한 뒤 다시 시도해 주세요.")
             return
 
         try:
@@ -352,22 +294,15 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         st.rerun()
 
 
-def render() -> None:
-    from ui.auth import is_logged_in
-
-    if not is_logged_in():
-        _render_login_gate()
-        return
+def render_analysis_section(*, show_settings: bool = True) -> None:
+    """마이 페이지 내 새 분석 — 설정(펼침) + 업로드 + 진행."""
+    from ui.analysis_settings import render_analysis_settings_expander
 
     opts = _analysis_options()
-    analyzing = _is_analyzing()
+    analyzing = is_analyzing()
 
-    if st.session_state.get("last_session") and not analyzing:
-        _render_results_view()
-        render_beta_footer()
-        return
-
-    _render_page_head(opts)
+    if show_settings and not analyzing:
+        render_analysis_settings_expander(expanded=True)
 
     pending = st.session_state.get("pending_job_id")
     if pending:
@@ -376,11 +311,11 @@ def render() -> None:
         stepper_ph = _render_analyzing_view(0, "분석 준비 중…", opts)
         result = _poll_queue_job(pending, stepper_ph, opts)
         if result == "done":
-            _clear_analysis_state()
+            clear_analysis_state()
             st.balloons()
             st.rerun()
         elif result == "failed":
-            _clear_analysis_state()
+            clear_analysis_state()
         _render_upload_form(opts, disabled=True)
         return
 
@@ -392,13 +327,34 @@ def render() -> None:
         ok = _run_sync_analysis(Path(sync_path), opts, stepper_ph)
         st.session_state.pop("sync_audio_path", None)
         if ok:
-            _clear_analysis_state()
+            clear_analysis_state()
             st.balloons()
             st.rerun()
         else:
-            _clear_analysis_state()
+            clear_analysis_state()
         _render_upload_form(opts, disabled=True)
         return
 
     _render_upload_form(opts, disabled=False)
-    render_beta_footer()
+
+
+def render_results_view() -> None:
+    render_coach_dm(st.session_state["last_session"])
+
+
+def clear_results_state() -> None:
+    for key in (
+        "last_session",
+        "last_log",
+        "coach_chat_fp",
+        "coach_chat_messages",
+        "coach_suggested_questions",
+        "coach_gpt_enhanced",
+        "mypage_show_result",
+    ):
+        st.session_state.pop(key, None)
+
+
+def render() -> None:
+    """하위 호환 — 마이 페이지 분석 섹션."""
+    render_analysis_section()
