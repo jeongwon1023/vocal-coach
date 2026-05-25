@@ -138,11 +138,17 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
 
 def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
     stats = _record_stats(records_paths)
+    try:
+        from db_store import storage_mode
+
+        storage_hint = "클라우드+로컬" if storage_mode() == "supabase" else "기기 로컬"
+    except Exception:
+        storage_hint = "기기 로컬"
     st.markdown(
         f"""
         <div class="vc-page-head">
             <h2 class="vc-page-title">{html.escape(name)}님의 마이 페이지 🎤</h2>
-            <p class="vc-page-desc">새 분석 · 완료 기록 · 성장 곡선을 한곳에서</p>
+            <p class="vc-page-desc">새 분석 · 완료 기록 · 성장 곡선을 한곳에서 · 저장: {html.escape(storage_hint)}</p>
         </div>
         <div class="vc-mypage-stats">
             <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['count']}</span><span class="vc-mypage-stat-lbl">분석 횟수</span></div>

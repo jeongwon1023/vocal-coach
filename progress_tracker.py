@@ -53,6 +53,15 @@ def save_record(
     if user_id:
         data = {**data, "user_id": user_id}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    if user_id:
+        try:
+            from db_store import mirror_analysis_record
+
+            mirror_analysis_record(data, user_id=user_id)
+        except Exception:
+            pass
+
     return path
 
 

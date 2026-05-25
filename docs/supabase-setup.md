@@ -40,10 +40,13 @@ SUPABASE_KEY = "eyJ..."
 - `SUPABASE_URL` 없음 → 기존처럼 `records/*.json` (로컬)
 - `SUPABASE_URL` 있음 → Supabase 저장 (로그인 연동 후 user_id 사용)
 
-## 5. 다음 작업 (아직 미구현)
+## 5. 동작 (베타)
 
-- [ ] Streamlit 로그인 UI (Supabase Auth)
-- [ ] 마이 페이지에서 Supabase 기록 조회
-- [ ] user_id와 analysis_records 연결
+- **로컬 JSON** — 항상 `records/users/{user_id}/` 에 저장 (Streamlit Cloud 재시작 대비)
+- **Supabase** — Secrets 설정 시 **로컬 + 클라우드 동시 저장** (미러)
+- `user_id` — 체험 계정(`demo_xxx`)·OAuth 공통 text
 
-지금은 **스키마 + 저장소 추상화**만 준비되어 있습니다.
+## 6. 다음 작업
+
+- [ ] Supabase Auth와 RLS 정책 강화 (정식 런칭 전)
+- [ ] 마이 페이지 Supabase 기록 우선 조회

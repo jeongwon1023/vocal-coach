@@ -1730,6 +1730,16 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] li:last-child {
             margin-bottom: 0 !important;
         }
+        .st-key-vc_dm_panel hr,
+        .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] hr {
+            display: none !important;
+            border: none !important;
+            margin: 0 !important;
+            height: 0 !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stCaptionContainer"] {
+            display: none !important;
+        }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] p,
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] li {
             color: #ffffff !important;

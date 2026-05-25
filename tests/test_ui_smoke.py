@@ -83,6 +83,7 @@ def test_coach_chat_helpers() -> None:
     qs = _rule_suggested_questions(session)
     assert len(qs) == 3
     assert _normalize_chat_markdown("~~취소선~~ 테스트") == "취소선 테스트"
+    assert "---" not in _normalize_chat_markdown("안녕\n---\n테스트")
     assert "🌟" in _normalize_chat_markdown("안녕\n🌟 **잘한 점**")
     steps = format_step_lines("① 첫째 ② 둘째 ③ 셋째")
     assert steps.count("①") == 1

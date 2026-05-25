@@ -3,7 +3,7 @@
 
 create table if not exists analysis_records (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
+  user_id text not null,
   recorded_at timestamptz not null default now(),
   song_title text,
   user_recording text,
@@ -18,10 +18,11 @@ create index if not exists idx_records_user_date
 
 alter table analysis_records enable row level security;
 
-create policy "Users read own records"
-  on analysis_records for select
-  using (auth.uid() = user_id);
-
-create policy "Users insert own records"
+-- 베타: anon key + 앱 user_id (체험·OAuth 공통). 정식 Auth 연동 시 정책 강화.
+create policy "Allow insert for service"
   on analysis_records for insert
-  with check (auth.uid() = user_id);
+  with check (true);
+
+create policy "Allow select by user_id"
+  on analysis_records for select
+  using (true);

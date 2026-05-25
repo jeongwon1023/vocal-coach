@@ -53,7 +53,9 @@ def _normalize_chat_markdown(text: str) -> str:
 
     cleaned = re.sub(r"~~([^~]*?)~~", r"\1", cleaned)
     cleaned = cleaned.replace("~~", "")
-    cleaned = re.sub(r"^\s*---+\s*$", "", cleaned, flags=re.M)
+    # --- / *** / ___ 구분선 제거 (GPT·교재 발췌 잔여)
+    cleaned = re.sub(r"^\s*[-*_]{3,}\s*.*$", "", cleaned, flags=re.M)
+    cleaned = re.sub(r"\n[-*_]{3,}\s*", "\n", cleaned)
     cleaned = re.sub(r"(\d+)~(\d+)", r"\1–\2", cleaned)
     return format_readable_paragraphs(cleaned)
 
@@ -188,22 +190,37 @@ def _rule_reply(session: dict[str, Any], user_message: str) -> str:
     )
 
 
-def _fetch_rag(user_text: str, session: dict[str, Any]) -> tuple[str, list[str]]:
-    """RAG 검색 → (prompt_block, source_labels). 실패 시 빈 값."""
+def _fetch_rag(user_text: str, session: dict[str, Any]) -> str:
+    """RAG 검색 → GPT 프롬프트 블록 (UI에는 출처 미표시)."""
     try:
         from coach_rag import retrieve_for_coaching
 
         payload = _analysis_payload(session)
         bundle = retrieve_for_coaching(user_text, payload)
-        return bundle.prompt_block, bundle.source_labels
+        return bundle.prompt_block
     except Exception:
-        return "", []
+        return ""
 
 
-def _generate_reply(session: dict[str, Any]) -> tuple[str, list[str]]:
+def _append_user_message(text: str) -> None:
+    """사용자 메시지 추가 + 타이핑 상태 (rerun은 호출하지 않음)."""
+    normalized = _normalize_chat_markdown(text)
+    if not normalized:
+        return
+    messages: list[dict[str, str]] = st.session_state.coach_chat_messages
+    messages.append({"role": "user", "content": normalized})
+    st.session_state.coach_show_typing = True
+    st.session_state.coach_generating = False
+
+
+def _on_pill_click(question: str) -> None:
+    st.session_state["coach_pending_message"] = question
+
+
+def _generate_reply(session: dict[str, Any]) -> str:
     messages: list[dict[str, str]] = st.session_state.coach_chat_messages
     user_text = messages[-1]["content"] if messages else ""
-    rag_block, rag_sources = _fetch_rag(user_text, session)
+    rag_block = _fetch_rag(user_text, session)
     try:
         from gpt_coach import generate_coach_chat_reply
 
@@ -213,10 +230,10 @@ def _generate_reply(session: dict[str, Any]) -> tuple[str, list[str]]:
             payload, history, user_text, rag_block=rag_block or None
         )
         if reply and reply.strip():
-            return reply.strip(), rag_sources
+            return reply.strip()
     except Exception:
         pass
-    return _rule_reply(session, user_text), rag_sources
+    return _rule_reply(session, user_text)
 
 
 def _opening_is_rich(text: str) -> bool:
@@ -257,12 +274,10 @@ def _init_chat(session: dict[str, Any]) -> None:
         from gpt_coach import generate_coach_opening, generate_suggested_questions_gpt
 
         payload = _analysis_payload(session)
-        rag_block, rag_sources = _fetch_rag("분석 직후 첫 코칭", session)
+        rag_block = _fetch_rag("분석 직후 첫 코칭", session)
         gpt_opening = generate_coach_opening(payload, rag_block=rag_block or None)
         if gpt_opening and gpt_opening.strip() and _opening_is_rich(gpt_opening):
             st.session_state.coach_chat_messages[0]["content"] = _normalize_chat_markdown(gpt_opening.strip())
-            if rag_sources:
-                st.session_state.coach_chat_messages[0]["rag_sources"] = rag_sources
         else:
             st.session_state.coach_chat_messages[0]["content"] = rule_opening
         gpt_qs = generate_suggested_questions_gpt(payload)
@@ -275,30 +290,17 @@ def _init_chat(session: dict[str, Any]) -> None:
 
 def _finish_generating(session: dict[str, Any]) -> None:
     """타이핑 표시 후 답변 생성 → 말풍선 추가."""
-    reply, rag_sources = _generate_reply(session)
-    msg: dict[str, Any] = {"role": "assistant", "content": _normalize_chat_markdown(reply)}
-    if rag_sources:
-        msg["rag_sources"] = rag_sources
-    st.session_state.coach_chat_messages.append(msg)
-    st.session_state.pop("coach_generating", None)
+    reply = _generate_reply(session)
+    st.session_state.coach_chat_messages.append(
+        {"role": "assistant", "content": _normalize_chat_markdown(reply)}
+    )
     st.session_state.pop("coach_show_typing", None)
+    st.session_state.pop("coach_generating", None)
     from ui.loading import clear_loading
 
     clear_loading()
     if not st.session_state.get("coach_suggested_questions"):
         st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
-    st.rerun(scope="fragment")
-
-
-def _queue_user_message(session: dict[str, Any], user_text: str) -> None:
-    text = _normalize_chat_markdown(user_text)
-    if not text:
-        return
-    messages: list[dict[str, str]] = st.session_state.coach_chat_messages
-    messages.append({"role": "user", "content": text})
-    st.session_state.coach_show_typing = True
-    st.session_state.coach_generating = False
-    st.rerun(scope="fragment")
 
 
 def _render_result_hero(session: dict[str, Any]) -> None:
@@ -350,13 +352,6 @@ def _render_score_strip(session: dict[str, Any]) -> None:
     )
 
 
-def _render_rag_caption(sources: list[str]) -> None:
-    if not sources:
-        return
-    labels = ", ".join(sources[:3])
-    st.caption(f"📚 교재 근거: {labels}")
-
-
 def _render_dm_thread(messages: list[dict[str, str]], *, show_typing: bool = False) -> None:
     """Streamlit chat_message — 마크다운 안전 렌더."""
     for msg in messages:
@@ -366,7 +361,6 @@ def _render_dm_thread(messages: list[dict[str, str]], *, show_typing: bool = Fal
         if msg["role"] == "assistant":
             with st.chat_message("assistant", avatar="🎤"):
                 st.markdown(content)
-                _render_rag_caption(msg.get("rag_sources") or [])
         else:
             with st.chat_message("user", avatar="🙂"):
                 st.markdown(content)
@@ -404,13 +398,13 @@ def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing:
         pill_cols = st.columns(min(len(suggestions), 3))
         for i, q in enumerate(suggestions[:3]):
             with pill_cols[i]:
-                if st.button(
+                st.button(
                     f"+ {_pill_label(q)}",
                     key=f"coach_pill_{i}",
                     use_container_width=False,
-                ):
-                    _queue_user_message(session, q)
-                    return
+                    on_click=_on_pill_click,
+                    args=(q,),
+                )
         st.markdown("</div>", unsafe_allow_html=True)
 
     with st.form("coach_dm_form", clear_on_submit=True, border=False):
@@ -431,14 +425,18 @@ def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing:
                 use_container_width=True,
             )
         if send and user_text and user_text.strip():
-            _queue_user_message(session, user_text.strip())
+            st.session_state["coach_pending_message"] = user_text.strip()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 @st.fragment
 def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
-    """채팅 fragment — 먼저 화면 그린 뒤 타이핑·답변 (대화 흐름)."""
+    """채팅 fragment — pill/전송 시 중복 rerun 방지."""
+    pending = st.session_state.pop("coach_pending_message", None)
+    if pending:
+        _append_user_message(pending)
+
     messages = st.session_state.get("coach_chat_messages") or []
     show_typing = bool(
         st.session_state.get("coach_show_typing") or st.session_state.get("coach_generating")
@@ -459,14 +457,6 @@ def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
             """,
             unsafe_allow_html=True,
         )
-        try:
-            from coach_rag import rag_status
-
-            rag = rag_status()
-            if rag.get("enabled") and rag.get("ready"):
-                st.caption(f"📚 {rag.get('message', '교재 연동')}")
-        except Exception:
-            pass
 
         with st.container(key="vc_dm_thread"):
             _render_dm_thread(messages, show_typing=show_typing)
@@ -480,6 +470,7 @@ def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
 
     if st.session_state.get("coach_generating"):
         _finish_generating(session)
+        st.rerun(scope="fragment")
 
 
 def render_coach_dm(session: dict[str, Any]) -> None:

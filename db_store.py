@@ -35,14 +35,11 @@ def _get_client():
     return create_client(url, key)
 
 
-def save_analysis_record(
-    data: dict[str, Any],
-    *,
-    user_id: str | None = None,
-    path: Path | None = None,
-) -> Path | str:
-    """Save record locally or to Supabase."""
-    if _supabase_configured() and user_id:
+def mirror_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:
+    """로컬 저장 후 Supabase에 미러 (설정된 경우만)."""
+    if not _supabase_configured():
+        return None
+    try:
         client = _get_client()
         row = {
             "user_id": user_id,
@@ -54,10 +51,20 @@ def save_analysis_record(
         }
         resp = client.table("analysis_records").insert(row).execute()
         if resp.data:
-            return str(resp.data[0].get("id", "supabase"))
-        return "supabase"
+            return str(resp.data[0].get("id"))
+    except Exception:
+        return None
+    return None
 
-    return save_local_record(data, path or default_record_path())
+
+def save_analysis_record(
+    data: dict[str, Any],
+    *,
+    user_id: str | None = None,
+    path: Path | None = None,
+) -> Path | str:
+    """Save record locally; Supabase는 mirror_analysis_record 사용."""
+    return save_local_record(data, path or default_record_path(user_id))
 
 
 def list_analysis_records(limit: int = 20, *, user_id: str | None = None) -> list[dict[str, Any]]:
