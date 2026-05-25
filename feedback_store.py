@@ -15,7 +15,10 @@ from uuid import uuid4
 
 PROJECT_DIR = Path(__file__).resolve().parent
 FEEDBACK_DIR = PROJECT_DIR / "records" / "feedback"
-DISAGREE_DIR = FEEDBACK_DIR / "disagree"
+
+
+def _disagree_dir() -> Path:
+    return FEEDBACK_DIR / "disagree"
 
 
 def _now_iso() -> str:
@@ -39,7 +42,7 @@ def save_feedback(
     """
     FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
     if not agrees:
-        DISAGREE_DIR.mkdir(parents=True, exist_ok=True)
+        _disagree_dir().mkdir(parents=True, exist_ok=True)
 
     entry = {
         "feedback_id": uuid4().hex[:12],
@@ -57,20 +60,27 @@ def save_feedback(
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     sub = "agree" if agrees else "disagree"
-    base = DISAGREE_DIR if not agrees else FEEDBACK_DIR / "agree"
+    base = _disagree_dir() if not agrees else FEEDBACK_DIR / "agree"
     base.mkdir(parents=True, exist_ok=True)
     fname = f"feedback_{sub}_{stamp}_{entry['feedback_id']}.json"
     path = base / fname
     path.write_text(json.dumps(entry, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        from feedback_trainer import maybe_retrain_after_feedback
+
+        maybe_retrain_after_feedback()
+    except Exception:
+        pass
     return path
 
 
 def list_disagree_feedback(limit: int = 50) -> list[dict[str, Any]]:
     """보정·GPT 학습용 — 점수 불일치 케이스."""
-    if not DISAGREE_DIR.exists():
+    ddir = _disagree_dir()
+    if not ddir.exists():
         return []
     out: list[dict[str, Any]] = []
-    for p in sorted(DISAGREE_DIR.glob("feedback_*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+    for p in sorted(ddir.glob("feedback_*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
         try:
             out.append(json.loads(p.read_text(encoding="utf-8")))
         except Exception:
@@ -82,7 +92,7 @@ def list_disagree_feedback(limit: int = 50) -> list[dict[str, Any]]:
 
 def feedback_stats() -> dict[str, int]:
     agree = len(list((FEEDBACK_DIR / "agree").glob("feedback_*.json"))) if (FEEDBACK_DIR / "agree").exists() else 0
-    disagree = len(list(DISAGREE_DIR.glob("feedback_*.json"))) if DISAGREE_DIR.exists() else 0
+    disagree = len(list(_disagree_dir().glob("feedback_*.json"))) if _disagree_dir().exists() else 0
     beta = len(list((FEEDBACK_DIR / "beta").glob("beta_*.json"))) if (FEEDBACK_DIR / "beta").exists() else 0
     return {"agree": agree, "disagree": disagree, "beta": beta, "total": agree + disagree + beta}
 

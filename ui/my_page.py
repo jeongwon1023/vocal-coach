@@ -128,6 +128,9 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
     ):
         user_id = current_user_id()
         if user_id:
+            from ui.loading import mark_loading
+
+            mark_loading(message="결과를 불러오고 있어요…")
             st.session_state["last_session"] = _load_session_for_record(user_id, path)
             st.session_state["mypage_show_result"] = True
             st.rerun()
@@ -199,20 +202,27 @@ def render() -> None:
         st.warning("로그인 정보를 확인할 수 없습니다.")
         return
 
+    if not dashboard.is_analyzing():
+        from ui.analysis_overlay import clear_analyze_stage
+
+        clear_analyze_stage()
+
     if dashboard.is_analyzing():
-        st.markdown(
-            f"""
-            <div class="vc-page-head">
-                <h2 class="vc-page-title">분석 중… 🎵</h2>
-                <p class="vc-page-desc">{html.escape(name)}님, 잠시만 기다려 주세요</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        from ui.analysis_overlay import close_analyze_stage, open_analyze_stage
+
+        open_analyze_stage()
         dashboard.render_analysis_section(show_settings=False)
+        close_analyze_stage()
         return
 
     if st.session_state.get("last_session") and st.session_state.get("mypage_show_result"):
+        from ui.analysis_overlay import clear_analyze_stage
+
+        clear_analyze_stage()
+        if st.session_state.pop("scroll_result", False):
+            from ui.scroll import scroll_to_top
+
+            scroll_to_top(anchor_id="vc-result-top")
         if st.button("← 기록 목록으로", key="mypage_back_list", type="secondary"):
             dashboard.clear_results_state()
             st.rerun()

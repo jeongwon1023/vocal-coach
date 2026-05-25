@@ -8,21 +8,28 @@ import streamlit as st
 def render() -> None:
     st.markdown(
         """
+        <p class="vc-welcome-lead">Vocal Coach AI가 이렇게 도와드려요</p>
         <div class="vc-feature-grid">
-            <div class="vc-feature">
-                <div class="vc-feature-icon">🎵</div>
-                <h3>음정 분석</h3>
-                <p>가이드 멜로디와 비교해 틀린 구간을 초 단위로 표시합니다.</p>
+            <div class="vc-feature-card">
+                <span class="vc-feature-icon">🎵</span>
+                <div>
+                    <p class="vc-feature-title">음정</p>
+                    <p class="vc-feature-desc">가이드 멜로디와 비교해, 틀린 구간을 초 단위로 짚어 드려요.</p>
+                </div>
             </div>
-            <div class="vc-feature">
-                <div class="vc-feature-icon">⏱️</div>
-                <h3>박자 · 리듬</h3>
-                <p>소리 내는 타이밍 패턴을 분석해 박자 안정성을 점수화합니다.</p>
+            <div class="vc-feature-card">
+                <span class="vc-feature-icon">⏱️</span>
+                <div>
+                    <p class="vc-feature-title">박자 · 리듬</p>
+                    <p class="vc-feature-desc">박이 밀리는 구간을 찾아, 연습할 타이밍을 알려 드려요.</p>
+                </div>
             </div>
-            <div class="vc-feature">
-                <div class="vc-feature-icon">🎬</div>
-                <h3>유튜브 가이드</h3>
-                <p>곡 제목만 입력하면 MR·가이드 멜로디로 <b>원곡 비교 레슨</b>을 받을 수 있어요.</p>
+            <div class="vc-feature-card">
+                <span class="vc-feature-icon">🎬</span>
+                <div>
+                    <p class="vc-feature-title">유튜브 가이드</p>
+                    <p class="vc-feature-desc">곡 제목만 입력하면 MR·가이드 보컬과 내 목소리를 비교해요.</p>
+                </div>
             </div>
         </div>
         """,
@@ -37,9 +44,9 @@ def render() -> None:
     with c1:
         st.markdown(
             """
-            <div class="tip-box">
-            <b>녹음 팁</b><br>
-            MR은 이어폰으로 듣고, 마이크에는 <b>목소리만</b> 녹음하세요.
+            <div class="vc-tip-soft">
+                <p class="vc-tip-soft-title">🎧 녹음 팁</p>
+                <p class="vc-tip-soft-body">MR은 이어폰으로 듣고, 마이크에는 <b>목소리만</b> 녹음하면 분석이 더 정확해요.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -47,10 +54,9 @@ def render() -> None:
     with c2:
         st.markdown(
             """
-            <div class="vc-info-box">
-            <b>빠른 분석</b> — 약 30초~1분<br>
-            <b>정밀 분석</b> — 논문 지표 · 전체 곡 · 2~3분<br>
-            <b>유튜브/MR</b> — 보컬 자동 추출 · 믹스 대응
+            <div class="vc-tip-soft">
+                <p class="vc-tip-soft-title">⚡ 분석 시간</p>
+                <p class="vc-tip-soft-body">빠른 분석 약 1분 · 정밀 분석 2~3분 · 결과는 DM 코치로 바로 확인</p>
             </div>
             """,
             unsafe_allow_html=True,

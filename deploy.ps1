@@ -2,15 +2,21 @@
 $ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
 
+$gitExe = "git"
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    $fallback = "C:\Program Files\Git\bin\git.exe"
+    if (Test-Path $fallback) { $gitExe = $fallback }
+}
+
 Write-Host "========================================"
 Write-Host "  Vocal Coach AI - Deploy Prep"
 Write-Host "========================================"
 Write-Host ""
 
 # Git
-if (Get-Command git -ErrorAction SilentlyContinue) {
+if (Get-Command $gitExe -ErrorAction SilentlyContinue) {
     Write-Host "[OK] Git installed"
-    git --version
+    & $gitExe --version
 } else {
     Write-Host "[X] Git not found"
     Write-Host "    Install: winget install --id Git.Git -e"
@@ -48,7 +54,7 @@ if ($gi -match "^\.env") {
 }
 
 if (Test-Path ".git") {
-    $tracked = git ls-files --error-unmatch .env 2>$null
+    $tracked = & $gitExe ls-files --error-unmatch .env 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[X] DANGER: .env is tracked by git! Run: git rm --cached .env"
     } else {
@@ -56,7 +62,7 @@ if (Test-Path ".git") {
     }
     Write-Host ""
     Write-Host "[OK] Git repo"
-    git status -sb
+    & $gitExe status -sb
 } else {
     Write-Host ""
     Write-Host "[!] No git repo. Example:"
@@ -72,7 +78,8 @@ Write-Host ""
 Write-Host "--- Streamlit Cloud ---"
 Write-Host "1. https://share.streamlit.io"
 Write-Host "2. New app - repo - Main file: app.py"
-Write-Host "3. Secrets: OPENAI_API_KEY, OPENAI_MODEL (see .streamlit\secrets.toml.example)"
-Write-Host "4. Deploy"
+Write-Host "3. Secrets: OPENAI_API_KEY, COACH_RAG_ENABLED (see .streamlit\secrets.toml.example)"
+Write-Host "4. Deploy — push main triggers auto-redeploy"
 Write-Host ""
+Write-Host "Full plan: docs\DEPLOY-PLAN.md"
 Write-Host "Checklist: docs\BETA-LAUNCH.md"

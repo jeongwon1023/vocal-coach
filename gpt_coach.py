@@ -68,7 +68,36 @@ COACH_CHAT_SYSTEM_PROMPT = (
     "분석 JSON·이전 대화를 근거로 답하세요. 추측·허위 금지.\n"
     "Cent, DTW, HPSS 등 기술 용어 대신 '음정', '박', '호흡', '목소리 톤'으로.\n"
     "실무 용어 OK: 롱톤, 메트로놈, 복식호흡, 믹스보이스, 0.5배속, 구간 루프.\n"
-    "답변은 DM처럼 3~8문장, 너무 길면 나눠 말하세요."
+    "답변은 DM처럼 3~8문장. **굵게**로 핵심 강조.\n"
+    "반드시 이모지 섹션 사용: 🌟 잘한 점 · 🎯 연습 포인트 · 📋 오늘 루틴(해당 시).\n"
+    "JSON 점수·초 구간·숫자를 구체적으로 인용하세요. HTML 태그 금지.\n"
+    "취소선(~~), 구분선(---) 사용 금지. 목록은 빈 줄 뒤 · 또는 번호로 작성.\n"
+    "연습 단계는 ① ② ③ 처럼 각각 새 줄에 작성."
+)
+
+RAG_SYSTEM_SUFFIX = (
+    "\n\n[강사 교재·레슨 자료]\n"
+    "아래 교재 발췌를 **우선 참고**하되, 분석 JSON·대화와 모순되면 JSON을 따르세요.\n"
+    "교재에 없는 내용은 지어내지 마세요."
+)
+
+
+def _with_rag(system_prompt: str, rag_block: str | None) -> str:
+    block = (rag_block or "").strip()
+    if not block:
+        return system_prompt
+    return system_prompt + RAG_SYSTEM_SUFFIX + "\n\n" + block
+
+COACH_OPENING_USER_PROMPT = (
+    "학생이 방금 녹음 분석을 마쳤어요. 인스타 DM 첫 메시지를 작성하세요.\n\n"
+    "반드시 아래 순서·이모지·형식을 지키세요:\n"
+    "1) 인사 (🎤)\n"
+    "2) 종합 점수 한 줄\n"
+    "3) 🌟 **오늘의 잘한 점** — 2~3가지, 각각 **굵은 제목** + 한 줄 설명 (JSON 점수 인용)\n"
+    "4) 🎯 **오늘 먼저 잡을 연습 3가지** — 번호·**굵은 제목** + 짧은 설명\n"
+    "5) 📊 **영역별 점수** — 음정·박자·호흡 각각 OO점\n"
+    "6) 마지막 격려 한 줄 😊\n\n"
+    "추상적·짧은 인사만 하지 마세요. 숫자와 구체적 행동을 꼭 넣으세요."
 )
 
 
@@ -88,6 +117,7 @@ def generate_gpt_coaching(
     *,
     api_key: str | None = None,
     model: str | None = None,
+    rag_block: str | None = None,
 ) -> str:
     """
     OpenAI Chat Completions API로 코칭 멘트 생성.
@@ -121,7 +151,7 @@ def generate_gpt_coaching(
     response = client.chat.completions.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": COACH_SYSTEM_PROMPT},
+            {"role": "system", "content": _with_rag(COACH_SYSTEM_PROMPT, rag_block)},
             {"role": "user", "content": user_content},
         ],
         temperature=0.7,
@@ -135,23 +165,23 @@ def generate_coach_opening(
     *,
     api_key: str | None = None,
     model: str | None = None,
+    rag_block: str | None = None,
 ) -> str:
     """분석 직후 DM 첫 메시지."""
     client, key = _openai_client(api_key)
     model_name = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     user_content = (
-        "학생이 방금 녹음 분석을 마쳤어요. 인스타 DM처럼 첫 메시지를 보내세요.\n"
-        "순서: ①인사 ②잘한 점 2가지 ③가장 먼저 손볼 1가지 ④오늘 10분 루틴 한 줄 ⑤격려.\n\n"
+        COACH_OPENING_USER_PROMPT + "\n\n"
         f"```json\n{json.dumps(analysis_json, ensure_ascii=False, indent=2)}\n```"
     )
     response = client.chat.completions.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": COACH_CHAT_SYSTEM_PROMPT},
+            {"role": "system", "content": _with_rag(COACH_CHAT_SYSTEM_PROMPT, rag_block)},
             {"role": "user", "content": user_content},
         ],
-        temperature=0.75,
-        max_tokens=900,
+        temperature=0.72,
+        max_tokens=1100,
     )
     return response.choices[0].message.content or ""
 
@@ -197,6 +227,7 @@ def generate_coach_chat_reply(
     *,
     api_key: str | None = None,
     model: str | None = None,
+    rag_block: str | None = None,
 ) -> str:
     """DM 후속 대화."""
     client, _ = _openai_client(api_key)
@@ -205,7 +236,10 @@ def generate_coach_chat_reply(
         f"[분석 데이터]\n```json\n{json.dumps(analysis_json, ensure_ascii=False, indent=2)}\n```"
     )
     messages: list[dict[str, str]] = [
-        {"role": "system", "content": COACH_CHAT_SYSTEM_PROMPT + "\n\n" + context},
+        {
+            "role": "system",
+            "content": _with_rag(COACH_CHAT_SYSTEM_PROMPT, rag_block) + "\n\n" + context,
+        },
     ]
     for turn in chat_history[-12:]:
         messages.append({"role": turn["role"], "content": turn["content"]})

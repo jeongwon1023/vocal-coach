@@ -57,7 +57,8 @@ def test_load_session_for_job_missing() -> None:
 
 
 def test_coach_chat_helpers() -> None:
-    from ui.coach_chat import _rule_opening, _rule_suggested_questions
+    from ui.coach_chat import _normalize_chat_markdown, _rule_opening, _rule_suggested_questions
+    from ui.text_format import format_step_lines
 
     class FakeStage:
         def __init__(self, stage, title, score):
@@ -81,6 +82,11 @@ def test_coach_chat_helpers() -> None:
     assert "분석" in opening or "들어봤" in opening
     qs = _rule_suggested_questions(session)
     assert len(qs) == 3
+    assert _normalize_chat_markdown("~~취소선~~ 테스트") == "취소선 테스트"
+    assert "🌟" in _normalize_chat_markdown("안녕\n🌟 **잘한 점**")
+    steps = format_step_lines("① 첫째 ② 둘째 ③ 셋째")
+    assert steps.count("①") == 1
+    assert "\n\n②" in steps
 
 
 def test_pitch_hz_ylim_empty() -> None:
@@ -127,6 +133,71 @@ def test_beta_feedback_save() -> None:
     assert items[0]["message"] == "테스트 피드백"
 
 
+def test_feedback_trainer() -> None:
+    import tempfile
+    from pathlib import Path
+
+    import feedback_store
+    import feedback_trainer
+
+    tmp = Path(tempfile.mkdtemp())
+    feedback_store.FEEDBACK_DIR = tmp / "feedback"
+    feedback_trainer.CALIBRATION_PATH = tmp / "scoring_calibration.json"
+
+    for i in range(3):
+        feedback_store.save_feedback(agrees=True, overall_score=70 + i)
+    cal = feedback_trainer.train_from_feedback()
+    assert cal.samples_agree == 3
+    assert not cal.min_samples_met
+
+    for i in range(3):
+        feedback_store.save_feedback(
+            agrees=False,
+            overall_score=55,
+            stage_scores={"1": 40, "2": 50, "3": 45},
+            comment="점수가 너무 낮아요",
+        )
+    cal = feedback_trainer.train_from_feedback()
+    assert cal.min_samples_met
+    assert cal.overall_bias > 0
+    assert cal.generosity >= 1.0
+
+    class Stage:
+        def __init__(self, stage, score):
+            self.stage = stage
+            self.score = score
+
+    class Report:
+        stages = [Stage(1, 60), Stage(2, 55), Stage(3, 50), Stage(4, 58)]
+        overall_score = 58
+
+    report = Report()
+    before = report.overall_score
+    feedback_trainer.apply_calibration_to_report(report)
+    assert report.overall_score >= before
+
+
+def test_coach_rag() -> None:
+    import coach_rag
+
+    stats = coach_rag.build_index(force=True)
+    assert stats["chunks"] >= 4
+
+    hits = coach_rag.retrieve("음정 0.5배속 구간 루프", k=2)
+    assert hits
+    assert any("음정" in h.text or "pitch" in h.source.lower() for h in hits)
+
+    bundle = coach_rag.retrieve_for_coaching(
+        "10분 루틴 짜 주세요",
+        {"stage_scores": {"1": 55, "2": 70, "3": 65}},
+    )
+    assert bundle.prompt_block
+    assert bundle.source_labels
+
+    status = coach_rag.rag_status()
+    assert status["ready"]
+
+
 if __name__ == "__main__":
     test_ui_imports()
     test_navigation_pages()
@@ -137,4 +208,6 @@ if __name__ == "__main__":
     test_pitch_hz_ylim_empty()
     test_pitch_hz_ylim_with_data()
     test_beta_feedback_save()
+    test_feedback_trainer()
+    test_coach_rag()
     print("All UI smoke tests passed.")

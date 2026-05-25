@@ -1893,6 +1893,13 @@ def run_full_session(
             on_progress=_prog,
         )
 
+    try:
+        from feedback_trainer import apply_calibration_to_report
+
+        apply_calibration_to_report(report)
+    except Exception:
+        pass
+
     _prog(0.78, "코칭 리포트 정리 중…")
 
     payload = report_to_gpt_payload(report)
@@ -1948,7 +1955,15 @@ def run_full_session(
     if use_gpt:
         _prog(0.85, "GPT 코칭 생성 중…")
         try:
-            result["gpt_text"] = generate_gpt_coaching(payload)
+            rag_block = None
+            try:
+                from coach_rag import build_query_from_analysis, retrieve_for_coaching
+
+                bundle = retrieve_for_coaching(build_query_from_analysis(payload), payload)
+                rag_block = bundle.prompt_block or None
+            except Exception:
+                pass
+            result["gpt_text"] = generate_gpt_coaching(payload, rag_block=rag_block)
         except Exception as exc:
             result["gpt_error"] = str(exc)
 

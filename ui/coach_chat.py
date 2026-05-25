@@ -1,14 +1,17 @@
-"""Instagram DM 스타일 AI 보컬 코치 채팅 — Codeit inspired."""
+"""Instagram / 카카오톡 스타일 AI 보컬 코치 채팅."""
 
 from __future__ import annotations
 
 import hashlib
 import html
+import re
 from typing import Any
 
 import streamlit as st
 
 from coaching_vocab import STAGE_NAMES
+from ui.coach_insights import build_focus_items, build_strength_items
+from ui.text_format import format_readable_paragraphs, format_step_lines
 
 
 def _session_fingerprint(session: dict[str, Any]) -> str:
@@ -23,9 +26,40 @@ def _analysis_payload(session: dict[str, Any]) -> dict[str, Any]:
     return report_to_gpt_payload(session["report"])
 
 
+def _md_to_html(text: str) -> str:
+    esc = html.escape(text or "")
+    esc = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", esc)
+    return esc.replace("\n", "<br>")
+
+
+def _sanitize_chat_content(text: str) -> str:
+    """GPT·저장 메시지에 섞인 HTML 태그 제거 (말풍선 깨짐 방지)."""
+    if not text:
+        return ""
+    cleaned = text.strip()
+    if re.search(r"</?(div|span|p|br|html|body|del)\b", cleaned, re.I):
+        cleaned = re.sub(r"<br\s*/?>", "\n", cleaned, flags=re.I)
+        cleaned = re.sub(r"</?p>", "\n", cleaned, flags=re.I)
+        cleaned = re.sub(r"</?del>", "", cleaned, flags=re.I)
+        cleaned = re.sub(r"<[^>]+>", "", cleaned)
+    return cleaned.strip()
+
+
+def _normalize_chat_markdown(text: str) -> str:
+    """마크다운 깨짐(취소선·구분선) 보정 + 읽기 쉬운 줄바꿈."""
+    cleaned = _sanitize_chat_content(text)
+    if not cleaned:
+        return ""
+
+    cleaned = re.sub(r"~~([^~]*?)~~", r"\1", cleaned)
+    cleaned = cleaned.replace("~~", "")
+    cleaned = re.sub(r"^\s*---+\s*$", "", cleaned, flags=re.M)
+    cleaned = re.sub(r"(\d+)~(\d+)", r"\1–\2", cleaned)
+    return format_readable_paragraphs(cleaned)
+
+
 def _rule_opening(session: dict[str, Any]) -> str:
     report = session["report"]
-    full = session.get("full_record") or {}
     name = "학습자"
     try:
         from ui.auth import current_user
@@ -38,40 +72,40 @@ def _rule_opening(session: dict[str, Any]) -> str:
 
     overall = report.overall_score
     stages = report.stages[:3]
-    lines = [f"{name}님, 분석 끝났어요! 선생님이 들어봤어요 🎤", ""]
+    lines = [
+        f"{name}님, 분석 끝났어요! 선생님이 들어봤어요 🎤",
+        "",
+        f"종합 **{overall:.0f}점**이에요.",
+    ]
 
-    s4 = next((s for s in report.stages if s.stage == 4), None)
-    strengths = (s4.details.get("teacher_strengths") if s4 else None) or []
+    strengths = build_strength_items(session)
     if strengths:
-        lines.append("🌟 **오늘 특히 좋았던 점**")
-        for s in strengths[:2]:
-            lines.append(f"· {s}")
         lines.append("")
+        lines.append("🌟 **오늘의 잘한 점**")
+        for s in strengths:
+            lines.append(f"· **{s['headline']}**")
+            lines.append(f"  {s['detail']}")
+
+    focus = build_focus_items(session)
+    if focus:
+        lines.append("")
+        lines.append("🎯 **오늘 먼저 잡을 연습 3가지**")
+        for f in focus:
+            lines.append(f"{f.get('priority', '?')}. **{f['headline']}**")
+            detail = f["detail"]
+            if len(detail) > 160:
+                detail = detail[:160] + "…"
+            lines.append(f"   {detail}")
 
     if stages:
+        lines.append("")
         lines.append("📊 **영역별 점수**")
         for s in stages:
             label = STAGE_NAMES.get(s.stage, s.title)
             lines.append(f"· {label} **{s.score:.0f}점**")
-        lines.append("")
 
-    weakest = min(stages, key=lambda s: s.score) if stages else None
-    if weakest:
-        label = STAGE_NAMES.get(weakest.stage, weakest.title)
-        lines.append(
-            f"🎯 **먼저 같이 볼 부분**은 {label}({weakest.score:.0f}점)이에요. "
-            f"여기만 10분 연습해도 전체 느낌이 확 달라져요."
-        )
-    else:
-        lines.append(f"🎯 종합 **{overall:.0f}점** — 꾸준히 연습하면 더 올라갈 거예요.")
-
-    actions = full.get("priority_actions") or []
-    if actions and isinstance(actions[0], dict):
-        act = actions[0].get("action") or actions[0].get("title") or ""
-        if act:
-            lines.append(f"\n💡 오늘 추천: {act}")
-
-    lines.append("\n궁금한 거 편하게 물어보세요. 선생님이 DM처럼 답해 드릴게요 😊")
+    lines.append("")
+    lines.append("궁금한 거 편하게 물어보세요. 아래 입력창에 적어 주세요 😊")
     return "\n".join(lines)
 
 
@@ -88,23 +122,24 @@ def _rule_suggested_questions(session: dict[str, Any]) -> list[str]:
         ]
 
     weakest = min(stages, key=lambda s: s.score)
-    label = STAGE_NAMES.get(weakest.stage, "이 부분")
-
     if weakest.stage == 1:
-        qs.append("음정이 틀린 구간만 집중해서 연습하려면 어떻게 해요?")
+        qs.append("음정이 틀린 구간만 집중해서 연습하려면?")
     elif weakest.stage == 2:
-        qs.append("박자가 밀릴 때 메트로놈으로 어떻게 잡으면 좋을까요?")
+        qs.append("박자가 밀릴 때 메트로놈으로 어떻게 잡으면?")
     else:
-        qs.append("호흡이나 목소리 톤을 더 예쁘게 하려면요?")
+        qs.append("호흡이나 목소리 톤을 더 예쁘게 하려면?")
 
     devs = report.pitch_deviation_segments[:1]
     if devs:
         d = devs[0]
-        qs.append(f"{d.start_sec:.0f}~{d.end_sec:.0f}초 구간을 어떻게 연습하면 좋을까요?")
+        if isinstance(d, (tuple, list)) and len(d) >= 2:
+            qs.append(f"{float(d[0]):.0f}~{float(d[1]):.0f}초 구간 연습법")
+        else:
+            qs.append(f"{d.start_sec:.0f}~{d.end_sec:.0f}초 구간 연습법")
     else:
-        qs.append("오늘 10~15분 연습 루틴 짜 주세요")
+        qs.append("오늘 10분 루틴 짜 주세요")
 
-    qs.append("다음 녹음 때 체크할 포인트 3가지만 알려주세요")
+    qs.append("다음 녹음 때 체크할 포인트 3가지")
     return qs[:3]
 
 
@@ -153,22 +188,65 @@ def _rule_reply(session: dict[str, Any], user_message: str) -> str:
     )
 
 
+def _fetch_rag(user_text: str, session: dict[str, Any]) -> tuple[str, list[str]]:
+    """RAG 검색 → (prompt_block, source_labels). 실패 시 빈 값."""
+    try:
+        from coach_rag import retrieve_for_coaching
+
+        payload = _analysis_payload(session)
+        bundle = retrieve_for_coaching(user_text, payload)
+        return bundle.prompt_block, bundle.source_labels
+    except Exception:
+        return "", []
+
+
+def _generate_reply(session: dict[str, Any]) -> tuple[str, list[str]]:
+    messages: list[dict[str, str]] = st.session_state.coach_chat_messages
+    user_text = messages[-1]["content"] if messages else ""
+    rag_block, rag_sources = _fetch_rag(user_text, session)
+    try:
+        from gpt_coach import generate_coach_chat_reply
+
+        payload = _analysis_payload(session)
+        history = [{"role": m["role"], "content": m["content"]} for m in messages[:-1]]
+        reply = generate_coach_chat_reply(
+            payload, history, user_text, rag_block=rag_block or None
+        )
+        if reply and reply.strip():
+            return reply.strip(), rag_sources
+    except Exception:
+        pass
+    return _rule_reply(session, user_text), rag_sources
+
+
+def _opening_is_rich(text: str) -> bool:
+    """GPT 첫 메시지가 구체적 형식(이모지·섹션)을 갖췄는지."""
+    t = text or ""
+    return "🌟" in t and ("🎯" in t or "잘한" in t) and len(t) >= 120
+
+
 def _init_chat(session: dict[str, Any]) -> None:
     fp = _session_fingerprint(session)
     existing = st.session_state.get("coach_chat_messages") or []
     if st.session_state.get("coach_chat_fp") == fp and existing:
+        for msg in existing:
+            msg["content"] = _normalize_chat_markdown(msg.get("content", ""))
+        st.session_state.coach_chat_messages = existing
         return
 
-    opening = session.get("gpt_text") or _rule_opening(session)
+    rule_opening = _rule_opening(session)
     suggestions = _rule_suggested_questions(session)
+    opening = session.get("gpt_text") or rule_opening
 
     st.session_state.coach_chat_fp = fp
-    st.session_state.coach_chat_messages = [{"role": "assistant", "content": opening}]
+    st.session_state.coach_chat_messages = [{"role": "assistant", "content": _normalize_chat_markdown(opening)}]
     st.session_state.coach_suggested_questions = suggestions[:3]
     st.session_state.coach_chat_ready = True
     st.session_state.coach_gpt_enhanced = bool(session.get("gpt_text"))
 
     if session.get("gpt_text"):
+        if not _opening_is_rich(opening):
+            st.session_state.coach_chat_messages[0]["content"] = rule_opening
         return
 
     try:
@@ -179,54 +257,57 @@ def _init_chat(session: dict[str, Any]) -> None:
         from gpt_coach import generate_coach_opening, generate_suggested_questions_gpt
 
         payload = _analysis_payload(session)
-        with st.spinner("선생님이 코칭 메시지 작성 중…"):
-            gpt_opening = generate_coach_opening(payload)
-            if gpt_opening and gpt_opening.strip():
-                st.session_state.coach_chat_messages[0]["content"] = gpt_opening.strip()
-            gpt_qs = generate_suggested_questions_gpt(payload)
-            if gpt_qs:
-                st.session_state.coach_suggested_questions = gpt_qs[:3]
+        rag_block, rag_sources = _fetch_rag("분석 직후 첫 코칭", session)
+        gpt_opening = generate_coach_opening(payload, rag_block=rag_block or None)
+        if gpt_opening and gpt_opening.strip() and _opening_is_rich(gpt_opening):
+            st.session_state.coach_chat_messages[0]["content"] = _normalize_chat_markdown(gpt_opening.strip())
+            if rag_sources:
+                st.session_state.coach_chat_messages[0]["rag_sources"] = rag_sources
+        else:
+            st.session_state.coach_chat_messages[0]["content"] = rule_opening
+        gpt_qs = generate_suggested_questions_gpt(payload)
+        if gpt_qs:
+            st.session_state.coach_suggested_questions = gpt_qs[:3]
         st.session_state.coach_gpt_enhanced = True
     except Exception:
-        pass
+        st.session_state.coach_chat_messages[0]["content"] = rule_opening
 
 
-def _append_and_reply(session: dict[str, Any], user_text: str) -> None:
+def _finish_generating(session: dict[str, Any]) -> None:
+    """타이핑 표시 후 답변 생성 → 말풍선 추가."""
+    reply, rag_sources = _generate_reply(session)
+    msg: dict[str, Any] = {"role": "assistant", "content": _normalize_chat_markdown(reply)}
+    if rag_sources:
+        msg["rag_sources"] = rag_sources
+    st.session_state.coach_chat_messages.append(msg)
+    st.session_state.pop("coach_generating", None)
+    st.session_state.pop("coach_show_typing", None)
+    from ui.loading import clear_loading
+
+    clear_loading()
+    if not st.session_state.get("coach_suggested_questions"):
+        st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
+    st.rerun(scope="fragment")
+
+
+def _queue_user_message(session: dict[str, Any], user_text: str) -> None:
+    text = _normalize_chat_markdown(user_text)
+    if not text:
+        return
     messages: list[dict[str, str]] = st.session_state.coach_chat_messages
-    messages.append({"role": "user", "content": user_text})
-
-    payload = _analysis_payload(session)
-    reply = ""
-    try:
-        from gpt_coach import generate_coach_chat_reply
-
-        history = [{"role": m["role"], "content": m["content"]} for m in messages[:-1]]
-        reply = generate_coach_chat_reply(payload, history, user_text)
-    except Exception:
-        reply = _rule_reply(session, user_text)
-
-    messages.append({"role": "assistant", "content": reply})
+    messages.append({"role": "user", "content": text})
+    st.session_state.coach_show_typing = True
+    st.session_state.coach_generating = False
+    st.rerun(scope="fragment")
 
 
 def _render_result_hero(session: dict[str, Any]) -> None:
-    """분석 완료 배너 — 점수 · 강점 · 다음 포커스."""
     from ui.auth import current_user
 
     report = session["report"]
     user = current_user()
     name = user.get("name", "학습자") if user else "학습자"
-    stages = report.stages[:3]
     overall = report.overall_score
-
-    s4 = next((s for s in report.stages if s.stage == 4), None)
-    strengths = (s4.details.get("teacher_strengths") if s4 else None) or []
-    strength_line = html.escape(strengths[0] if strengths else "오늘도 연습하러 와 줘서 고마워요")
-
-    weakest = min(stages, key=lambda s: s.score) if stages else None
-    focus_line = ""
-    if weakest:
-        wlabel = STAGE_NAMES.get(weakest.stage, weakest.title)
-        focus_line = f"다음 포커스 · {wlabel} {weakest.score:.0f}점"
 
     grade = "A" if overall >= 85 else "B" if overall >= 70 else "C" if overall >= 55 else "D"
     grade_color = "#22c55e" if overall >= 85 else "#6366f1" if overall >= 70 else "#f59e0b"
@@ -239,8 +320,7 @@ def _render_result_hero(session: dict[str, Any]) -> None:
                 <div class="vc-result-hero-left">
                     <span class="vc-result-badge">레슨 완료 ✓</span>
                     <h2 class="vc-result-hero-title">{html.escape(name)}님, 수고했어요!</h2>
-                    <p class="vc-result-hero-strength">🌟 {strength_line}</p>
-                    <p class="vc-result-hero-focus">{focus_line}</p>
+                    <p class="vc-result-hero-focus">아래 선생님과 대화에서 코칭 · 연습법을 확인하세요</p>
                 </div>
                 <div class="vc-result-hero-score">
                     <span class="vc-result-grade" style="color:{grade_color}">{grade}</span>
@@ -262,7 +342,7 @@ def _render_score_strip(session: dict[str, Any]) -> None:
     for s in report.stages[:3]:
         label = STAGE_NAMES.get(s.stage, str(s.stage))
         chips.append(
-            f'<span class="vc-score-chip">{s.score:.0f}<small>{label}</small></span>'
+            f'<span class="vc-score-chip">{s.score:.0f}<small>{html.escape(label)}</small></span>'
         )
     st.markdown(
         f'<div class="vc-score-strip">{"".join(chips)}</div>',
@@ -270,8 +350,146 @@ def _render_score_strip(session: dict[str, Any]) -> None:
     )
 
 
+def _render_rag_caption(sources: list[str]) -> None:
+    if not sources:
+        return
+    labels = ", ".join(sources[:3])
+    st.caption(f"📚 교재 근거: {labels}")
+
+
+def _render_dm_thread(messages: list[dict[str, str]], *, show_typing: bool = False) -> None:
+    """Streamlit chat_message — 마크다운 안전 렌더."""
+    for msg in messages:
+        content = _normalize_chat_markdown(msg.get("content", ""))
+        if not content:
+            continue
+        if msg["role"] == "assistant":
+            with st.chat_message("assistant", avatar="🎤"):
+                st.markdown(content)
+                _render_rag_caption(msg.get("rag_sources") or [])
+        else:
+            with st.chat_message("user", avatar="🙂"):
+                st.markdown(content)
+
+    if show_typing:
+        with st.chat_message("assistant", avatar="🎤"):
+            st.markdown(
+                """
+                <div class="vc-bubble-typing">
+                    <span class="vc-typing-dot"></span>
+                    <span class="vc-typing-dot"></span>
+                    <span class="vc-typing-dot"></span>
+                    <span class="vc-typing-label">입력 중</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _pill_label(q: str) -> str:
+    q = q.strip()
+    if len(q) <= 11:
+        return q
+    return q[:10] + "…"
+
+
+def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing: bool) -> None:
+    """카카오/인스타 스타일 — 추천 pill · 입력+전송 한 줄."""
+    suggestions = st.session_state.get("coach_suggested_questions") or []
+
+    st.markdown('<div class="vc-dm-composer">', unsafe_allow_html=True)
+
+    if suggestions and not show_typing:
+        st.markdown('<div class="vc-dm-pill-row">', unsafe_allow_html=True)
+        pill_cols = st.columns(min(len(suggestions), 3))
+        for i, q in enumerate(suggestions[:3]):
+            with pill_cols[i]:
+                if st.button(
+                    f"+ {_pill_label(q)}",
+                    key=f"coach_pill_{i}",
+                    use_container_width=False,
+                ):
+                    _queue_user_message(session, q)
+                    return
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with st.form("coach_dm_form", clear_on_submit=True, border=False):
+        input_col, send_col = st.columns([6, 1], gap="small", vertical_alignment="bottom")
+        with input_col:
+            user_text = st.text_input(
+                "메시지",
+                placeholder=f"{user_name}님, 메시지 입력…",
+                label_visibility="collapsed",
+                disabled=show_typing,
+                key="coach_dm_input",
+            )
+        with send_col:
+            send = st.form_submit_button(
+                "➤",
+                type="primary",
+                disabled=show_typing,
+                use_container_width=True,
+            )
+        if send and user_text and user_text.strip():
+            _queue_user_message(session, user_text.strip())
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+@st.fragment
+def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
+    """채팅 fragment — 먼저 화면 그린 뒤 타이핑·답변 (대화 흐름)."""
+    messages = st.session_state.get("coach_chat_messages") or []
+    show_typing = bool(
+        st.session_state.get("coach_show_typing") or st.session_state.get("coach_generating")
+    )
+
+    with st.container(key="vc_dm_panel"):
+        st.markdown(
+            """
+            <div class="vc-dm-header vc-dm-header-attached">
+                <div class="vc-dm-header-inner">
+                    <span class="vc-dm-avatar">🎤</span>
+                    <div>
+                        <p class="vc-dm-title">보컬 코치 선생님</p>
+                        <p class="vc-dm-status">● 코칭 대화 중</p>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        try:
+            from coach_rag import rag_status
+
+            rag = rag_status()
+            if rag.get("enabled") and rag.get("ready"):
+                st.caption(f"📚 {rag.get('message', '교재 연동')}")
+        except Exception:
+            pass
+
+        with st.container(key="vc_dm_thread"):
+            _render_dm_thread(messages, show_typing=show_typing)
+
+        _render_dm_composer(session, user_name, show_typing=show_typing)
+
+    if st.session_state.get("coach_show_typing") and not st.session_state.get("coach_generating"):
+        st.session_state.coach_generating = True
+        st.rerun(scope="fragment")
+        return
+
+    if st.session_state.get("coach_generating"):
+        _finish_generating(session)
+
+
 def render_coach_dm(session: dict[str, Any]) -> None:
-    """분석 후 DM 코치 화면."""
+    """분석 후 DM 코치 + 리포트."""
+    from ui.analysis_overlay import clear_analyze_stage
+    from ui.loading import clear_loading
+
+    clear_analyze_stage()
+    clear_loading()
+
     _init_chat(session)
 
     from ui.auth import current_user
@@ -279,56 +497,12 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     user = current_user()
     user_name = user.get("name", "나") if user else "나"
 
+    st.markdown('<div id="vc-result-top"></div>', unsafe_allow_html=True)
+
     _render_result_hero(session)
     _render_score_strip(session)
 
-    st.markdown(
-        """
-        <div class="vc-dm-header">
-            <div class="vc-dm-header-inner">
-                <span class="vc-dm-avatar">🎤</span>
-                <div>
-                    <p class="vc-dm-title">보컬 코치 선생님</p>
-                    <p class="vc-dm-status">● 코칭 대화 중</p>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    messages = st.session_state.get("coach_chat_messages") or []
-    if not messages:
-        st.session_state.coach_chat_messages = [
-            {"role": "assistant", "content": _rule_opening(session)},
-        ]
-        messages = st.session_state.coach_chat_messages
-
-    for msg in messages:
-        role = msg["role"]
-        if role == "assistant":
-            with st.chat_message("assistant", avatar="🎤"):
-                st.markdown(msg["content"])
-        else:
-            with st.chat_message("user", avatar="🙂"):
-                st.markdown(msg["content"])
-
-    suggestions = st.session_state.get("coach_suggested_questions") or []
-    if suggestions:
-        st.markdown('<p class="vc-dm-suggest-label">💬 이런 것도 물어보세요</p>', unsafe_allow_html=True)
-        s_cols = st.columns(min(len(suggestions), 3))
-        for i, q in enumerate(suggestions):
-            with s_cols[i]:
-                if st.button(q, key=f"coach_suggest_{i}", use_container_width=True):
-                    _append_and_reply(session, q)
-                    st.session_state.coach_suggested_questions = []
-                    st.rerun()
-
-    prompt = st.chat_input(f"{user_name}님, 궁금한 점을 입력하세요…", key="coach_chat_input")
-    if prompt:
-        _append_and_reply(session, prompt.strip())
-        st.session_state.coach_suggested_questions = []
-        st.rerun()
+    _coach_chat_fragment(session, user_name)
 
     with st.expander("📊 상세 분석 리포트 · 그래프 · 다운로드", expanded=False):
         from ui.components import render_session_results
@@ -336,14 +510,14 @@ def render_coach_dm(session: dict[str, Any]) -> None:
         render_session_results(session)
 
     st.divider()
-    from ui.analysis_settings import render_settings_open_button
-
-    render_settings_open_button(key="btn_open_analysis_settings_results")
     if st.button("💬 피드백 남기기", use_container_width=True, key="btn_coach_feedback"):
         from ui.navigation import go_to
 
         go_to("피드백")
     if st.button("🎤 다른 곡 분석하기", use_container_width=True, key="btn_new_analysis"):
+        from ui.loading import mark_loading
+
+        mark_loading(message="화면을 준비하고 있어요…")
         from ui.dashboard import clear_results_state
 
         clear_results_state()

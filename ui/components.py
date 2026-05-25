@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import io
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,8 @@ from ui.runtime_env import configure_matplotlib
 configure_matplotlib()
 
 from coaching_vocab import STAGE_NAMES, cent_to_words
+
+from ui.text_format import format_step_lines
 
 _STAGE_META: dict[int, tuple[str, str]] = {
     1: ("🎵", "음정"),
@@ -79,30 +82,26 @@ def render_overall_score(score: float) -> None:
 
 
 def render_stage_score_cards(stages: list[Any]) -> None:
-    cards = []
-    for stage in stages[:3]:
+    """영역별 점수 — Streamlit 네이티브 (모바일 HTML 깨짐 방지)."""
+    cols = st.columns(3)
+    for col, stage in zip(cols, stages[:3]):
         emoji, short = _STAGE_META.get(stage.stage, ("📊", stage.title))
-        color = _score_color(stage.score)
-        pct = min(max(stage.score, 0), 100)
         title = stage.title.split(":")[-1].strip() if ":" in stage.title else short
-        caption = stage.summary[:48] + ("…" if len(stage.summary) > 48 else "")
-        cards.append(
-            f"""
-            <div class="vc-stage-card" style="--accent:{color}">
-                <div class="vc-stage-card-top">
-                    <span class="vc-stage-icon">{emoji}</span>
-                    <span class="vc-stage-label">{html.escape(title)}</span>
+        grade = _score_grade(stage.score)
+        caption = stage.summary[:64] + ("…" if len(stage.summary) > 64 else "")
+        pct = min(max(stage.score / 100.0, 0.0), 1.0)
+        with col:
+            st.markdown(
+                f"""
+                <div class="vc-stage-native">
+                    <p class="vc-stage-native-label">{emoji} {html.escape(title)}</p>
+                    <p class="vc-stage-native-score">{stage.score:.0f}<span>{grade}</span></p>
                 </div>
-                <div class="vc-stage-score-row">
-                    <span class="vc-stage-score">{stage.score:.0f}</span>
-                    <span class="vc-stage-grade">{_score_grade(stage.score)}</span>
-                </div>
-                <div class="vc-stage-bar"><div style="width:{pct:.0f}%"></div></div>
-                <p class="vc-stage-caption">{html.escape(caption)}</p>
-            </div>
-            """
-        )
-    st.markdown(f'<div class="vc-stage-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True,
+            )
+            st.progress(pct, text=f"{stage.score:.0f}점")
+            st.caption(caption)
 
 
 def render_stage_metrics(stages: list[Any]) -> None:
@@ -155,51 +154,67 @@ def render_detail_summary_header() -> None:
     )
 
 
+def _plain_summary(summary: str) -> tuple[str, str]:
+    """한 줄 요약(굵게) + 자세한 설명."""
+    text = (summary or "").strip()
+    if not text:
+        return "이 영역을 들어봤어요", "아래 코칭 내용을 참고해 주세요."
+    parts = re.split(r"[.!?\n]", text, maxsplit=1)
+    headline = parts[0].strip()
+    rest = parts[1].strip() if len(parts) > 1 else ""
+    if len(headline) > 72:
+        headline, rest = headline[:72] + "…", text
+    return headline, rest or text
+
+
 def render_coaching_stages(report: Any) -> None:
     for stage in report.stages:
-        emoji, _ = _STAGE_META.get(stage.stage, ("📋", ""))
-        color = _score_color(stage.score)
+        emoji, short = _STAGE_META.get(stage.stage, ("📋", ""))
+        label = short or stage.title
         with st.expander(
-            f"{emoji} {stage.title} — {stage.score:.0f}점",
-            expanded=(stage.stage == 4),
+            f"{emoji} {label} — {stage.score:.0f}점",
+            expanded=(stage.stage == 1),
         ):
-            st.markdown(
-                f'<p class="vc-coach-summary" style="border-left:3px solid {color}">{html.escape(stage.summary)}</p>',
-                unsafe_allow_html=True,
-            )
-            for j, block in enumerate(stage.coaching_blocks, 1):
-                st.markdown(
-                    f"""
-                    <div class="vc-coach-block">
-                        <p class="vc-coach-block-num">코칭 {j}</p>
-                        <p class="vc-coach-line"><b>상황</b> {block.result}</p>
-                        <p class="vc-coach-line"><b>왜</b> {block.cause}</p>
-                        <p class="vc-coach-line"><b>어떻게</b> {block.solution}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+            headline, detail = _plain_summary(stage.summary)
+            st.markdown(f"**{headline}**")
+            if detail and detail != headline:
+                st.markdown(detail)
+
+            if not stage.coaching_blocks:
+                st.caption("추가 코칭 포인트는 분석 설정에서 GPT 코칭을 켜면 더 자세히 받을 수 있어요.")
+                continue
+
+            for block in stage.coaching_blocks:
+                result = (block.result or "").strip()
+                cause = format_step_lines((block.cause or "").strip())
+                solution = format_step_lines((block.solution or "").strip())
+                if result:
+                    st.markdown(f"**{result}**")
+                if cause:
+                    st.markdown(cause)
+                if solution:
+                    st.markdown(solution)
+                st.markdown("")
 
 
 def render_action_plan(items: list[dict[str, Any]]) -> None:
     if not items:
         return
-    st.markdown('<p class="vc-section-label">🎯 지금 당장 해야 할 3가지</p>', unsafe_allow_html=True)
+    st.markdown("**🎯 지금 당장 해야 할 3가지**")
     for item in items:
-        st.markdown(
-            f"""
-            <div class="vc-action-card">
-                <div class="vc-action-priority">{item.get('priority', '?')}</div>
-                <div class="vc-action-body">
-                    <p class="vc-action-title">{item.get('title', '')}</p>
-                    <p class="vc-action-rx">{item.get('prescription', '')}</p>
-                    <p class="vc-action-practice">{item.get('practice', '')}</p>
-                    <p class="vc-action-reason">{item.get('reason', '')}</p>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        title = html.escape(str(item.get("title") or ""))
+        rx = str(item.get("prescription") or "").strip()
+        practice = str(item.get("practice") or "").replace("**", "").strip()
+        reason = str(item.get("reason") or "").strip()
+        pri = item.get("priority", "?")
+        st.markdown(f"**{pri}. {title}**")
+        if rx:
+            st.markdown(format_step_lines(rx))
+        if practice:
+            st.markdown(format_step_lines(practice.replace("\n", "\n\n")))
+        if reason:
+            st.caption(f"💡 왜 먼저? {reason}")
+        st.markdown("")
 
 
 def render_score_feedback(session: dict[str, Any], full_record: dict[str, Any]) -> None:
@@ -229,6 +244,17 @@ def render_score_feedback(session: dict[str, Any], full_record: dict[str, Any]) 
         return
 
     st.markdown(feedback_intro(overall))
+
+    try:
+        from feedback_trainer import load_calibration
+
+        cal = load_calibration()
+        if cal.min_samples_met:
+            st.caption(f"📊 커뮤니티 피드백 반영 중 · {cal.summary_ko()}")
+        else:
+            st.caption(f"📊 {cal.summary_ko()} — 「맞아요/달라요」를 눌러 주시면 점수가 더 정확해져요.")
+    except Exception:
+        pass
 
     col_y, col_n = st.columns(2)
     record_path = session.get("record_path")
@@ -347,7 +373,7 @@ def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:
     s4 = next((s for s in report.stages if s.stage == 4), None)
     if s4 and s4.details.get("teacher_strengths"):
         for s in s4.details["teacher_strengths"][:2]:
-            pills.append(f'<span class="vc-insight-pill vc-insight-good">🌟 {s}</span>')
+            pills.append(f'<span class="vc-insight-pill vc-insight-good">🌟 {html.escape(str(s))}</span>')
 
     if pills:
         st.markdown(f'<div class="vc-insight-row">{"".join(pills)}</div>', unsafe_allow_html=True)
@@ -363,8 +389,6 @@ def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:
 def render_session_results(session: dict[str, Any]) -> None:
     report = session["report"]
     full_record = session.get("full_record") or {}
-
-    render_detail_summary_header()
 
     st.markdown('<div class="vc-detail-panel">', unsafe_allow_html=True)
 

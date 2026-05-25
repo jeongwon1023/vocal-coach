@@ -57,6 +57,9 @@ from ui.beta import render_beta_banner
 
 render_beta_banner()
 
+from ui.loading import render_loading_overlay
+
+render_loading_overlay()
 
 if page == "홈":
     landing.render()

@@ -6,6 +6,9 @@
 - [x] 마이 페이지 · 기록 저장
 - [x] 베타 배너 · 이용 안내
 - [x] UI smoke test (`tests/test_ui_smoke.py`)
+- [x] **강사 교재 RAG** (`coach_rag.py`, `coach_knowledge/`)
+- [x] **점수 피드백 보정** Phase 1 (`feedback_trainer.py`)
+- [x] 배포 실행 계획 (`docs/DEPLOY-PLAN.md`)
 
 ## Security before push
 
@@ -26,12 +29,12 @@
 ## 🔲 배포 전 (당신이 할 일)
 
 1. **`.\deploy.ps1`** 실행 (PowerShell 권장) 또는 `.\deploy.bat`
-2. **본인 녹음 1회** — 상세 리포트 · 그래프 · 점수 카드 확인
-3. **GitHub push** — `.env`는 제외됨 (`.gitignore`)
+2. **본인 녹음 1회** — 상세 리포트 · 그래프 · 점수 카드 · 📚 교재 근거 확인
+3. **GitHub push** — `.env`는 제외됨 (`.gitignore`) — 상세: **`docs/DEPLOY-PLAN.md`**
 4. **Streamlit Cloud** — [share.streamlit.io](https://share.streamlit.io)
    - Main file: `app.py`
    - `packages.txt` — ffmpeg (오디오 분석)
-   - Secrets: `OPENAI_API_KEY`, OAuth 키(선택)
+   - Secrets: `OPENAI_API_KEY`, `COACH_RAG_ENABLED`, OAuth 키(선택)
 5. **OAuth 리디렉션 URL** — 배포 URL에 맞게 Google/Kakao 콘솔 수정
 6. **친구 3~5명** — 링크 공유 + 피드백
 

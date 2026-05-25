@@ -89,6 +89,23 @@ def get_job(job_id: str) -> AnalysisJob | None:
         return None
 
 
+def cancel_job(job_id: str) -> bool:
+    """분석 작업 취소 (UI에서 무시 — 백그라운드 스레드는 계속될 수 있음)."""
+    job = get_job(job_id)
+    if not job:
+        return False
+    if job.status in (JobStatus.DONE, JobStatus.FAILED):
+        return False
+    job.status = JobStatus.FAILED
+    job.error = "사용자가 취소했습니다."
+    job.message = "취소됨"
+    job.progress = 0.0
+    _save_job(job)
+    with _lock:
+        _SESSION_CACHE.pop(job_id, None)
+    return True
+
+
 def load_job_result(job_id: str) -> dict[str, Any] | None:
     job = get_job(job_id)
     if not job or job.status != JobStatus.DONE or not job.result_path:

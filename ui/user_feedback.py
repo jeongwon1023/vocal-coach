@@ -25,12 +25,36 @@ def render_feedback_page() -> None:
     st.markdown(
         f"""
         <div class="vc-feedback-stats">
-            <span class="vc-feedback-stat">📝 누적 {stats.get('beta', 0)}건</span>
-            <span class="vc-feedback-stat">🙏 여러분 의견이 우선순위를 정해요</span>
+            <span class="vc-feedback-stat">📝 베타 {stats.get('beta', 0)}건</span>
+            <span class="vc-feedback-stat">✓ 점수 동의 {stats.get('agree', 0)} · △ 불일치 {stats.get('disagree', 0)}</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    with st.expander("📊 점수 보정 상태 (커뮤니티 피드백)", expanded=False):
+        try:
+            from feedback_trainer import load_calibration, train_from_feedback
+
+            cal = load_calibration()
+            st.markdown(f"**{cal.summary_ko()}**")
+            if cal.notes:
+                st.caption(cal.notes)
+            if cal.min_samples_met:
+                st.markdown(
+                    f"- 종합 보정: **{cal.overall_bias:+.1f}점** · 관대도 **×{cal.generosity:.3f}**"
+                )
+                st.markdown(
+                    f"- 영역 보정: 음정 {cal.stage_bias.get('1', 0):+.1f} · "
+                    f"박자 {cal.stage_bias.get('2', 0):+.1f} · "
+                    f"호흡 {cal.stage_bias.get('3', 0):+.1f}"
+                )
+            if st.button("지금 피드백으로 다시 계산", key="fb_retrain_calibration"):
+                cal = train_from_feedback()
+                st.success(cal.summary_ko())
+                st.rerun()
+        except Exception as exc:
+            st.caption(f"보정 정보를 불러오지 못했습니다: {exc}")
 
     if st.session_state.get("feedback_sent"):
         st.success("소중한 피드백 감사합니다! 더 나은 레슨실로 만들게요 🎤")

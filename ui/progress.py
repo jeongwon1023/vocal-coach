@@ -1,6 +1,8 @@
-"""분석 진행 — 카카오톡·인스타 친화형 스텝 표시."""
+"""분석 진행 — 상단 고정 배너 · 단계별 hover 설명."""
 
 from __future__ import annotations
+
+import html
 
 import streamlit as st
 
@@ -14,6 +16,17 @@ STEPS: list[tuple[str, str, float]] = [
     ("💾", "저장", 0.92),
     ("✅", "완료", 1.0),
 ]
+
+STEP_TIPS: dict[str, str] = {
+    "오디오 불러오기": "녹음 파일을 읽고 길이·음질을 확인해요.",
+    "보컬 분리": "MR과 보컬을 분리해 분석 준비를 해요.",
+    "음정 분석": "피치(F0)를 추출해 음정이 맞는 구간을 찾아요.",
+    "박자·리듬": "박자·리듬이 밀리거나 앞서는 구간을 잡아요.",
+    "호흡·음색": "호흡 끊김·목소리 톤·다이내믹을 살펴봐요.",
+    "코칭 작성": "선생님 코멘트와 연습 포인트를 정리해요.",
+    "저장": "결과·그래프·기록을 저장해요.",
+    "완료": "분석이 끝났어요! 곧 결과를 보여드릴게요.",
+}
 
 
 def _step_state(pct: float, threshold: float) -> str:
@@ -34,19 +47,21 @@ def render_stepper(
     chips = []
     for emoji, label, threshold in STEPS:
         state = _step_state(pct, threshold)
+        tip = html.escape(STEP_TIPS.get(label, label))
         chips.append(
-            f'<span class="vc-chip vc-chip-{state}">{emoji} {label}</span>'
+            f'<span class="vc-chip vc-chip-{state} vc-chip-tip" data-tip="{tip}">'
+            f"{emoji} {html.escape(label)}</span>"
         )
 
     pct_display = min(max(int(pct * 100), 0), 100)
-    msg = message or "분석 중…"
-    eta_html = f'<p class="vc-chat-eta">⏱ {eta_label}</p>' if eta_label else ""
+    msg = html.escape(message or "분석 중…")
+    eta_html = f'<p class="vc-chat-eta">⏱ {html.escape(eta_label)}</p>' if eta_label else ""
     mode_html = (
-        f'<span class="vc-chat-mode-pill">{mode_label}</span>' if mode_label else ""
+        f'<span class="vc-chat-mode-pill">{html.escape(mode_label)}</span>' if mode_label else ""
     )
     st.markdown(
         f"""
-        <div class="vc-chat-card">
+        <div class="vc-chat-card vc-analyze-progress-card" id="vc-analyze-progress-card">
             <div class="vc-chat-avatar">🎤</div>
             <div class="vc-chat-body">
                 <p class="vc-chat-name">Vocal Coach AI {mode_html}</p>
