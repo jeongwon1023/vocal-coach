@@ -1,5 +1,6 @@
--- Supabase schema for vocal-coach (Phase 2)
--- Run in Supabase SQL Editor: https://supabase.com/dashboard
+-- vocal-coach — Supabase (재실행해도 안전한 버전)
+-- 이미 schema.sql 을 Run 했다면 이 파일은 필요 없습니다.
+-- 정책 중복 오류(42710) 났을 때만 이 파일 전체 Run.
 
 create table if not exists analysis_records (
   id uuid primary key default gen_random_uuid(),
@@ -18,7 +19,6 @@ create index if not exists idx_records_user_date
 
 alter table analysis_records enable row level security;
 
--- 베타: anon key + 앱 user_id (체험·OAuth 공통). 정식 Auth 연동 시 정책 강화.
 drop policy if exists "Allow insert for service" on analysis_records;
 drop policy if exists "Allow select by user_id" on analysis_records;
 
