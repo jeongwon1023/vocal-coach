@@ -14,7 +14,7 @@ if str(PROJECT_DIR) not in sys.path:
 
 from progress_chart import generate_growth_chart
 from progress_tracker import list_records, load_record
-from ui.auth import current_user, current_user_id, is_logged_in, start_demo
+from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
 from ui.navigation import go_to
 
@@ -70,30 +70,11 @@ def _load_session_for_record(user_id: str, path: Path) -> dict:
 
 
 def _render_login_gate() -> None:
-    st.markdown(
-        """
-        <div class="vc-login-gate">
-            <div class="vc-chat-card vc-login-card">
-                <div class="vc-chat-avatar">🔐</div>
-                <div class="vc-chat-body">
-                    <p class="vc-chat-name">Vocal Coach AI</p>
-                    <p class="vc-chat-msg">분석·기록은 로그인 후 이용할 수 있어요.<br>
-                    카카오 · Google · 체험 계정 중 하나를 선택해 주세요.</p>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("✦ 체험 계정으로 시작", type="primary", use_container_width=True, key="mypage_gate_demo"):
-            start_demo()
-    with col2:
-        st.markdown(
-            '<p class="vc-gate-hint">또는 상단 <b>로그인 / 회원가입</b> 클릭</p>',
-            unsafe_allow_html=True,
-        )
+    from ui.auth_ui import render_login_card
+
+    st.markdown('<div class="vc-login-gate">', unsafe_allow_html=True)
+    render_login_card(key_prefix="mypage_gate", compact=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_history_banner(record: dict, overall: float, song: str, idx: int, path: Path) -> None:

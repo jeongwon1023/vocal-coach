@@ -37,6 +37,7 @@ def apply(page: str = "홈") -> None:
     st.markdown(
         """
         <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         :root {
@@ -57,7 +58,13 @@ def apply(page: str = "홈") -> None:
         }
 
         html, body, [class*="css"] {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif;
+            font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
         }
 
         .stApp {
@@ -86,48 +93,73 @@ def apply(page: str = "홈") -> None:
         .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
             position: relative;
             z-index: 200;
-            background: rgba(9, 9, 11, 0.95);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--vc-border);
-            border-radius: 14px;
-            padding: 0.45rem 0.65rem !important;
-            margin: -0.25rem 0 0.35rem !important;
+            background: linear-gradient(165deg, rgba(24,24,30,0.97) 0%, rgba(12,12,16,0.98) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 18px;
+            padding: 0.5rem 0.7rem !important;
+            margin: -0.25rem 0 0.5rem !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .vc-navbar-marker + [data-testid="stHorizontalBlock"] > div > [data-testid="column"]:nth-child(2) > div > [data-testid="stHorizontalBlock"] {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 13px;
+            padding: 4px !important;
+            gap: 4px !important;
         }
         [class*="st-key-nav_btn_"] {
             position: relative;
             z-index: 201;
         }
         [class*="st-key-nav_btn_"] button {
-            font-size: 0.78rem !important;
+            font-size: 0.8rem !important;
             font-weight: 700 !important;
-            padding: 0.35rem 0.25rem !important;
-            min-height: 2.1rem !important;
+            padding: 0.4rem 0.35rem !important;
+            min-height: 2.5rem !important;
+            border-radius: 10px !important;
+            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        [class*="st-key-nav_btn_"] button[kind="secondary"] {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: #71717a !important;
+        }
+        [class*="st-key-nav_btn_"] button[kind="secondary"]:hover {
+            background: rgba(255,255,255,0.06) !important;
+            color: #e4e4e7 !important;
         }
         [class*="st-key-nav_btn_"] button[kind="primary"] {
-            background: rgba(99,102,241,0.35) !important;
-            border: 1px solid rgba(129,140,248,0.5) !important;
-            color: #e0e7ff !important;
+            background: var(--vc-gradient) !important;
+            border: none !important;
+            color: #fff !important;
+            box-shadow: 0 2px 14px var(--vc-glow) !important;
         }
+        .vc-nav-track { display: none; }
         .st-key-nav_brand_home {
             position: relative;
             z-index: 201;
         }
         .st-key-nav_brand_home button {
-            background: transparent !important;
-            border: none !important;
+            background: rgba(99,102,241,0.1) !important;
+            border: 1px solid rgba(129,140,248,0.2) !important;
             box-shadow: none !important;
             color: #fafafa !important;
             font-weight: 800 !important;
-            font-size: 0.82rem !important;
+            font-size: 0.78rem !important;
             letter-spacing: -0.02em !important;
             text-align: left !important;
-            padding: 0.35rem 0.25rem !important;
+            padding: 0.45rem 0.55rem !important;
             justify-content: flex-start !important;
+            border-radius: 12px !important;
+            min-height: 2.5rem !important;
         }
         .st-key-nav_brand_home button:hover {
-            color: #c4b5fd !important;
-            background: rgba(99,102,241,0.08) !important;
+            color: #e0e7ff !important;
+            background: rgba(99,102,241,0.18) !important;
+            border-color: rgba(129,140,248,0.45) !important;
         }
         .st-key-nav_segment,
         .st-key-top_auth_popover,
@@ -215,20 +247,22 @@ def apply(page: str = "홈") -> None:
         }
         .st-key-top_auth_popover > div > button,
         .st-key-top_auth_user > div > button {
-            background: rgba(255,255,255,0.04) !important;
-            color: #fafafa !important;
-            border: 1px solid rgba(129,140,248,0.35) !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-            font-size: 0.82rem !important;
-            padding: 0.5rem 0.85rem !important;
-            box-shadow: none !important;
+            background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(168,85,247,0.25)) !important;
+            color: #f5f3ff !important;
+            border: 1px solid rgba(167,139,250,0.45) !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            font-size: 0.8rem !important;
+            padding: 0.48rem 0.75rem !important;
+            min-height: 2.5rem !important;
+            box-shadow: 0 2px 12px rgba(99,102,241,0.2) !important;
             filter: none !important;
         }
         .st-key-top_auth_popover > div > button:hover,
         .st-key-top_auth_user > div > button:hover {
-            border-color: var(--vc-accent) !important;
-            background: rgba(99,102,241,0.15) !important;
+            border-color: #a78bfa !important;
+            background: linear-gradient(135deg, rgba(99,102,241,0.5), rgba(168,85,247,0.35)) !important;
+            color: #fff !important;
         }
         .st-key-top_auth_popover .stButton > button,
         .st-key-top_auth_user .stButton > button {
@@ -665,49 +699,192 @@ def apply(page: str = "홈") -> None:
             border-color: var(--vc-accent) !important;
         }
 
-        /* ── Login ── */
+        /* ── Login (카카오 · 인스타 스타일) ── */
         .vc-login-wrap { max-width: 420px; margin: 2rem auto 1rem; }
-        .vc-login-eyebrow {
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: var(--vc-accent);
+        .vc-login-hero {
+            text-align: center;
+            padding: 1.5rem 1rem 1.25rem;
+            max-width: 400px;
+            margin: 0 auto;
         }
-        .vc-login-title {
-            font-size: clamp(1.5rem, 5vw, 2rem);
+        .vc-login-hero-compact {
+            padding: 0.75rem 0.5rem 1rem;
+        }
+        .vc-login-logo-ring {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 1rem;
+            border-radius: 22px;
+            background: var(--vc-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 32px var(--vc-glow);
+        }
+        .vc-login-hero-compact .vc-login-logo-ring {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+            border-radius: 18px;
+            margin-bottom: 0.75rem;
+        }
+        .vc-login-brand-title {
+            margin: 0;
+            font-size: clamp(1.35rem, 5vw, 1.75rem);
             font-weight: 800;
             color: #fafafa !important;
+            letter-spacing: -0.03em;
             line-height: 1.25;
         }
-        .vc-login-sub { color: var(--vc-muted); font-size: 0.95rem; line-height: 1.55; }
-        .vc-login-or { text-align: center; color: var(--vc-muted); font-size: 0.82rem; }
+        .vc-login-hero-compact .vc-login-brand-title {
+            font-size: 1.15rem;
+        }
+        .vc-login-brand-tag {
+            margin: 0.45rem 0 0;
+            font-size: 0.88rem;
+            color: var(--vc-muted) !important;
+            line-height: 1.5;
+        }
+        .vc-login-benefits {
+            list-style: none;
+            padding: 0;
+            margin: 1.25rem 0 0;
+            text-align: left;
+            display: inline-block;
+        }
+        .vc-login-benefits li {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-size: 0.88rem;
+            color: #d4d4d8 !important;
+            padding: 0.35rem 0;
+        }
+        .vc-login-benefits li span {
+            font-size: 1.1rem;
+        }
+        .vc-login-card-panel {
+            max-width: 400px;
+            margin: 0 auto 1.5rem;
+            padding: 1.25rem 1.15rem 1.1rem;
+            background: var(--vc-card);
+            border: 1px solid var(--vc-border);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+        }
+        .vc-login-card-heading {
+            margin: 0 0 1rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #e4e4e7 !important;
+            text-align: center;
+        }
+        .vc-login-footnote {
+            margin: 0.85rem 0 0;
+            font-size: 0.75rem;
+            color: #71717a !important;
+            text-align: center;
+            line-height: 1.45;
+        }
+        .vc-auth-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .vc-auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0.35rem 0 0.15rem;
+            color: var(--vc-muted);
+            font-size: 0.78rem;
+        }
+        .vc-auth-divider::before,
+        .vc-auth-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--vc-border);
+        }
+        .vc-auth-divider span {
+            flex-shrink: 0;
+            padding: 0 0.15rem;
+        }
         .vc-auth-btn {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
             width: 100%;
+            min-height: 48px;
             padding: 0.75rem 1rem;
-            margin-bottom: 0.65rem;
+            margin-bottom: 0;
             border-radius: 12px;
             font-weight: 700;
             font-size: 0.95rem;
             text-align: center;
             text-decoration: none;
             box-sizing: border-box;
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .vc-auth-btn:active {
+            transform: scale(0.98);
+        }
+        .vc-auth-btn-icon {
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+        .vc-auth-g-icon {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            width: 1.25rem;
+            text-align: center;
         }
         .vc-auth-google {
             background: #fff;
             color: #1f2937;
             border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .vc-auth-kakao {
             background: var(--vc-kakao);
             color: var(--vc-kakao-text);
+            border: none;
+            box-shadow: 0 2px 8px rgba(254,229,0,0.25);
         }
-        .vc-auth-sm { padding: 0.6rem 0.85rem !important; font-size: 0.88rem !important; }
+        .vc-auth-sm {
+            min-height: 44px !important;
+            padding: 0.6rem 0.85rem !important;
+            font-size: 0.88rem !important;
+        }
         .vc-auth-disabled {
             background: var(--vc-card);
             color: var(--vc-muted);
             border: 1px solid var(--vc-border);
             opacity: 0.65;
+            cursor: not-allowed;
+        }
+        [class*="st-key-page_login_demo"] button,
+        [class*="st-key-mypage_gate_demo"] button,
+        [class*="st-key-landing_auth_demo"] button,
+        [class*="st-key-auth_pop_demo"] button {
+            min-height: 48px !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            font-size: 0.92rem !important;
+            margin-top: 0.25rem !important;
+        }
+        [class*="st-key-page_login_demo"] button {
+            background: var(--vc-gradient) !important;
+            border: none !important;
+            color: #fff !important;
+        }
+        [class*="st-key-mypage_gate_demo"] button {
+            background: var(--vc-gradient) !important;
+            border: none !important;
+            color: #fff !important;
         }
 
         /* ── Alerts & info (dark-friendly) ── */
@@ -1234,66 +1411,52 @@ def apply(page: str = "홈") -> None:
             font-size: 0.78rem;
             color: #a1a1aa !important;
         }
-        /* 홈 — 로그인/회원가입 배너 (베타와 색 구분: 코랄·앰버 그라데이션) */
-        .vc-landing-auth-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-            padding: 0.85rem 1.1rem;
-            margin-bottom: 0.85rem;
-            border-radius: 14px;
-            background: linear-gradient(120deg, rgba(234,88,12,0.22) 0%, rgba(245,158,11,0.14) 45%, rgba(99,102,241,0.1) 100%);
-            border: 1px solid rgba(251,146,60,0.45);
-            box-shadow: 0 4px 24px rgba(234,88,12,0.12);
+        /* 홈 — 체험 CTA 배너 (소셜 로그인은 상단 팝오버) */
+        .vc-landing-trial-banner {
+            padding: 1rem 1.15rem;
+            margin-bottom: 0.55rem;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(24,24,27,0.95) 55%, rgba(168,85,247,0.08) 100%);
+            border: 1px solid rgba(129,140,248,0.28);
+            box-shadow: 0 4px 20px rgba(99,102,241,0.1);
         }
-        .vc-landing-auth-tag {
+        .vc-landing-trial-tag {
             display: inline-block;
             font-size: 0.62rem;
             font-weight: 800;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding: 0.18rem 0.55rem;
+            letter-spacing: 0.05em;
+            padding: 0.2rem 0.55rem;
             border-radius: 999px;
-            background: linear-gradient(135deg, #ea580c, #f59e0b);
-            color: #fff !important;
-            margin-bottom: 0.35rem;
+            background: rgba(99,102,241,0.25);
+            color: #c7d2fe !important;
+            margin-bottom: 0.4rem;
         }
-        .vc-landing-auth-title {
+        .vc-landing-trial-title {
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 700;
-            color: #fff7ed !important;
+            color: #fafafa !important;
             line-height: 1.35;
         }
-        .vc-landing-auth-sub {
-            margin: 0.2rem 0 0;
+        .vc-landing-trial-sub {
+            margin: 0.35rem 0 0;
             font-size: 0.78rem;
-            color: #fdba74 !important;
+            color: #a1a1aa !important;
+            line-height: 1.45;
         }
-        .vc-auth-landing {
-            padding: 0.55rem 0.5rem !important;
-            font-size: 0.82rem !important;
-            margin-bottom: 0 !important;
-            border-radius: 10px !important;
+        .vc-landing-trial-sub b {
+            color: #c4b5fd !important;
+            font-weight: 600;
         }
         .st-key-landing_auth_demo button {
-            background: linear-gradient(135deg, #ea580c, #f59e0b) !important;
+            background: var(--vc-gradient) !important;
             border: none !important;
             color: #fff !important;
             font-weight: 700 !important;
-            min-height: 2.35rem !important;
-        }
-        .st-key-top_auth_popover button {
-            background: linear-gradient(135deg, rgba(234,88,12,0.25), rgba(245,158,11,0.18)) !important;
-            border: 1px solid rgba(251,146,60,0.5) !important;
-            color: #ffedd5 !important;
-            font-weight: 700 !important;
-        }
-        .st-key-top_auth_popover button:hover {
-            border-color: #fb923c !important;
-            color: #fff !important;
+            min-height: 48px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 16px var(--vc-glow) !important;
+            margin-top: 0.15rem !important;
         }
         /* 분석 완료 히어로 배너 */
         .vc-result-hero {
@@ -1858,10 +2021,12 @@ def apply(page: str = "홈") -> None:
         }
         .vc-login-gate {
             text-align: center;
-            padding: 2rem 1rem 1rem;
-            margin-bottom: 1rem;
+            padding: 0.5rem 0.25rem 1rem;
+            margin-bottom: 0.5rem;
         }
-        .vc-login-gate .vc-page-desc { max-width: 420px; margin: 0 auto; }
+        .vc-login-gate .vc-login-card-panel {
+            margin-top: 0;
+        }
         .vc-results-head {
             margin-bottom: 1.25rem;
             padding-bottom: 0.75rem;
@@ -2454,13 +2619,22 @@ def apply(page: str = "홈") -> None:
         }
 
         @media (max-width: 768px) {
-            .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            .block-container { padding-left: 0.65rem !important; padding-right: 0.65rem !important; }
             .vc-header-shell { padding: 0.65rem 0.75rem 0.2rem; margin: -0.5rem -0.5rem 0; }
             .vc-header-name { font-size: 0.78rem; }
             .vc-header-tag { display: none; }
             .vc-header-logo { width: 34px; height: 34px; font-size: 1rem; }
-            .st-key-nav_brand_home button { font-size: 0.72rem !important; }
-            [class*="st-key-nav_btn_"] button { font-size: 0.65rem !important; padding: 0.28rem 0.1rem !important; }
+            .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
+                padding: 0.4rem 0.45rem !important;
+                border-radius: 12px !important;
+            }
+            .st-key-nav_brand_home button { font-size: 0.78rem !important; min-height: 2.5rem !important; }
+            [class*="st-key-nav_btn_"] button {
+                font-size: 0.68rem !important;
+                padding: 0.32rem 0.08rem !important;
+                min-height: 2.65rem !important;
+                line-height: 1.2 !important;
+            }
             .st-key-beta_feedback_shortcut button { font-size: 0.72rem !important; }
             .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-top_auth_popover,
@@ -2468,20 +2642,18 @@ def apply(page: str = "홈") -> None:
             .st-key-top_auth_popover > div > button,
             .st-key-top_auth_user > div > button {
                 font-size: 0.72rem !important;
-                padding: 0.4rem 0.5rem !important;
+                padding: 0.45rem 0.55rem !important;
+                min-height: 2.5rem !important;
             }
             [data-testid="column"] { min-width: 0 !important; }
-            .vc-login-gate [data-testid="column"] {
-                flex: 1 1 100% !important;
-                width: 100% !important;
-            }
-            .vc-gate-hint { text-align: center !important; margin-top: 0.5rem; }
             .vc-score-strip { justify-content: center; }
             .vc-score-chip { min-width: 56px; font-size: 0.95rem; }
             .vc-result-hero-inner { flex-direction: column; text-align: center; }
             .vc-result-hero-score { width: 100%; }
             [data-testid="stFileUploader"] section { padding: 0.5rem !important; }
-            [data-testid="stChatInput"] { padding-bottom: env(safe-area-inset-bottom, 0); }
+            [data-testid="stChatInput"] {
+                padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)) !important;
+            }
             .vc-hero-h1 { font-size: clamp(1.75rem, 8vw, 2.4rem); }
             .st-key-landing_cta, .st-key-landing_cta_bottom,
             .st-key-landing_my, .st-key-btn_open_analysis_settings,
@@ -2489,9 +2661,62 @@ def apply(page: str = "홈") -> None:
             .st-key-btn_start_analysis, .st-key-btn_new_analysis {
                 width: 100% !important;
             }
+            .st-key-landing_cta button, .st-key-landing_cta_bottom button,
+            .st-key-btn_start_analysis button {
+                min-height: 48px !important;
+            }
             .vc-steps-row { flex-direction: column; }
             .vc-step-arrow { display: none; }
             .vc-step-card { min-width: 100%; }
+            /* 로그인 · 랜딩 */
+            .vc-login-card-panel {
+                padding: 1.1rem 1rem;
+                border-radius: 18px;
+                margin-left: 0;
+                margin-right: 0;
+                max-width: 100%;
+            }
+            .vc-login-hero { padding: 1rem 0.5rem 0.85rem; max-width: 100%; }
+            .vc-auth-btn { min-height: 50px; font-size: 0.92rem; border-radius: 12px; }
+            .vc-landing-trial-banner {
+                padding: 0.9rem 1rem;
+                margin-bottom: 0.45rem;
+            }
+            .vc-landing-trial-title { font-size: 0.92rem; }
+            .st-key-nav_brand_home button {
+                font-size: 0.72rem !important;
+                padding: 0.4rem 0.45rem !important;
+            }
+            [class*="st-key-nav_btn_"] button {
+                font-size: 0.72rem !important;
+                min-height: 2.4rem !important;
+            }
+            .st-key-top_auth_popover > div > button {
+                font-size: 0.72rem !important;
+                padding: 0.42rem 0.55rem !important;
+            }
+            /* DM 채팅 — 인스타 풀폭 */
+            .st-key-vc_dm_panel {
+                margin-left: -0.65rem;
+                margin-right: -0.65rem;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            .vc-dm-header { border-radius: 0; }
+            .vc-dm-composer {
+                padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0));
+            }
+            .vc-dm-pill-row button {
+                min-height: 2.5rem !important;
+                font-size: 0.78rem !important;
+            }
+            /* 팝오버 로그인 */
+            [data-testid="stPopoverBody"] {
+                padding: 0.85rem !important;
+                min-width: min(92vw, 320px) !important;
+            }
+            [data-testid="stPopoverBody"] .vc-auth-btn { min-height: 46px; }
         }
         @media (max-width: 900px) {
             .vc-header-shell + div [data-testid="column"]:nth-child(1) { flex: 1.2 !important; }

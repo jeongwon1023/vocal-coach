@@ -69,15 +69,6 @@ elif page == "피드백":
     render_feedback_page()
 else:
     if not auth.is_logged_in():
-        st.markdown(
-            """
-            <div class="vc-page-head">
-                <h2 class="vc-page-title">마이 페이지 📈</h2>
-                <p class="vc-page-desc">분석 기록·성장 그래프는 로그인 후 이용할 수 있어요.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
         auth.render_login_page()
         st.stop()
     my_page.render()

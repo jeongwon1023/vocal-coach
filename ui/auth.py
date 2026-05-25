@@ -87,45 +87,16 @@ def render_topbar_auth() -> None:
                 logout()
         return
 
-    with st.popover("로그인 / 회원가입", use_container_width=True, key="top_auth_popover"):
+    with st.popover("로그인", use_container_width=True, key="top_auth_popover"):
         render_login_compact(key_prefix="top_auth")
 
 
 def render_login_compact(*, key_prefix: str = "auth_pop") -> None:
     """상단 팝오버용 — 카카오 · Google · 체험."""
-    base = auth_base_url()
-    g_ok = google_configured()
-    k_ok = kakao_configured()
+    from ui.auth_ui import render_auth_buttons
 
-    st.caption("소셜 계정으로 빠르게 시작하세요")
-
-    if g_ok:
-        st.markdown(
-            f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google vc-auth-sm">Google로 시작</a>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<span class="vc-auth-btn vc-auth-disabled vc-auth-sm">Google로 시작</span>',
-            unsafe_allow_html=True,
-        )
-        st.caption(_oauth_unconfigured_hint("Google"))
-
-    if k_ok:
-        st.markdown(
-            f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao vc-auth-sm">카카오로 시작</a>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<span class="vc-auth-btn vc-auth-disabled vc-auth-sm">카카오로 시작</span>',
-            unsafe_allow_html=True,
-        )
-        st.caption(_oauth_unconfigured_hint("카카오"))
-
-    st.divider()
-    if st.button("✦ 체험 계정으로 시작", key=f"{key_prefix}_demo", use_container_width=True):
-        start_demo()
+    st.caption("3초 만에 시작 · 기록 저장")
+    render_auth_buttons(key_prefix=key_prefix, compact=True)
 
 
 def render_sidebar_user() -> None:
@@ -148,56 +119,12 @@ def _start_demo() -> None:
 
 
 def render_login_page() -> None:
-    """로그인 전용 화면."""
-    base = auth_base_url()
-    g_ok = google_configured()
-    k_ok = kakao_configured()
+    """로그인 전용 화면 — 카카오·인스타 스타일 카드."""
+    from ui.auth_ui import render_login_card
 
-    st.markdown(
-        """
-        <div class="vc-login-wrap">
-            <div class="vc-login-card">
-                <p class="vc-login-eyebrow">VOCAL COACH AI</p>
-                <h2 class="vc-login-title">보컬 레슨실에<br>오신 걸 환영해요</h2>
-                <p class="vc-login-sub">로그인하면 분석 기록·성장 그래프를<br>내 마이 페이지에 모아둘 수 있어요.</p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_login_card(key_prefix="page_login")
 
-    st.markdown('<div class="vc-login-actions">', unsafe_allow_html=True)
-
-    if g_ok:
-        st.markdown(
-            f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google">Google로 시작하기</a>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<span class="vc-auth-btn vc-auth-disabled" title="OAuth 미설정">Google로 시작하기</span>',
-            unsafe_allow_html=True,
-        )
-
-    if k_ok:
-        st.markdown(
-            f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao">카카오로 시작하기</a>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<span class="vc-auth-btn vc-auth-disabled">카카오로 시작하기</span>',
-            unsafe_allow_html=True,
-        )
-
-    st.markdown('<p class="vc-login-or">또는</p>', unsafe_allow_html=True)
-
-    if st.button("체험 계정으로 바로 시작", use_container_width=True, key="demo_login"):
-        start_demo()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if not g_ok and not k_ok:
+    if not google_configured() and not kakao_configured():
         with st.expander("소셜 로그인 연동 방법 (선택)"):
             st.markdown(
                 "1. `.env.example` → `.env` 복사\n\n"
@@ -206,7 +133,7 @@ def render_login_page() -> None:
                 "3. **Kakao** — [developers.kakao.com](https://developers.kakao.com/) REST API 키  \n"
                 "   Redirect: `http://localhost:8001/auth/kakao/callback`\n\n"
                 "4. `run_web.bat` 재실행\n\n"
-                "**지금은 위 「체험 계정」으로 모든 기능을 쓸 수 있어요.**"
+                "**지금은 「체험 계정」으로 모든 기능을 쓸 수 있어요.**"
             )
 
 
@@ -218,47 +145,20 @@ def require_login() -> bool:
 
 
 def render_landing_auth_banner() -> None:
-    """홈 랜딩 — 로그인/회원가입 강조 배너 (베타 배너와 색 구분)."""
-    base = auth_base_url()
-    g_ok = google_configured()
-    k_ok = kakao_configured()
-
+    """홈 랜딩 — 체험 CTA (소셜 로그인은 상단 팝오버)."""
     st.markdown(
         """
-        <div class="vc-landing-auth-banner">
-            <div class="vc-landing-auth-copy">
-                <span class="vc-landing-auth-tag">로그인 · 회원가입</span>
-                <p class="vc-landing-auth-title">30초면 시작 · 분석 기록이 마이 페이지에 쌓여요</p>
-                <p class="vc-landing-auth-sub">Google · 카카오 · 체험 계정 — 무료</p>
+        <div class="vc-landing-trial-banner">
+            <div class="vc-landing-trial-copy">
+                <span class="vc-landing-trial-tag">무료 체험</span>
+                <p class="vc-landing-trial-title">가입 없이 바로 분석해 보세요</p>
+                <p class="vc-landing-trial-sub">기록 저장은 상단 <b>로그인 / 회원가입</b> · 카카오 · Google</p>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3 = st.columns([1, 1, 1])
-    with c1:
-        if g_ok:
-            st.markdown(
-                f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google vc-auth-landing">Google</a>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<span class="vc-auth-btn vc-auth-disabled vc-auth-landing">Google</span>',
-                unsafe_allow_html=True,
-            )
-    with c2:
-        if k_ok:
-            st.markdown(
-                f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao vc-auth-landing">카카오</a>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<span class="vc-auth-btn vc-auth-disabled vc-auth-landing">카카오</span>',
-                unsafe_allow_html=True,
-            )
-    with c3:
-        if st.button("✦ 체험 시작", key="landing_auth_demo", use_container_width=True, type="primary"):
-            start_demo()
+    from ui.auth_ui import render_trial_button
+
+    render_trial_button(key_prefix="landing_auth")

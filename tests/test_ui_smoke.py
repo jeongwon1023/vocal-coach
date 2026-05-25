@@ -33,12 +33,14 @@ def test_analysis_eta() -> None:
 
 
 def test_navigation_pages() -> None:
-    from ui.navigation import PAGES
+    from ui.navigation import NAV_PAGES, PAGES
 
     assert "홈" in PAGES
     assert "마이 페이지" in PAGES
     assert "피드백" in PAGES
     assert "분석" not in PAGES
+    assert "피드백" not in NAV_PAGES
+    assert len(NAV_PAGES) == 2
 
 
 def test_auth_login_compact_accepts_prefix() -> None:

@@ -5,7 +5,10 @@ from __future__ import annotations
 import streamlit as st
 
 PAGES = ("홈", "마이 페이지", "피드백")
+# 상단 네비에만 표시 (피드백은 베타 배너 바로가기)
+NAV_PAGES = ("홈", "마이 페이지")
 PAGE_LABELS = {"홈": "홈", "마이 페이지": "마이", "피드백": "피드백"}
+PAGE_ICONS = {"홈": "🏠", "마이 페이지": "📈", "피드백": "💬"}
 _LEGACY = {"분석": "마이 페이지"}
 
 

@@ -132,7 +132,7 @@ def render() -> None:
 
         <footer class="vc-footer">
             <p>VOCAL COACH AI · 레슨비 없이, 내 노래를 객관적으로 듣는 AI</p>
-            <p class="vc-footer-sub">Google · 카카오 로그인 · 체험 계정으로 30초 만에 시작</p>
+            <p class="vc-footer-sub">상단 로그인 · 카카오 · Google · 체험 계정으로 30초 만에 시작</p>
         </footer>
         """,
         unsafe_allow_html=True,
