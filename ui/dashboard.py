@@ -111,7 +111,9 @@ def _render_login_gate() -> None:
 
 
 def _render_settings_summary(opts: dict) -> None:
-    """현재 설정 요약 — 사이드바 안내."""
+    """현재 설정 요약 + 설정 열기 버튼."""
+    from ui.analysis_settings import render_settings_open_button
+
     mode = _mode_label(opts)
     yt = "ON" if opts["use_youtube"] else "OFF"
     gpt = "ON" if opts["use_gpt"] else "OFF"
@@ -122,10 +124,14 @@ def _render_settings_summary(opts: dict) -> None:
             <span class="vc-settings-pill">📺 유튜브 {yt}</span>
             <span class="vc-settings-pill">🤖 GPT {gpt}</span>
         </div>
-        <p class="vc-sidebar-hint-text">← 왼쪽 패널에서 <b>정밀 분석 · 유튜브 · GPT</b> 등을 바꿀 수 있어요</p>
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(
+        '<p class="vc-sidebar-hint-text">아래 <b>분석 설정</b> 버튼에서 정밀 분석 · 유튜브 · GPT를 바꿀 수 있어요</p>',
+        unsafe_allow_html=True,
+    )
+    render_settings_open_button()
 
 
 def _render_page_head(opts: dict) -> None:
@@ -291,7 +297,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
 
     mode_label = _mode_label(opts)
     st.markdown(
-        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 왼쪽 패널에서 변경 가능</p>',
+        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · <b>분석 설정</b> 버튼에서 변경</p>',
         unsafe_allow_html=True,
     )
     if st.button(

@@ -423,7 +423,7 @@ def render_session_results(session: dict[str, Any]) -> None:
             st.error(session["gpt_error"])
         else:
             st.markdown(
-                '<p class="vc-empty-note">사이드바에서 <b>GPT 코칭</b>을 켜고 다시 분석하면 AI 멘트가 여기에 표시돼요.</p>',
+                '<p class="vc-empty-note"><b>분석 설정</b>에서 GPT 코칭을 켜고 다시 분석하면 AI 멘트가 여기에 표시돼요.</p>',
                 unsafe_allow_html=True,
             )
 

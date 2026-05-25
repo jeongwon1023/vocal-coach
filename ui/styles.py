@@ -6,7 +6,6 @@ import streamlit as st
 
 
 def apply(page: str = "홈") -> None:
-    hide_sidebar = page != "분석"
     sidebar_css = """
         [data-testid="stSidebar"],
         [data-testid="stSidebarCollapsedControl"],
@@ -26,32 +25,8 @@ def apply(page: str = "홈") -> None:
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
         }
-    """ if hide_sidebar else """
-        [data-testid="stSidebar"] {
-            display: block !important;
-            min-width: 300px !important;
-            max-width: 340px !important;
-            background: var(--vc-surface) !important;
-            transform: none !important;
-        }
-        [data-testid="stSidebarCollapsedControl"],
-        [data-testid="collapsedControl"],
-        [data-testid="stSidebar"] > div:first-child button {
-            display: none !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
-        }
-        [data-testid="stAppViewContainer"] {
-            margin-left: 0 !important;
-        }
-        section.main .block-container {
-            max-width: 720px !important;
-        }
         @media (max-width: 768px) {
-            [data-testid="stSidebar"] {
-                min-width: 280px !important;
-            }
-            section.main .block-container {
+            .block-container {
                 max-width: 100% !important;
                 padding-left: 0.75rem !important;
                 padding-right: 0.75rem !important;
@@ -1075,6 +1050,32 @@ def apply(page: str = "홈") -> None:
             .vc-chip { font-size: 0.62rem; }
             .vc-settings-pill-row { justify-content: center; }
             .vc-sidebar-hint-text { text-align: center; }
+        }
+
+        /* 분석 설정 다이얼로그 (모바일) */
+        [data-testid="stDialog"] > div {
+            background: var(--vc-surface) !important;
+            border: 1px solid var(--vc-border) !important;
+            border-radius: 16px !important;
+        }
+        [data-testid="stDialog"] h2 {
+            color: #fafafa !important;
+            font-size: 1.05rem !important;
+        }
+        @media (max-width: 768px) {
+            [data-testid="stDialog"] > div {
+                width: min(96vw, 480px) !important;
+                max-height: 88vh !important;
+                overflow-y: auto !important;
+            }
+        }
+        .st-key-btn_open_analysis_settings button,
+        .st-key-btn_open_analysis_settings_results button {
+            background: var(--vc-card) !important;
+            color: #c4b5fd !important;
+            border: 1px solid rgba(129,140,248,0.45) !important;
+            font-weight: 700 !important;
+            min-height: 2.75rem !important;
         }
 
         /* Instagram DM 코치 채팅 */
