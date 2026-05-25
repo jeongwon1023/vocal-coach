@@ -1,0 +1,2 @@
+@deprecated 이 파일은 docs/기능과-사용법.md 로 통합되었습니다.
+README.md 를 먼저 읽어 주세요.

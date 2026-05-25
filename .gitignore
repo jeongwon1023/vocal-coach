@@ -1,0 +1,12 @@
+venv/
+.env
+.streamlit/secrets.toml
+.cache/
+__pycache__/
+*.pyc
+pitch_result.png
+records/
+clips/
+charts/
+.cache/
+analysis_report.json

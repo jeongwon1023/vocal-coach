@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "보컬 코치",
+    "slug": "vocal-coach",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vocalcoach.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "보컬 녹음 및 분석을 위해 마이크가 필요합니다."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563eb"
+      },
+      "package": "com.vocalcoach.app",
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "plugins": ["expo-av"]
+  }
+}
