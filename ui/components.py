@@ -115,19 +115,19 @@ def render_radar_chart(scores: dict[int | str, float]) -> None:
     angles = [n / 3 * 2 * 3.14159 for n in range(4)]
 
     fig, ax = plt.subplots(figsize=(4.2, 4.2), subplot_kw={"projection": "polar"})
-    fig.patch.set_facecolor("#18181b")
-    ax.set_facecolor("#18181b")
+    fig.patch.set_facecolor("#f8f6ff")
+    ax.set_facecolor("#f8f6ff")
 
-    ax.plot(angles, values_closed, "o-", linewidth=2.8, color="#818cf8", markersize=7)
-    ax.fill(angles, values_closed, alpha=0.22, color="#6366f1")
+    ax.plot(angles, values_closed, "o-", linewidth=2.8, color="#6366f1", markersize=7)
+    ax.fill(angles, values_closed, alpha=0.22, color="#818cf8")
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=10, color="#d4d4d8")
+    ax.set_xticklabels(labels, fontsize=10, color="#52525b")
     ax.set_ylim(0, 100)
     ax.set_yticks([25, 50, 75, 100])
-    ax.set_yticklabels(["25", "50", "75", "100"], fontsize=8, color="#71717a")
-    ax.set_title("영역별 밸런스", pad=18, fontsize=12, color="#fafafa", fontweight="bold")
-    ax.grid(color="#3f3f46", alpha=0.85, linestyle="-", linewidth=0.6)
-    ax.spines["polar"].set_color("#52525b")
+    ax.set_yticklabels(["25", "50", "75", "100"], fontsize=8, color="#6e667d")
+    ax.set_title("영역별 밸런스", pad=18, fontsize=12, color="#1c1528", fontweight="bold")
+    ax.grid(color="#d4d0de", alpha=0.85, linestyle="-", linewidth=0.6)
+    ax.spines["polar"].set_color("#c4bdd4")
     fig.tight_layout()
 
     buf = io.BytesIO()

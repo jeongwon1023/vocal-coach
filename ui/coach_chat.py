@@ -74,16 +74,21 @@ def _rule_opening(session: dict[str, Any]) -> str:
 
     overall = report.overall_score
     stages = report.stages[:3]
+    weakest = min(stages, key=lambda s: s.score) if stages else None
+    wlabel = STAGE_NAMES.get(weakest.stage, "음정") if weakest else "음정"
+
     lines = [
-        f"{name}님, 분석 끝났어요! 선생님이 들어봤어요 🎤",
+        f"{name}님, 방금 녹음 선생님이 끝까지 들어봤어요 🎤",
         "",
-        f"종합 **{overall:.0f}점**이에요.",
+        f"먼저 말씀드리면 **종합 {overall:.0f}점**이에요. "
+        f"혼자 연습할 때는 잘 되는 것 같은데, 막상 들으면 어디가 아쉬운지 감이 안 오잖아요. "
+        f"오늘 분석으로 **숫자와 구간**을 같이 짚어 볼게요.",
     ]
 
     strengths = build_strength_items(session)
     if strengths:
         lines.append("")
-        lines.append("🌟 **오늘의 잘한 점**")
+        lines.append("🌟 **오늘 정말 잘한 점**")
         for s in strengths:
             lines.append(f"· **{s['headline']}**")
             lines.append(f"  {s['detail']}")
@@ -94,10 +99,7 @@ def _rule_opening(session: dict[str, Any]) -> str:
         lines.append("🎯 **오늘 먼저 잡을 연습 3가지**")
         for f in focus:
             lines.append(f"{f.get('priority', '?')}. **{f['headline']}**")
-            detail = f["detail"]
-            if len(detail) > 160:
-                detail = detail[:160] + "…"
-            lines.append(f"   {detail}")
+            lines.append(f"   {f['detail']}")
 
     if stages:
         lines.append("")
@@ -106,8 +108,22 @@ def _rule_opening(session: dict[str, Any]) -> str:
             label = STAGE_NAMES.get(s.stage, s.title)
             lines.append(f"· {label} **{s.score:.0f}점**")
 
-    lines.append("")
-    lines.append("궁금한 거 편하게 물어보세요. 아래 입력창에 적어 주세요 😊")
+    lines.extend(
+        [
+            "",
+            "📋 **오늘 10분 루틴 (선생님 추천)**",
+            "① 2분 — 복식호흡 4-4-8 (코로 들이마시고 천천히 내쉬기)",
+            f"② 4분 — {wlabel} 약한 구간만 0.5배속 구간 루프",
+            "③ 3분 — MR 80% 속도로 한 번 통으로",
+            "④ 1분 — 오늘 잘된 한 마디만 느리게 롱톤",
+            "",
+            "📅 **1주 뒤 체크** — 같은 곡으로 다시 녹음해서 점수 비교해 보세요.",
+            "",
+            "아래 입력창에 궁금한 거 편하게 물어보세요. "
+            "「10분 루틴 더 자세히」「이 구간만 연습법」처럼 말씀해 주시면 "
+            "선생님이 이어서 코칭해 드릴게요 😊",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -299,9 +315,10 @@ def _generate_reply(session: dict[str, Any]) -> str:
 
 
 def _opening_is_rich(text: str) -> bool:
-    """GPT 첫 메시지가 구체적 형식(이모지·섹션)을 갖췄는지."""
+    """GPT 첫 메시지가 DM 형식(섹션·분량)을 갖췄는지."""
     t = text or ""
-    return "🌟" in t and ("🎯" in t or "잘한" in t) and len(t) >= 120
+    has_sections = "🌟" in t and ("🎯" in t or "잘한" in t) and ("📋" in t or "루틴" in t)
+    return has_sections and len(t) >= 280
 
 
 def _init_chat(session: dict[str, Any]) -> None:
@@ -315,19 +332,15 @@ def _init_chat(session: dict[str, Any]) -> None:
 
     rule_opening = _rule_opening(session)
     suggestions = _rule_suggested_questions(session)
-    opening = session.get("gpt_text") or rule_opening
 
     st.session_state.coach_chat_fp = fp
-    st.session_state.coach_chat_messages = [{"role": "assistant", "content": _normalize_chat_markdown(opening)}]
+    st.session_state.coach_chat_messages = [
+        {"role": "assistant", "content": _normalize_chat_markdown(rule_opening)}
+    ]
     st.session_state.coach_suggested_questions = suggestions[:3]
     st.session_state.coach_used_suggestions = []
     st.session_state.coach_chat_ready = True
-    st.session_state.coach_gpt_enhanced = bool(session.get("gpt_text"))
-
-    if session.get("gpt_text"):
-        if not _opening_is_rich(opening):
-            st.session_state.coach_chat_messages[0]["content"] = rule_opening
-        return
+    st.session_state.coach_gpt_enhanced = False
 
     try:
         import os
@@ -341,14 +354,12 @@ def _init_chat(session: dict[str, Any]) -> None:
         gpt_opening = generate_coach_opening(payload, rag_block=rag_block or None)
         if gpt_opening and gpt_opening.strip() and _opening_is_rich(gpt_opening):
             st.session_state.coach_chat_messages[0]["content"] = _normalize_chat_markdown(gpt_opening.strip())
-        else:
-            st.session_state.coach_chat_messages[0]["content"] = rule_opening
+            st.session_state.coach_gpt_enhanced = True
         gpt_qs = generate_suggested_questions_gpt(payload)
         if gpt_qs:
             st.session_state.coach_suggested_questions = gpt_qs[:3]
-        st.session_state.coach_gpt_enhanced = True
     except Exception:
-        st.session_state.coach_chat_messages[0]["content"] = rule_opening
+        pass
 
 
 def _finish_generating(session: dict[str, Any]) -> None:
@@ -429,17 +440,7 @@ def _render_dm_thread(messages: list[dict[str, str]], *, show_typing: bool = Fal
 
     if show_typing:
         with st.chat_message("assistant", avatar="🎤"):
-            st.markdown(
-                """
-                <div class="vc-bubble-typing">
-                    <span class="vc-typing-dot"></span>
-                    <span class="vc-typing-dot"></span>
-                    <span class="vc-typing-dot"></span>
-                    <span class="vc-typing-label">입력 중</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.caption("입력 중…")
 
 
 def _pill_label(q: str) -> str:

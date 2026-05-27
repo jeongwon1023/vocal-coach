@@ -68,6 +68,14 @@ def generate_growth_chart(
     out = output_path or CHARTS_DIR / "growth_chart.png"
 
     fig, ax = plt.subplots(figsize=(10, 5))
+    fig.patch.set_facecolor("#f8f6ff")
+    ax.set_facecolor("#f8f6ff")
+    ax.tick_params(colors="#52525b")
+    ax.xaxis.label.set_color("#3f3f46")
+    ax.yaxis.label.set_color("#3f3f46")
+    ax.title.set_color("#1c1528")
+    for spine in ax.spines.values():
+        spine.set_color("#c4bdd4")
     x = range(len(dates))
     ax.plot(x, overall, "o-", linewidth=2, label="종합", color="#1e3a8a")
     ax.plot(x, s1, "s--", alpha=0.85, label=STAGE_LABELS[1], color="#2563eb")
@@ -81,7 +89,7 @@ def generate_growth_chart(
     ax.grid(True, alpha=0.3)
     ax.legend(loc="lower right")
     fig.tight_layout()
-    fig.savefig(out, dpi=150)
+    fig.savefig(out, dpi=150, facecolor=fig.get_facecolor())
     if show:
         plt.show()
     else:

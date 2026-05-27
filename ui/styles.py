@@ -41,20 +41,32 @@ def apply(page: str = "홈") -> None:
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         :root {
-            --vc-bg: #09090b;
-            --vc-surface: #111114;
-            --vc-card: #18181b;
-            --vc-border: #27272a;
-            --vc-text: #fafafa;
-            --vc-muted: #a1a1aa;
-            --vc-accent: #818cf8;
-            --vc-accent-2: #a78bfa;
+            --vc-bg: #f4f2f8;
+            --vc-surface: #faf9fd;
+            --vc-card: #ffffff;
+            --vc-border: #e0dce8;
+            --vc-text: #1c1528;
+            --vc-muted: #6e667d;
+            --vc-accent: #6366f1;
+            --vc-accent-2: #8b5cf6;
             --vc-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-            --vc-glow: rgba(99, 102, 241, 0.35);
+            --vc-gradient-soft: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(248,246,255,0.96) 100%);
+            --vc-gradient-card: linear-gradient(155deg, #ffffff 0%, #f8f6ff 48%, #f0ebff 100%);
+            --vc-gradient-mesh:
+                radial-gradient(ellipse 100% 65% at 50% -18%, rgba(129,140,248,0.14), transparent 58%),
+                radial-gradient(ellipse 55% 45% at -5% 45%, rgba(168,85,247,0.08), transparent 52%),
+                radial-gradient(ellipse 50% 40% at 105% 70%, rgba(99,102,241,0.06), transparent 50%),
+                linear-gradient(180deg, #faf8ff 0%, #f4f2f8 45%, #efeaf8 100%);
+            --vc-glow: rgba(99, 102, 241, 0.22);
             --vc-kakao: #FEE500;
             --vc-kakao-text: #191919;
             --vc-radius: 14px;
             --vc-radius-lg: 20px;
+        }
+
+        html, body {
+            background: var(--vc-bg) !important;
+            color-scheme: light;
         }
 
         html, body, [class*="css"] {
@@ -68,7 +80,10 @@ def apply(page: str = "홈") -> None:
         }
 
         .stApp {
-            background: var(--vc-bg);
+            min-height: 100vh;
+            background: var(--vc-gradient-mesh) !important;
+            background-color: var(--vc-bg) !important;
+            background-attachment: fixed !important;
             color: var(--vc-text);
         }
 
@@ -93,18 +108,18 @@ def apply(page: str = "홈") -> None:
         .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
             position: relative;
             z-index: 200;
-            background: linear-gradient(165deg, rgba(24,24,30,0.97) 0%, rgba(12,12,16,0.98) 100%);
+            background: linear-gradient(165deg, rgba(255,255,255,0.94) 0%, rgba(248,246,255,0.97) 100%);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.07);
+            border: 1px solid rgba(99,102,241,0.14);
             border-radius: 18px;
             padding: 0.5rem 0.7rem !important;
             margin: -0.25rem 0 0.5rem !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+            box-shadow: 0 8px 32px rgba(99,102,241,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
         }
         .vc-navbar-marker + [data-testid="stHorizontalBlock"] > div > [data-testid="column"]:nth-child(2) > div > [data-testid="stHorizontalBlock"] {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(99,102,241,0.06);
+            border: 1px solid rgba(99,102,241,0.12);
             border-radius: 13px;
             padding: 4px !important;
             gap: 4px !important;
@@ -125,11 +140,11 @@ def apply(page: str = "홈") -> None:
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            color: #71717a !important;
+            color: #6e667d !important;
         }
         [class*="st-key-nav_btn_"] button[kind="secondary"]:hover {
-            background: rgba(255,255,255,0.06) !important;
-            color: #e4e4e7 !important;
+            background: rgba(99,102,241,0.1) !important;
+            color: #4f46e5 !important;
         }
         [class*="st-key-nav_btn_"] button[kind="primary"] {
             background: var(--vc-gradient) !important;
@@ -319,8 +334,8 @@ def apply(page: str = "홈") -> None:
 
         /* 곡 제목 · 유튜브 가이드 안내 */
         .vc-guide-box {
-            background: rgba(99,102,241,0.08);
-            border: 1px solid rgba(129,140,248,0.25);
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%);
+            border: 1px solid rgba(99,102,241,0.18);
             border-radius: 12px;
             padding: 0.85rem 0.9rem;
             margin-bottom: 0.65rem;
@@ -330,23 +345,23 @@ def apply(page: str = "홈") -> None:
         .vc-guide-title {
             margin: 0 0 0.4rem;
             font-weight: 700;
-            color: #e0e7ff !important;
+            color: #4338ca !important;
             font-size: 0.84rem;
         }
         .vc-guide-body {
             margin: 0 0 0.5rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
         }
-        .vc-guide-body b { color: #e4e4e7 !important; }
+        .vc-guide-body b { color: #1c1528 !important; }
         .vc-guide-steps {
             margin: 0 0 0.25rem;
             font-size: 0.75rem;
-            color: #c4b5fd !important;
+            color: #6366f1 !important;
         }
         .vc-guide-list {
             margin: 0 0 0.5rem;
             padding-left: 1.1rem;
-            color: #d4d4d8 !important;
+            color: #3f3f46 !important;
         }
         .vc-guide-list li { margin-bottom: 0.2rem; }
         .vc-guide-ex {
@@ -368,8 +383,9 @@ def apply(page: str = "홈") -> None:
             background:
                 radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,0.28), transparent),
                 radial-gradient(ellipse 60% 50% at 90% 20%, rgba(168,85,247,0.18), transparent),
-                linear-gradient(160deg, #1e1b4b 0%, #18181b 55%, var(--vc-bg) 100%);
-            border: 1px solid rgba(129,140,248,0.22);
+                linear-gradient(160deg, #ddd6fe 0%, #ede9fe 42%, #f5f3ff 100%);
+            border: 1px solid rgba(99,102,241,0.28);
+            box-shadow: 0 8px 32px rgba(99,102,241,0.12);
             overflow: hidden;
             animation: vc-fade-in 0.5s ease-out;
         }
@@ -389,9 +405,9 @@ def apply(page: str = "홈") -> None:
             letter-spacing: 0.1em;
             padding: 0.35rem 0.75rem;
             border-radius: 999px;
-            background: rgba(255,255,255,0.08);
-            color: #c7d2fe;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(99,102,241,0.1);
+            color: #4f46e5;
+            border: 1px solid rgba(99,102,241,0.18);
         }
         .vc-hero-pill-live {
             display: inline-flex;
@@ -414,7 +430,7 @@ def apply(page: str = "홈") -> None:
             font-weight: 900;
             letter-spacing: -0.04em;
             line-height: 1.08;
-            color: #fafafa !important;
+            color: #1c1528 !important;
             margin: 0 0 1rem;
         }
         .vc-gradient-text {
@@ -425,17 +441,28 @@ def apply(page: str = "홈") -> None:
         }
         .vc-hero-lead {
             font-size: clamp(0.95rem, 2.5vw, 1.08rem);
-            color: #a1a1aa !important;
+            color: #6e667d !important;
             line-height: 1.7;
             max-width: 580px;
             margin: 0 0 1.75rem;
+        }
+        .vc-hero-lead b {
+            color: #4338ca !important;
+            font-weight: 700;
+        }
+        .vc-section-eyebrow {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: #6366f1 !important;
+            margin: 2rem 0 0.5rem;
         }
         .vc-trust-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 0.75rem;
             padding-top: 1.25rem;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(99,102,241,0.14);
         }
         @media (max-width: 640px) {
             .vc-trust-row { grid-template-columns: repeat(2, 1fr); }
@@ -448,31 +475,24 @@ def apply(page: str = "홈") -> None:
             display: block;
             font-size: 1.5rem;
             font-weight: 800;
-            color: #fafafa !important;
+            color: #4338ca !important;
         }
         .vc-trust-item span {
             font-size: 0.72rem;
-            color: #71717a !important;
+            color: #6e667d !important;
             font-weight: 500;
         }
 
         /* Landing sections */
-        .vc-section-eyebrow {
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: #71717a !important;
-            margin: 2rem 0 0.5rem;
-        }
         .vc-section-h2 {
             font-size: clamp(1.3rem, 4vw, 1.75rem);
             font-weight: 800;
-            color: #fafafa !important;
+            color: #1c1528 !important;
             letter-spacing: -0.03em;
             margin: 0 0 1.25rem;
         }
         .vc-section-sub {
-            color: #a1a1aa !important;
+            color: #52525b !important;
             font-size: 0.95rem;
             line-height: 1.65;
             margin: -0.5rem 0 1.5rem;
@@ -487,17 +507,17 @@ def apply(page: str = "홈") -> None:
             .vc-pain-grid { grid-template-columns: 1fr; }
         }
         .vc-pain-card {
-            background: var(--vc-card);
-            border: 1px solid var(--vc-border);
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%);
+            border: 1px solid rgba(99,102,241,0.18);
             border-radius: 12px;
             padding: 0.9rem 1rem;
             font-size: 0.88rem;
-            color: #d4d4d8 !important;
+            color: #3f3f46 !important;
             line-height: 1.5;
         }
         .vc-tech-card-accent {
-            border-color: rgba(129,140,248,0.4) !important;
-            background: linear-gradient(135deg, rgba(30,27,75,0.6) 0%, var(--vc-card) 100%) !important;
+            border-color: rgba(99,102,241,0.35) !important;
+            background: linear-gradient(135deg, #ede9fe 0%, #faf9fd 100%) !important;
         }
         .vc-tech-grid {
             display: grid;
@@ -524,12 +544,12 @@ def apply(page: str = "홈") -> None:
             margin: 0 0 0.4rem;
             font-size: 1rem;
             font-weight: 700;
-            color: #fafafa !important;
+            color: #1c1528 !important;
         }
         .vc-tech-card p {
             margin: 0;
             font-size: 0.85rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
             line-height: 1.55;
         }
         .vc-steps-row {
@@ -556,10 +576,10 @@ def apply(page: str = "홈") -> None:
         .vc-step-card strong {
             display: block;
             margin: 0.35rem 0 0.2rem;
-            color: #fafafa !important;
+            color: #1c1528 !important;
             font-size: 0.95rem;
         }
-        .vc-step-card small { color: #71717a !important; font-size: 0.78rem; }
+        .vc-step-card small { color: #6e667d !important; font-size: 0.78rem; }
         .vc-step-arrow {
             display: flex;
             align-items: center;
@@ -570,26 +590,27 @@ def apply(page: str = "홈") -> None:
         @media (max-width: 640px) { .vc-step-arrow { display: none; } }
 
         .vc-featured-card {
-            background: linear-gradient(135deg, #1e1b4b 0%, #27272a 100%);
-            border: 1px solid rgba(129,140,248,0.3);
+            background: linear-gradient(135deg, #ddd6fe 0%, #ede9fe 50%, #f5f3ff 100%);
+            border: 1px solid rgba(99,102,241,0.28);
             border-radius: var(--vc-radius-lg);
             padding: 1.5rem 1.75rem;
             margin-bottom: 2rem;
+            box-shadow: 0 6px 24px rgba(99,102,241,0.1);
         }
         .vc-featured-tag {
             font-size: 0.62rem;
             font-weight: 800;
             letter-spacing: 0.12em;
-            color: #c4b5fd !important;
+            color: #6366f1 !important;
         }
         .vc-featured-card h3 {
             margin: 0.5rem 0 0.4rem;
             font-size: 1.15rem;
-            color: #fafafa !important;
+            color: #1c1528 !important;
         }
         .vc-featured-card p {
             margin: 0;
-            color: #a1a1aa !important;
+            color: #52525b !important;
             font-size: 0.9rem;
             line-height: 1.6;
         }
@@ -597,12 +618,12 @@ def apply(page: str = "홈") -> None:
             margin: 2rem 0;
             padding: 1.25rem 1.5rem;
             border-left: 3px solid var(--vc-accent);
-            background: var(--vc-card);
+            background: linear-gradient(90deg, #f3f0ff 0%, #faf9fd 100%);
             border-radius: 0 var(--vc-radius) var(--vc-radius) 0;
         }
         .vc-testimonial p {
             margin: 0;
-            color: #e4e4e7 !important;
+            color: #3f3f46 !important;
             line-height: 1.65;
             font-size: 0.95rem;
         }
@@ -1024,12 +1045,12 @@ def apply(page: str = "홈") -> None:
             margin: 0 0 0.25rem;
             font-size: 0.78rem;
             font-weight: 700;
-            color: #a1a1aa !important;
+            color: #6366f1 !important;
         }
         .vc-chat-msg {
             margin: 0 0 0.65rem;
             font-size: 0.92rem;
-            color: #fafafa !important;
+            color: #3f3f46 !important;
             line-height: 1.55;
         }
         .vc-chat-progress {
@@ -1202,23 +1223,24 @@ def apply(page: str = "홈") -> None:
             padding: 0.85rem 1rem;
             margin: 0.75rem 0 1rem;
             border-radius: 14px;
-            background: rgba(39, 39, 42, 0.65);
-            border: 1px solid rgba(63, 63, 70, 0.8);
+            background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, #f3f0ff 100%);
+            border: 1px solid rgba(99,102,241,0.2);
         }
-        .vc-upload-hint-icon { font-size: 1.1rem; line-height: 1.4; opacity: 0.85; }
+        .vc-upload-hint-icon { font-size: 1.1rem; line-height: 1.4; opacity: 0.9; }
         .vc-upload-hint-text {
             margin: 0;
             font-size: 0.88rem;
-            color: #d4d4d8 !important;
+            color: #3f3f46 !important;
             line-height: 1.5;
         }
         .vc-upload-hint-text span {
             font-size: 0.8rem;
-            color: #71717a !important;
+            color: #6e667d !important;
         }
         .vc-welcome-lead {
             font-size: 0.82rem;
-            color: #71717a !important;
+            color: #6366f1 !important;
+            font-weight: 700;
             margin: 0.5rem 0 0.65rem;
             letter-spacing: 0.01em;
         }
@@ -1234,8 +1256,8 @@ def apply(page: str = "홈") -> None:
             gap: 0.75rem;
             padding: 0.85rem 1rem;
             border-radius: 14px;
-            background: rgba(24, 24, 27, 0.85);
-            border: 1px solid rgba(39, 39, 42, 0.95);
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%);
+            border: 1px solid rgba(99,102,241,0.16);
         }
         .vc-feature-icon {
             font-size: 1.25rem;
@@ -1247,31 +1269,31 @@ def apply(page: str = "홈") -> None:
             margin: 0 0 0.2rem;
             font-size: 0.9rem;
             font-weight: 700;
-            color: #f4f4f5 !important;
+            color: #1c1528 !important;
         }
         .vc-feature-desc {
             margin: 0;
             font-size: 0.8rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
             line-height: 1.45;
         }
         .vc-tip-soft {
             padding: 0.85rem 1rem;
             border-radius: 14px;
-            background: rgba(99, 102, 241, 0.07);
-            border: 1px solid rgba(99, 102, 241, 0.15);
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%);
+            border: 1px solid rgba(99,102,241,0.16);
             height: 100%;
         }
         .vc-tip-soft-title {
             margin: 0 0 0.35rem;
             font-size: 0.82rem;
             font-weight: 700;
-            color: #c4b5fd !important;
+            color: #4338ca !important;
         }
         .vc-tip-soft-body {
             margin: 0;
             font-size: 0.78rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
             line-height: 1.5;
         }
         .vc-analyze-stage {
@@ -1395,8 +1417,8 @@ def apply(page: str = "홈") -> None:
             padding: 0.45rem 0.85rem;
             margin-bottom: 0.75rem;
             border-radius: 10px;
-            background: rgba(99,102,241,0.12);
-            border: 1px solid rgba(129,140,248,0.25);
+            background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(237,233,254,0.9) 100%);
+            border: 1px solid rgba(99,102,241,0.24);
         }
         .vc-beta-tag {
             font-size: 0.65rem;
@@ -1409,16 +1431,16 @@ def apply(page: str = "홈") -> None:
         }
         .vc-beta-text {
             font-size: 0.78rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
         }
         /* 홈 — 체험 CTA 배너 (소셜 로그인은 상단 팝오버) */
         .vc-landing-trial-banner {
             padding: 1rem 1.15rem;
             margin-bottom: 0.55rem;
             border-radius: 16px;
-            background: linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(24,24,27,0.95) 55%, rgba(168,85,247,0.08) 100%);
-            border: 1px solid rgba(129,140,248,0.28);
-            box-shadow: 0 4px 20px rgba(99,102,241,0.1);
+            background: linear-gradient(135deg, rgba(99,102,241,0.2) 0%, #ddd6fe 45%, rgba(168,85,247,0.14) 100%);
+            border: 1px solid rgba(99,102,241,0.32);
+            box-shadow: 0 4px 20px rgba(99,102,241,0.14);
         }
         .vc-landing-trial-tag {
             display: inline-block;
@@ -1427,25 +1449,25 @@ def apply(page: str = "홈") -> None:
             letter-spacing: 0.05em;
             padding: 0.2rem 0.55rem;
             border-radius: 999px;
-            background: rgba(99,102,241,0.25);
-            color: #c7d2fe !important;
+            background: rgba(99,102,241,0.2);
+            color: #4338ca !important;
             margin-bottom: 0.4rem;
         }
         .vc-landing-trial-title {
             margin: 0;
             font-size: 1rem;
             font-weight: 700;
-            color: #fafafa !important;
+            color: #1c1528 !important;
             line-height: 1.35;
         }
         .vc-landing-trial-sub {
             margin: 0.35rem 0 0;
             font-size: 0.78rem;
-            color: #a1a1aa !important;
+            color: #52525b !important;
             line-height: 1.45;
         }
         .vc-landing-trial-sub b {
-            color: #c4b5fd !important;
+            color: #6366f1 !important;
             font-weight: 600;
         }
         .st-key-landing_auth_demo button {
@@ -1898,7 +1920,6 @@ def apply(page: str = "홈") -> None:
             padding: 0.4rem 0.45rem !important;
             margin-bottom: 0.5rem !important;
             gap: 0.55rem !important;
-            animation: vc-msg-in 0.28s ease-out both;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
             flex-direction: row !important;
@@ -1918,18 +1939,19 @@ def apply(page: str = "홈") -> None:
             max-width: calc(100% - 3rem);
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
-            background: #27272a !important;
-            color: #f4f4f5 !important;
-            border: 1px solid #3f3f46 !important;
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border: 1px solid #e0dce8 !important;
             border-radius: 18px !important;
             border-bottom-left-radius: 4px !important;
             padding: 0.75rem 0.95rem !important;
-            max-width: 88% !important;
-            width: fit-content !important;
+            max-width: 100% !important;
+            width: auto !important;
             font-size: 0.9rem !important;
             line-height: 1.78 !important;
-            word-break: keep-all !important;
-            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] {
             background: linear-gradient(135deg, #565bcf 0%, #8134af 50%, #c13584 100%) !important;
@@ -1947,8 +1969,9 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] li {
             margin-bottom: 0.55rem !important;
             line-height: 1.78 !important;
-            word-break: keep-all !important;
-            overflow-wrap: anywhere !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important;
         }
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] p:last-child,
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] li:last-child {
@@ -2608,10 +2631,9 @@ def apply(page: str = "홈") -> None:
         .vc-caption { color: var(--vc-muted); font-size: 0.88rem; }
 
         /* Force markdown HTML text visible */
-        [data-testid="stMarkdownContainer"] .vc-header-name,
-        [data-testid="stMarkdownContainer"] .vc-header-tag,
-        [data-testid="stMarkdownContainer"] .vc-hero-h1,
-        [data-testid="stMarkdownContainer"] .vc-page-title,
+        [data-testid="stMarkdownContainer"] .vc-section-h2,
+        [data-testid="stMarkdownContainer"] .vc-trust-item strong,
+        [data-testid="stMarkdownContainer"] .vc-pain-card,
         [data-testid="stMarkdownContainer"] h1,
         [data-testid="stMarkdownContainer"] h2,
         [data-testid="stMarkdownContainer"] h3 {
@@ -2722,6 +2744,383 @@ def apply(page: str = "홈") -> None:
             .vc-header-shell + div [data-testid="column"]:nth-child(1) { flex: 1.2 !important; }
             .vc-header-shell + div [data-testid="column"]:nth-child(2) { flex: 2.5 !important; }
             .vc-header-shell + div [data-testid="column"]:nth-child(3) { flex: 1.3 !important; }
+        }
+
+        /* ── Light mode overrides (lavender cream · test) ── */
+        .st-key-nav_brand_home button {
+            color: #1c1528 !important;
+            background: rgba(99,102,241,0.08) !important;
+        }
+        .st-key-nav_brand_home button:hover {
+            color: #4f46e5 !important;
+            background: rgba(99,102,241,0.14) !important;
+        }
+        .vc-header-name { color: #1c1528 !important; }
+        .vc-header-tag { color: #6e667d !important; }
+        .vc-section-h2, .vc-trust-item strong,
+        .vc-page-title, .vc-section-title, .vc-spotlight-card h3,
+        .vc-featured-card h3, .vc-tech-card h3, .vc-step-card strong,
+        .vc-stage-label, .vc-login-brand-title, .vc-login-card-heading,
+        .vc-landing-trial-title, .vc-result-hero-title, .vc-result-overall,
+        .vc-detail-hero-title, .vc-insight-headline, .vc-chat-name,
+        .vc-analyze-panel-title, .vc-page-head h2 {
+            color: #1c1528 !important;
+        }
+        .vc-trust-item strong { color: #4338ca !important; }
+        .vc-trust-item span { color: #6e667d !important; }
+        .vc-pain-card { color: #3f3f46 !important; }
+        .vc-testimonial p { color: #3f3f46 !important; }
+        .vc-hero-lead b { color: #4338ca !important; }
+        .vc-section-sub b { color: #4338ca !important; }
+        .vc-page-desc, .vc-section-sub, .vc-spotlight-card p,
+        .vc-featured-card p, .vc-tech-card p, .vc-step-card small,
+        .vc-hero-desc, .vc-beta-text, .vc-landing-trial-sub,
+        .vc-login-brand-tag, .vc-login-benefits li, .vc-login-footnote,
+        .vc-insight-body, .vc-chat-msg, .vc-analyze-panel-desc,
+        .vc-result-hero-strength, .vc-detail-hero-sub, .vc-footer p {
+            color: #6e667d !important;
+        }
+        .vc-stat-chip, .vc-bento-card, .vc-spotlight-card, .vc-tech-card,
+        .vc-step-card, .vc-stage-card, .vc-pain-card, .vc-quote-card,
+        .vc-featured-card, .vc-detail-panel, .vc-login-card-panel,
+        .vc-score-ring-inner {
+            background: var(--vc-gradient-card) !important;
+            border-color: rgba(99,102,241,0.16) !important;
+        }
+        .vc-featured-card {
+            background: linear-gradient(135deg, #ede9fe 0%, #f8f6ff 100%) !important;
+        }
+        .vc-stat-chip {
+            background: linear-gradient(145deg, #ffffff, #f3f0ff) !important;
+        }
+        .vc-stat-chip b { color: #1c1528 !important; }
+        .vc-hero-main {
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,0.28), transparent),
+                radial-gradient(ellipse 60% 50% at 90% 20%, rgba(168,85,247,0.18), transparent),
+                linear-gradient(160deg, #ddd6fe 0%, #ede9fe 42%, #f5f3ff 100%) !important;
+            border-color: rgba(99,102,241,0.28) !important;
+            box-shadow: 0 8px 32px rgba(99,102,241,0.12) !important;
+        }
+        .vc-landing-trial-banner {
+            background: linear-gradient(135deg, rgba(99,102,241,0.2) 0%, #ddd6fe 45%, rgba(168,85,247,0.14) 100%) !important;
+            border-color: rgba(99,102,241,0.32) !important;
+            box-shadow: 0 4px 20px rgba(99,102,241,0.14) !important;
+        }
+        .vc-landing-trial-tag { color: #4f46e5 !important; background: rgba(99,102,241,0.12) !important; }
+        .vc-landing-trial-sub b { color: #6366f1 !important; }
+        .vc-result-hero {
+            background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, #ede9fe 50%, rgba(168,85,247,0.1) 100%) !important;
+        }
+        .vc-beta-banner {
+            background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(237,233,254,0.9) 100%) !important;
+            border-color: rgba(99,102,241,0.24) !important;
+        }
+        .vc-beta-text { color: #52525b !important; }
+
+        /* ── Light mode — analysis · results · my page ── */
+        .stApp:has(#vc-analyzing-anchor)::before {
+            background: rgba(244,242,248,0.82) !important;
+        }
+        .vc-page-badge { color: #4338ca !important; }
+        .vc-analyze-panel-title,
+        .vc-analyzing-title,
+        .vc-upload-title,
+        .vc-score-ring-val,
+        .vc-stage-score,
+        .vc-mypage-stat-val,
+        .vc-empty-title,
+        .vc-history-song,
+        .vc-record-song,
+        .vc-dm-title,
+        .vc-dev-time {
+            color: #1c1528 !important;
+        }
+        .vc-analyze-panel-desc,
+        .vc-analyzing-sub,
+        .vc-upload-desc,
+        .vc-start-hint,
+        .vc-tip-soft-body,
+        .vc-empty-note,
+        .vc-empty-desc,
+        .vc-mypage-stat-lbl,
+        .vc-history-sub,
+        .vc-history-score-label,
+        .vc-record-date,
+        .vc-record-sub,
+        .vc-stage-caption,
+        .vc-score-ring-sub,
+        .vc-dev-note,
+        .vc-insight-detail {
+            color: #52525b !important;
+        }
+        .vc-result-hero-strength,
+        .vc-score-ring-label {
+            color: #3f3f46 !important;
+        }
+        .vc-result-hero-focus,
+        .vc-analyzing-mode,
+        .vc-chat-eta,
+        .vc-section-label,
+        .vc-chat-name,
+        .vc-chat-pct,
+        .vc-tip-soft-title,
+        .vc-stage-label {
+            color: #6366f1 !important;
+        }
+        .vc-trust-item strong,
+        .vc-score-chip,
+        .vc-history-overall {
+            color: #4338ca !important;
+        }
+        .vc-result-badge { color: #16a34a !important; background: rgba(34,197,94,0.12) !important; }
+        .vc-result-hero {
+            background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, #ede9fe 50%, rgba(168,85,247,0.1) 100%) !important;
+            border-color: rgba(99,102,241,0.28) !important;
+        }
+        .vc-result-hero-score {
+            background: rgba(255,255,255,0.9) !important;
+            border: 1px solid rgba(99,102,241,0.2) !important;
+        }
+        .vc-result-overall-label,
+        .vc-score-chip small {
+            color: #6e667d !important;
+        }
+        .st-key-vc_analyze_panel .vc-analyze-progress-card,
+        .st-key-vc_analyze_panel .vc-chat-card,
+        .vc-analyzing-panel {
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%) !important;
+            border: 1px solid rgba(99,102,241,0.22) !important;
+            box-shadow: 0 12px 40px rgba(99,102,241,0.1) !important;
+        }
+        .vc-chat-card { background: #ffffff !important; }
+        .vc-chat-msg { color: #3f3f46 !important; }
+        .vc-chat-progress,
+        .vc-stage-bar {
+            background: #e0dce8 !important;
+        }
+        .vc-chip-done { color: #4338ca !important; }
+        .vc-chip-tip::after {
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border: 1px solid #e0dce8 !important;
+        }
+        .st-key-btn_cancel_analysis_main button {
+            background: #ffffff !important;
+            color: #52525b !important;
+            border-color: rgba(99,102,241,0.22) !important;
+        }
+        .st-key-btn_cancel_analysis_main button:hover {
+            color: #1c1528 !important;
+            border-color: rgba(99,102,241,0.4) !important;
+        }
+        .st-key-btn_open_analysis_settings button,
+        .st-key-btn_open_analysis_settings_results button {
+            background: #ffffff !important;
+            color: #4338ca !important;
+            border-color: rgba(99,102,241,0.28) !important;
+        }
+        .vc-upload-zone,
+        .vc-upload-card,
+        .vc-mypage-stat,
+        .vc-empty-card,
+        .vc-insight-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f3f0ff 100%) !important;
+            border-color: rgba(99,102,241,0.18) !important;
+        }
+        .vc-upload-hint-text,
+        .vc-upload-hint-text span { color: #52525b !important; }
+        .vc-history-banner {
+            background: linear-gradient(135deg, rgba(99,102,241,0.14) 0%, #f5f3ff 55%) !important;
+            border-color: rgba(99,102,241,0.22) !important;
+        }
+        .vc-history-date { color: #4338ca !important; }
+        .vc-detail-hero {
+            background: linear-gradient(135deg, rgba(99,102,241,0.14), #f5f3ff) !important;
+            border-color: rgba(99,102,241,0.22) !important;
+        }
+        .vc-detail-panel {
+            background: rgba(255,255,255,0.95) !important;
+            border-color: rgba(99,102,241,0.16) !important;
+        }
+        .vc-score-ring {
+            background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), #e0dce8 0) !important;
+        }
+        .vc-radar-frame,
+        .vc-graph-frame {
+            background: #f8f6ff !important;
+            border-color: rgba(99,102,241,0.16) !important;
+        }
+        .vc-insight-good-card {
+            background: linear-gradient(90deg, rgba(34,197,94,0.08), #ffffff 42%) !important;
+        }
+        .vc-insight-focus-card {
+            background: linear-gradient(90deg, rgba(99,102,241,0.1), #ffffff 42%) !important;
+        }
+        .vc-focus-num {
+            color: #4338ca !important;
+            background: rgba(99,102,241,0.14) !important;
+        }
+        .vc-insight-pill {
+            color: #3f3f46 !important;
+            background: #ffffff !important;
+            border-color: #e0dce8 !important;
+        }
+        .vc-insight-accent { color: #6366f1 !important; }
+        .vc-insight-good { color: #16a34a !important; }
+        .vc-dev-badge {
+            background: rgba(99,102,241,0.08) !important;
+            color: #52525b !important;
+        }
+        .vc-score-overall {
+            background: linear-gradient(135deg, rgba(99,102,241,0.14), rgba(168,85,247,0.08)) !important;
+            border-color: rgba(99,102,241,0.28) !important;
+        }
+        .vc-score-chip {
+            background: #ffffff !important;
+            color: #4338ca !important;
+        }
+        .vc-feedback-panel,
+        .vc-feedback-card {
+            background: #ffffff !important;
+            border-color: rgba(99,102,241,0.16) !important;
+        }
+        .vc-feedback-card-msg,
+        .vc-feedback-card-meta { color: #52525b !important; }
+        .vc-chat-mode-pill { color: #4338ca !important; }
+        .st-key-coach_pill_0 button,
+        .st-key-coach_pill_1 button,
+        .st-key-coach_pill_2 button {
+            color: #4338ca !important;
+            background: rgba(99,102,241,0.1) !important;
+            border-color: rgba(99,102,241,0.22) !important;
+        }
+        .vc-dm-composer [data-testid="stTextInput"] input {
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border-color: rgba(99,102,241,0.2) !important;
+        }
+        [data-testid="stDialog"] h2 { color: #1c1528 !important; }
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] summary span {
+            color: #1c1528 !important;
+        }
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] li,
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] strong {
+            color: #52525b !important;
+        }
+        .vc-stage-native-label { color: #6e667d !important; }
+        .vc-stage-native-score { color: #1c1528 !important; }
+        .vc-stage-native-score span { color: #6366f1 !important; }
+        .vc-coach-summary,
+        .vc-coach-line,
+        .vc-action-rx,
+        .vc-action-practice,
+        .vc-gpt-box,
+        .vc-compare-box {
+            color: #52525b !important;
+        }
+        .vc-coach-block-num,
+        .vc-clip-name { color: #6366f1 !important; }
+        .vc-coach-block,
+        .vc-action-card,
+        .vc-gpt-box,
+        .vc-download-card {
+            background: #ffffff !important;
+            border-color: rgba(99,102,241,0.16) !important;
+        }
+        .vc-compare-box {
+            background: #f8f6ff !important;
+        }
+        .vc-action-title,
+        .vc-download-title {
+            color: #1c1528 !important;
+        }
+        .vc-action-reason,
+        .vc-download-path {
+            color: #6e667d !important;
+        }
+        .vc-mr-warn { color: #b45309 !important; }
+        .vc-mr-info { color: #4338ca !important; }
+
+        .st-key-vc_dm_panel {
+            background: #ffffff !important;
+            border: 1px solid rgba(99,102,241,0.18) !important;
+            box-shadow: 0 4px 24px rgba(99,102,241,0.06) !important;
+        }
+        .st-key-vc_dm_thread, .vc-dm-thread, .vc-dm-composer {
+            background: #f8f6ff !important;
+        }
+        .vc-dm-header {
+            background: linear-gradient(135deg, #f3f0ff 0%, #ffffff 100%) !important;
+            border-bottom: 1px solid rgba(99,102,241,0.12) !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border: 1px solid #e0dce8 !important;
+        }
+        .vc-bubble-typing {
+            background: #ffffff !important;
+            border-color: #e0dce8 !important;
+        }
+        [data-testid="stChatInput"] textarea,
+        [data-testid="stChatInput"] > div,
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border-color: rgba(99,102,241,0.2) !important;
+        }
+        [data-testid="stPopoverBody"] {
+            background: #ffffff !important;
+            border: 1px solid rgba(99,102,241,0.15) !important;
+            box-shadow: 0 8px 32px rgba(99,102,241,0.1) !important;
+        }
+        [data-testid="stDialog"] > div {
+            background: #faf9fd !important;
+            color: #1c1528 !important;
+        }
+        [data-testid="stAlert"], .stAlert {
+            background: #f3f0ff !important;
+            border: 1px solid rgba(99,102,241,0.2) !important;
+            color: #4338ca !important;
+        }
+        .st-key-top_auth_popover .stButton > button,
+        .st-key-top_auth_user .stButton > button {
+            background: rgba(99,102,241,0.06) !important;
+            color: #1c1528 !important;
+            border: 1px solid rgba(99,102,241,0.14) !important;
+        }
+        .stButton > button[kind="secondary"] {
+            background: #ffffff !important;
+            border: 1px solid rgba(99,102,241,0.22) !important;
+            color: #4f46e5 !important;
+        }
+        .stButton > button[kind="secondary"]:hover {
+            background: #f3f0ff !important;
+        }
+        [data-testid="stFileUploader"] section {
+            background: #ffffff !important;
+            border-color: rgba(99,102,241,0.22) !important;
+        }
+        label, .stCaption, [data-testid="stWidgetLabel"] p {
+            color: #6e667d !important;
+        }
+        .vc-progress-track, .vc-chip-pending {
+            background: #ebe6f5 !important;
+        }
+        .vc-page-head {
+            border-bottom-color: rgba(99,102,241,0.15) !important;
+        }
+        @media (max-width: 768px) {
+            .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
+                background: rgba(255,255,255,0.96) !important;
+                border-top: 1px solid rgba(99,102,241,0.12) !important;
+                box-shadow: 0 -4px 24px rgba(99,102,241,0.06) !important;
+            }
         }
         """
         + sidebar_css
