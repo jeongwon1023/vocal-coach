@@ -1,9 +1,4 @@
-"""
-Record storage — local JSON (default) or Supabase (Phase 2).
-
-Set SUPABASE_URL + SUPABASE_KEY in .env or Streamlit secrets to enable cloud.
-Requires: pip install supabase (optional)
-"""
+"""Record storage — local JSON (default) or Supabase mirror."""
 
 from __future__ import annotations
 
@@ -12,8 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from progress_tracker import (
-    RECORDS_DIR,
-    build_full_record,
     default_record_path,
     list_records as list_local_records,
     load_record as load_local_record,
@@ -41,6 +34,7 @@ def mirror_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:
         return None
     try:
         client = _get_client()
+        recorded_at = data.get("recorded_at")
         row = {
             "user_id": user_id,
             "song_title": data.get("song_title"),
@@ -49,6 +43,8 @@ def mirror_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:
             "stage_scores": data.get("stage_scores"),
             "payload": data,
         }
+        if recorded_at:
+            row["recorded_at"] = recorded_at
         resp = client.table("analysis_records").insert(row).execute()
         if resp.data:
             return str(resp.data[0].get("id"))
@@ -62,41 +58,64 @@ def save_analysis_record(
     *,
     user_id: str | None = None,
     path: Path | None = None,
-) -> Path | str:
-    """Save record locally; Supabase는 mirror_analysis_record 사용."""
-    return save_local_record(data, path or default_record_path(user_id))
+) -> Path:
+    return save_local_record(data, path or default_record_path(user_id), user_id=user_id)
 
 
 def list_analysis_records(limit: int = 20, *, user_id: str | None = None) -> list[dict[str, Any]]:
-    """List records as dicts with id + payload fields."""
+    """Supabase 우선 + 로컬 fallback."""
     if _supabase_configured() and user_id:
-        client = _get_client()
-        resp = (
-            client.table("analysis_records")
-            .select("*")
-            .eq("user_id", user_id)
-            .order("recorded_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        out = []
-        for row in resp.data or []:
-            payload = row.get("payload") or {}
-            payload["_storage_id"] = row.get("id")
-            payload["_source"] = "supabase"
-            out.append(payload)
-        return out
+        try:
+            client = _get_client()
+            resp = (
+                client.table("analysis_records")
+                .select("*")
+                .eq("user_id", user_id)
+                .order("recorded_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            out: list[dict[str, Any]] = []
+            for row in resp.data or []:
+                payload = row.get("payload") or {}
+                merged = {**payload}
+                merged.setdefault("recorded_at", row.get("recorded_at"))
+                merged.setdefault("overall_score", row.get("overall_score"))
+                merged["_storage_id"] = row.get("id")
+                merged["_source"] = "supabase"
+                out.append(merged)
+            if out:
+                return out
+        except Exception:
+            pass
 
-    result = []
-    for p in list_local_records(limit=limit):
+    result: list[dict[str, Any]] = []
+    for p in list_local_records(limit=limit, user_id=user_id):
         try:
             r = load_local_record(p)
             r["_storage_id"] = p.name
+            r["_local_path"] = str(p)
             r["_source"] = "local"
             result.append(r)
         except Exception:
             continue
     return result
+
+
+def cloud_record_count(user_id: str) -> int | None:
+    if not _supabase_configured() or not user_id:
+        return None
+    try:
+        client = _get_client()
+        resp = (
+            client.table("analysis_records")
+            .select("id", count="exact")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        return int(resp.count or 0)
+    except Exception:
+        return None
 
 
 def storage_mode() -> str:

@@ -175,9 +175,12 @@ def _render_weekly_summary_card(user_id: str) -> None:
 def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
     stats = _record_stats(records_paths)
     try:
-        from db_store import storage_mode
+        from db_store import cloud_record_count, storage_mode
 
         storage_hint = "클라우드+로컬" if storage_mode() == "supabase" else "기기 로컬"
+        cloud_n = cloud_record_count(user_id) if storage_mode() == "supabase" else None
+        if cloud_n is not None:
+            storage_hint += f" · 클라우드 {cloud_n}건"
     except Exception:
         storage_hint = "기기 로컬"
     st.markdown(
@@ -197,6 +200,14 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
     )
 
     _render_weekly_summary_card(user_id)
+
+    try:
+        from ui.beta import render_beta_invite_card
+
+        with st.expander("📣 베타 테스터 초대", expanded=False):
+            render_beta_invite_card()
+    except Exception:
+        pass
 
     if records_paths:
         st.markdown("##### 📋 분석 완료 기록")

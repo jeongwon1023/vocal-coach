@@ -47,6 +47,7 @@ def _analysis_options() -> dict:
         "style_preset": st.session_state.get("style_preset", "auto"),
         "use_queue": bool(st.session_state.get("use_queue", True)),
         "user_id": user_id,
+        "reference_path": st.session_state.get("midi_reference_path"),
     }
 
 
@@ -58,14 +59,18 @@ def _mode_label(opts: dict) -> str:
     return "빠른 분석" if opts["fast_mode"] else "정밀 분석"
 
 
+def _eta_kwargs(opts: dict) -> dict:
+    return {
+        "fast_mode": opts["fast_mode"],
+        "use_gpt": opts["use_gpt"],
+        "use_youtube": bool(opts.get("use_youtube")),
+        "mr_likely": bool(st.session_state.get("upload_mr_likely")),
+    }
+
+
 def _eta_for_progress(pct: float, opts: dict) -> str:
     started = st.session_state.get("analysis_started_at")
-    rem = remaining_seconds(
-        pct,
-        fast_mode=opts["fast_mode"],
-        started_at=started,
-        use_gpt=opts["use_gpt"],
-    )
+    rem = remaining_seconds(pct, started_at=started, **_eta_kwargs(opts))
     return format_eta(rem)
 
 
@@ -250,12 +255,7 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
 
     def on_progress(pct: float, msg: str) -> None:
         eta = format_eta(
-            remaining_seconds(
-                pct,
-                fast_mode=opts["fast_mode"],
-                started_at=started,
-                use_gpt=opts["use_gpt"],
-            )
+            remaining_seconds(pct, started_at=started, **_eta_kwargs(opts))
         )
         base_cb(pct, msg, eta_label=eta, mode_label=mode)
 
@@ -264,6 +264,7 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
 
         buf = io.StringIO()
         with redirect_stdout(buf):
+            ref = opts.get("reference_path")
             session = run_full_session(
                 audio_path,
                 song_title=opts["song_title"],
@@ -277,6 +278,7 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
                 fast_mode=opts["fast_mode"],
                 style_preset=opts["style_preset"],
                 user_id=opts["user_id"],
+                reference_path=Path(ref) if ref else None,
                 on_progress=on_progress,
             )
         st.session_state["last_session"] = session
@@ -483,6 +485,14 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             render_welcome()
 
     mode_label = _mode_label(opts)
+    try:
+        from usage_limits import check_analysis_allowed
+
+        _, limit_msg, _, _ = check_analysis_allowed(opts.get("user_id"))
+        if limit_msg:
+            st.caption(limit_msg)
+    except Exception:
+        pass
     st.markdown(
         f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 위 <b>분석 설정</b>에서 변경</p>',
         unsafe_allow_html=True,
@@ -526,6 +536,17 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             st.warning(f"오디오 정규화 건너뜀: {exc}")
 
         opts = _maybe_auto_precision_on_mr(audio_path, opts)
+
+        try:
+            from usage_limits import check_analysis_allowed
+
+            allowed, limit_msg, _, _ = check_analysis_allowed(opts.get("user_id"))
+            if not allowed:
+                st.error(limit_msg)
+                return
+        except Exception:
+            pass
+
         _mark_analysis_started(opts)
         st.session_state["scroll_analyze"] = True
         from ui.loading import mark_loading
@@ -547,6 +568,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
                 fast_mode=opts["fast_mode"],
                 style_preset=opts["style_preset"],
                 user_id=opts["user_id"],
+                reference_path=str(opts["reference_path"]) if opts.get("reference_path") else None,
             )
             st.session_state["pending_job_id"] = job_id
             st.rerun()

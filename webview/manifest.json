@@ -1,0 +1,10 @@
+{
+  "name": "Vocal Coach AI",
+  "short_name": "VocalCoach",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f0f12",
+  "theme_color": "#6366f1",
+  "description": "AI 보컬 코칭 · 녹음 분석",
+  "icons": []
+}

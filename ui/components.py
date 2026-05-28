@@ -779,7 +779,35 @@ def render_session_results(session: dict[str, Any]) -> None:
     with tab_heatmap:
         heatmap = session.get("heatmap_path")
         heatmap_err = session.get("heatmap_error")
-        if heatmap and Path(heatmap).exists():
+        note_segments = full_record.get("note_segments") or []
+        plotly_used = False
+
+        if note_segments:
+            try:
+                from pitch_heatmap_plotly import (
+                    build_note_heatmap_figure_from_report,
+                    extract_selected_note_index,
+                    plotly_available,
+                )
+
+                if plotly_available():
+                    fig = build_note_heatmap_figure_from_report(report)
+                    if fig is not None:
+                        st.caption("노트 번호를 **클릭**하거나 드래그하여 선택하세요.")
+                        event = st.plotly_chart(
+                            fig,
+                            on_select="rerun",
+                            key="vc_note_heatmap_plotly",
+                            use_container_width=True,
+                        )
+                        sel = extract_selected_note_index(event)
+                        if sel is not None:
+                            st.session_state["vc_note_pick_idx"] = sel
+                        plotly_used = True
+            except Exception as exc:
+                st.caption(f"인터랙티브 차트 표시 불가 ({exc})")
+
+        if not plotly_used and heatmap and Path(heatmap).exists():
             st.markdown(
                 """
                 <p class="vc-graph-legend">
@@ -793,10 +821,12 @@ def render_session_results(session: dict[str, Any]) -> None:
             st.markdown('<div class="vc-graph-frame">', unsafe_allow_html=True)
             st.image(str(heatmap), use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
+
+        if note_segments or session.get("note_clip_paths"):
             render_note_drill_panel(session, full_record)
         elif heatmap_err:
             st.caption(f"노트 히트맵 생성 실패 ({heatmap_err})")
-        else:
+        elif not plotly_used:
             st.markdown(
                 '<p class="vc-empty-note">정밀 분석 후 노트 히트맵이 여기에 표시됩니다. '
                 "⚙️ 분석 설정에서 <b>빠른 분석</b>을 끄고 다시 분석해 보세요.</p>",

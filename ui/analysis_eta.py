@@ -5,8 +5,20 @@ from __future__ import annotations
 import time
 
 
-def default_total_seconds(*, fast_mode: bool, use_gpt: bool = False) -> int:
+def default_total_seconds(
+    *,
+    fast_mode: bool,
+    use_gpt: bool = False,
+    use_youtube: bool = False,
+    mr_likely: bool = False,
+) -> int:
     base = 55 if fast_mode else 150
+    if use_youtube:
+        base += 50 if fast_mode else 70
+    if mr_likely and not fast_mode:
+        base += 25
+    elif mr_likely and fast_mode:
+        base += 10
     if use_gpt:
         base += 35
     return base
@@ -29,9 +41,16 @@ def remaining_seconds(
     fast_mode: bool,
     started_at: float | None,
     use_gpt: bool = False,
+    use_youtube: bool = False,
+    mr_likely: bool = False,
 ) -> int:
     """pct: 0~1. 경과 시간 기반 남은 시간 추정."""
-    total_default = default_total_seconds(fast_mode=fast_mode, use_gpt=use_gpt)
+    total_default = default_total_seconds(
+        fast_mode=fast_mode,
+        use_gpt=use_gpt,
+        use_youtube=use_youtube,
+        mr_likely=mr_likely,
+    )
     pct = min(max(pct, 0.0), 1.0)
 
     if started_at is None:

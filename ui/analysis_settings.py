@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from ui import styles
@@ -12,6 +14,7 @@ def _render_popular_song_picker() -> None:
     from song_hints import all_song_hints, filter_song_hints, format_song_label, unique_genres
 
     total = len(all_song_hints())
+    page_size = 48
     with st.expander(f"🎵 인기곡 빠른 선택 ({total}곡)", expanded=False):
         filter_q = st.text_input(
             "🔍 곡 검색",
@@ -20,21 +23,51 @@ def _render_popular_song_picker() -> None:
         )
         genres = ["전체", *unique_genres()]
         genre = st.selectbox("장르", genres, key="song_picker_genre")
-        hints = filter_song_hints(filter_q, genre=genre, limit=48)
-        st.caption(f"{len(hints)}곡 표시 · DB {total}곡")
+        all_filtered = filter_song_hints(filter_q, genre=genre, limit=500)
+        page = int(st.session_state.get("song_picker_page", 0))
+        max_page = max(0, (len(all_filtered) - 1) // page_size)
+        page = min(page, max_page)
+        hints = all_filtered[page * page_size : (page + 1) * page_size]
+        st.caption(f"{len(all_filtered)}곡 · 페이지 {page + 1}/{max_page + 1} · DB {total}곡")
         if not hints:
-            st.caption("검색 결과가 없어요. 다른 키워드를 입력해 보세요.")
+            st.caption("검색 결과가 없어요.")
             return
+        nav_l, nav_r = st.columns(2)
+        with nav_l:
+            if page > 0 and st.button("← 이전", key="song_picker_prev", use_container_width=True):
+                st.session_state["song_picker_page"] = page - 1
+                st.rerun()
+        with nav_r:
+            if page < max_page and st.button("다음 →", key="song_picker_next", use_container_width=True):
+                st.session_state["song_picker_page"] = page + 1
+                st.rerun()
         cols = st.columns(3)
         for i, hint in enumerate(hints):
-            label = format_song_label(hint)
             if cols[i % 3].button(
-                label,
-                key=f"pick_song_{hint.artist}_{hint.title}",
+                format_song_label(hint),
+                key=f"pick_{hint.artist}_{hint.title}_{page}",
                 use_container_width=True,
             ):
                 st.session_state["song_title"] = f"{hint.artist} {hint.title}"
                 st.rerun()
+
+
+def _render_midi_reference_upload() -> None:
+    uploaded = st.file_uploader(
+        "MIDI 악보 (선택)",
+        type=["mid", "midi"],
+        key="midi_reference_upload",
+        help="유튜브 가이드 대신 MIDI 멜로디를 기준으로 분석합니다.",
+    )
+    cache_dir = Path(__file__).resolve().parent.parent / ".cache" / "midi"
+    if uploaded is not None:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        dest = cache_dir / uploaded.name
+        dest.write_bytes(uploaded.getvalue())
+        st.session_state["midi_reference_path"] = str(dest)
+        st.caption(f"✓ MIDI 적용: {uploaded.name}")
+    elif not st.session_state.get("midi_reference_path"):
+        st.session_state.pop("midi_reference_path", None)
 
 
 def render_analysis_settings() -> None:
@@ -84,6 +117,7 @@ def render_analysis_settings() -> None:
         help="켜면 곡 제목으로 MR·가이드 멜로디를 찾아 원곡과 비교합니다.",
     )
     render_youtube_guide_sidebar()
+    _render_midi_reference_upload()
     st.divider()
     styles.sidebar_label("기타 옵션")
     st.selectbox(

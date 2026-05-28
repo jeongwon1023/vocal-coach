@@ -1620,6 +1620,31 @@ def apply(page: str = "홈") -> None:
             font-size: 0.78rem;
             color: #52525b !important;
         }
+        .vc-beta-invite {
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(129,140,248,0.3);
+            margin-bottom: 0.5rem;
+        }
+        .vc-beta-invite-title {
+            margin: 0;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #4338ca !important;
+        }
+        .vc-beta-invite-body {
+            margin: 0.4rem 0;
+            font-size: 0.78rem;
+            color: #52525b !important;
+            line-height: 1.45;
+        }
+        .vc-beta-invite-url {
+            margin: 0;
+            font-size: 0.72rem;
+            color: #6366f1 !important;
+            word-break: break-all;
+        }
         /* 홈 — 체험 CTA 배너 (소셜 로그인은 상단 팝오버) */
         .vc-landing-trial-banner {
             padding: 1rem 1.15rem;

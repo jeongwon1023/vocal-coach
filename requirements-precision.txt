@@ -1,5 +1,6 @@
 # 정밀 분석 (로컬 권장 — Streamlit Cloud는 메모리 제한)
 # pip install -r requirements-precision.txt
+# 자세한 설정: docs/PRECISION-LOCAL.md
 
 crepe>=0.0.16
 tensorflow>=2.15.0,<2.17.0

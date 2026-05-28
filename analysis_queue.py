@@ -136,6 +136,7 @@ def _run_analysis_worker(job_id: str, audio_path: Path, options: dict[str, Any])
         job.message = "분석 시작…"
         _save_job(job)
 
+        ref_path = options.get("reference_path")
         session = run_full_session(
             audio_path,
             song_title=options.get("song_title"),
@@ -149,6 +150,7 @@ def _run_analysis_worker(job_id: str, audio_path: Path, options: dict[str, Any])
             fast_mode=options.get("fast_mode", True),
             style_preset=options.get("style_preset"),
             user_id=options.get("user_id"),
+            reference_path=Path(ref_path) if ref_path else None,
             on_progress=on_progress,
         )
 
@@ -284,6 +286,7 @@ def submit_analysis(
     fast_mode: bool = True,
     style_preset: str | None = None,
     user_id: str | None = None,
+    reference_path: str | None = None,
 ) -> str:
     """
     분석 작업 제출. job_id 반환.
@@ -313,6 +316,7 @@ def submit_analysis(
         "fast_mode": fast_mode,
         "style_preset": style_preset,
         "user_id": user_id,
+        "reference_path": reference_path,
     }
     job = AnalysisJob(
         job_id=job_id,
