@@ -42,6 +42,7 @@ def save_session_cache(user_id: str, session: dict[str, Any], record_path: str |
         "clip_paths": [str(p) for p in session.get("clip_paths") or []],
         "note_clip_paths": session.get("note_clip_paths") or [],
         "note_clip_error": session.get("note_clip_error"),
+        "audio_path": str(session.get("audio_path") or ""),
         "chart_path": str(session.get("chart_path") or "") if session.get("chart_path") else "",
         "overall_score": report.overall_score,
         "reference_source": report.reference_source,
@@ -123,6 +124,11 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
             if Path(c.get("path", "")).exists()
         ],
         "note_clip_error": data.get("note_clip_error"),
+        "audio_path": (
+            data.get("audio_path")
+            if data.get("audio_path") and Path(data["audio_path"]).exists()
+            else None
+        ),
         "chart_path": chart_path if chart_path and Path(chart_path).exists() else None,
     }
 

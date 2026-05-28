@@ -342,16 +342,18 @@ def _render_song_hint_banner() -> None:
         return
     genre = hint.get("genre_label") or ""
     genre_txt = f" · {genre}" if genre else ""
+    yt_on = st.session_state.get("use_youtube")
+    yt_line = " · 유튜브 가이드 ON" if yt_on else ""
     st.markdown(
         f"""
         <div class="vc-song-hint-banner">
-            <p class="vc-song-hint-title">🎵 {hint.get("artist", "")} — {hint.get("title", "")}{genre_txt}</p>
-            <p class="vc-song-hint-body">인기곡 DB에서 찾았어요 · 유튜브 검색어·가창 스타일이 자동 적용됩니다.</p>
+            <p class="vc-song-hint-title">🎵 {hint.get("artist", "")} — {hint.get("title", "")}{genre_txt}{yt_line}</p>
+            <p class="vc-song-hint-body">인기곡 DB · 검색어·가창 스타일 자동 적용{"" if yt_on else " · 유튜브는 아래 버튼으로 켤 수 있어요"}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if not st.session_state.get("use_youtube"):
+    if not yt_on and not st.session_state.get("auto_youtube_on_hint", True):
         if st.button("📺 유튜브 가이드 켜기", key="btn_enable_yt_from_hint", use_container_width=True):
             st.session_state["use_youtube"] = True
             st.rerun()

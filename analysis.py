@@ -2046,6 +2046,7 @@ def run_full_session(
         "compare_text": "",
         "gpt_text": "",
         "plot_path": save_plot or PROJECT_DIR / "pitch_result.png",
+        "audio_path": str(audio_path),
     }
 
     saved_path = None

@@ -457,7 +457,7 @@ def render_precision_panel(report: Any, full_record: dict[str, Any] | None = Non
 
 
 def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]) -> None:
-    """히트맵 탭 — 틀린 노트 구간 듣기."""
+    """히트맵 탭 — 노트 선택 · 구간 듣기."""
     note_clips = session.get("note_clip_paths") or []
     note_segments = full_record.get("note_segments") or []
     clip_err = session.get("note_clip_error")
@@ -465,39 +465,16 @@ def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]
     if not note_clips and not note_segments:
         return
 
-    st.markdown('<p class="vc-section-label">🎯 집중 연습 — 틀린 노트</p>', unsafe_allow_html=True)
+    st.markdown('<p class="vc-section-label">🎯 노트 선택 · 집중 연습</p>', unsafe_allow_html=True)
+    st.caption("히트맵 박스 번호와 동일 · 틀린 노트부터 연습해 보세요.")
 
-    if note_clips:
-        for i, clip in enumerate(note_clips, 1):
-            path = Path(clip.get("path", ""))
-            if not path.exists():
-                continue
-            label = clip.get("label") or path.stem
-            err = float(clip.get("mean_cents") or 0)
-            t0 = float(clip.get("start_sec") or 0)
-            hit = clip.get("hit", False)
-            status = "적중" if hit else f"오차 {err:.0f}¢"
-            st.markdown(
-                f"""
-                <div class="vc-note-drill-row">
-                    <span class="vc-note-drill-badge">#{i}</span>
-                    <div>
-                        <p class="vc-note-drill-title">{html.escape(str(label))} · {t0:.1f}s</p>
-                        <p class="vc-note-drill-meta">{html.escape(status)}</p>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.audio(str(path), format="audio/wav")
-        return
+    entries: list[dict[str, Any]] = []
+    clip_by_start: dict[float, dict] = {}
+    for clip in note_clips:
+        t0 = round(float(clip.get("start_sec") or 0), 1)
+        clip_by_start[t0] = clip
 
-    if clip_err:
-        st.caption(f"노트 클립 생성 실패 ({clip_err})")
-
-    misses = [s for s in note_segments if not s.get("hit", True)]
-    misses.sort(key=lambda s: float(s.get("mean_cents_error", 0)), reverse=True)
-    for seg in misses[:5]:
+    for idx, seg in enumerate(note_segments, 1):
         midi = seg.get("midi_median", 0)
         try:
             import librosa
@@ -505,12 +482,104 @@ def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]
             note = librosa.midi_to_note(int(round(midi)), unicode=False)
         except Exception:
             note = f"M{midi:.0f}"
-        err = float(seg.get("mean_cents_error", 0))
         t0 = float(seg.get("start_sec", 0))
-        st.markdown(
-            f'<p class="vc-clip-name">▶ {t0:.1f}s · {html.escape(note)} · 오차 {err:.0f}¢</p>',
-            unsafe_allow_html=True,
+        t1 = float(seg.get("end_sec", t0))
+        err = float(seg.get("mean_cents_error", 0))
+        hit = bool(seg.get("hit", False))
+        clip = clip_by_start.get(round(t0, 1))
+        entries.append(
+            {
+                "idx": idx,
+                "note": note,
+                "t0": t0,
+                "t1": t1,
+                "err": err,
+                "hit": hit,
+                "clip_path": clip.get("path") if clip else None,
+                "seg": seg,
+            }
         )
+
+    if not entries and note_clips:
+        for i, clip in enumerate(note_clips, 1):
+            entries.append(
+                {
+                    "idx": i,
+                    "note": clip.get("label") or f"#{i}",
+                    "t0": float(clip.get("start_sec") or 0),
+                    "t1": float(clip.get("end_sec") or 0),
+                    "err": float(clip.get("mean_cents") or 0),
+                    "hit": bool(clip.get("hit")),
+                    "clip_path": clip.get("path"),
+                    "seg": None,
+                }
+            )
+
+    if not entries:
+        if clip_err:
+            st.caption(f"노트 클립 생성 실패 ({clip_err})")
+        return
+
+    def _label(e: dict) -> str:
+        status = "✓" if e["hit"] else f"오차 {e['err']:.0f}¢"
+        return f"#{e['idx']} {e['note']} · {e['t0']:.1f}s · {status}"
+
+    misses_first = sorted(entries, key=lambda e: (e["hit"], -e["err"]))
+    options = { _label(e): e for e in misses_first }
+    selected = st.selectbox(
+        "노트 구간",
+        options=list(options.keys()),
+        key="vc_note_drill_pick",
+        label_visibility="collapsed",
+    )
+    picked = options[selected]
+
+    dur_total = max((e["t1"] for e in entries), default=picked["t1"] + 1.0)
+    timeline = "".join(
+        f'<span class="vc-note-tick {"vc-note-tick-hit" if e["hit"] else "vc-note-tick-miss"}'
+        f'{" vc-note-tick-active" if e["idx"] == picked["idx"] else ""}" '
+        f'style="--left:{100 * e["t0"] / max(dur_total, 0.1):.1f}%;'
+        f'--width:{max(2.0, 100 * (e["t1"] - e["t0"]) / max(dur_total, 0.1)):.1f}%;" '
+        f'title="#{e["idx"]} {html.escape(e["note"])}"></span>'
+        for e in entries
+    )
+    st.markdown(f'<div class="vc-note-timeline">{timeline}</div>', unsafe_allow_html=True)
+
+    status = "적중" if picked["hit"] else f"오차 {picked['err']:.0f}¢"
+    st.markdown(
+        f"""
+        <div class="vc-note-drill-row vc-note-drill-active">
+            <span class="vc-note-drill-badge">#{picked["idx"]}</span>
+            <div>
+                <p class="vc-note-drill-title">{html.escape(str(picked["note"]))} · {picked["t0"]:.1f}–{picked["t1"]:.1f}s</p>
+                <p class="vc-note-drill-meta">{html.escape(status)}</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    clip_path = picked.get("clip_path")
+    if clip_path and Path(clip_path).exists():
+        st.audio(str(clip_path), format="audio/wav")
+        return
+
+    audio_src = session.get("audio_path")
+    if audio_src and picked.get("seg") and Path(audio_src).exists():
+        try:
+            from note_clip_exporter import export_single_note_clip
+
+            clip = export_single_note_clip(Path(audio_src), picked["seg"])
+            if clip and clip.path.exists():
+                st.audio(str(clip.path), format="audio/wav")
+                return
+        except Exception as exc:
+            st.caption(f"구간 재생 준비 실패 ({exc})")
+
+    if clip_err:
+        st.caption(f"노트 클립 생성 실패 ({clip_err})")
+    else:
+        st.caption("이 구간 오디오는 정밀 분석 후 재생할 수 있어요.")
 
 
 def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:

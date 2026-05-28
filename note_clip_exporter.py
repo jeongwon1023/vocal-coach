@@ -72,3 +72,21 @@ def export_note_miss_clips(
             )
         )
     return exported
+
+
+def export_single_note_clip(
+    audio_path: Path,
+    segment: dict,
+    *,
+    pad_sec: float = 0.2,
+    sr: int = 22050,
+) -> NoteClipInfo | None:
+    """단일 노트 구간 클립 — 히트맵 피커용."""
+    clips = export_note_miss_clips(
+        audio_path,
+        [segment],
+        max_clips=1,
+        pad_sec=pad_sec,
+        sr=sr,
+    )
+    return clips[0] if clips else None

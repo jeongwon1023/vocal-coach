@@ -72,7 +72,7 @@ def plot_note_heatmap(
         )
         plt.colorbar(sc, ax=ax, label="|센트| (0=정확)", shrink=0.85)
 
-    for seg in note_segments or []:
+    for idx, seg in enumerate(note_segments or [], 1):
         if hasattr(seg, "start_sec"):
             t0, t1 = seg.start_sec, seg.end_sec
             midi_n = seg.midi_median
@@ -95,6 +95,17 @@ def plot_note_heatmap(
                 alpha=0.18,
                 zorder=1,
             )
+        )
+        ax.text(
+            (t0 + t1) / 2,
+            midi_n,
+            str(idx),
+            ha="center",
+            va="center",
+            fontsize=7,
+            fontweight="bold",
+            color=color,
+            zorder=3,
         )
 
     if np.any(voiced):

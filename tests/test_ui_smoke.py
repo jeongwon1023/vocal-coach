@@ -236,18 +236,37 @@ def test_suggestion_pool() -> None:
 
 
 def test_song_hints_lookup() -> None:
-    from song_hints import apply_song_hints, lookup_song_hint
+    from song_hints import (
+        all_song_hints,
+        apply_song_hints,
+        lookup_song_hint,
+        search_song_hints,
+    )
+
+    assert len(all_song_hints()) >= 35
 
     hint = lookup_song_hint("아이유 밤편지")
     assert hint is not None
     assert hint.title == "밤편지"
     assert hint.style_preset == "ballad"
 
+    assert lookup_song_hint("Ditto").title == "Ditto"
+    assert lookup_song_hint("눈코입").title == "Eyes, Nose, Lips"
+
     session: dict = {"style_preset": "auto"}
     applied = apply_song_hints("NewJeans Ditto", session)
     assert applied is not None
     assert session["style_preset"] == "hiphop"
     assert session["_song_hint"]["youtube_query"]
+    assert session["use_youtube"] is True
+
+    session2: dict = {"style_preset": "auto", "auto_youtube_on_hint": False}
+    apply_song_hints("NewJeans Ditto", session2)
+    assert "use_youtube" not in session2 or session2.get("use_youtube") is not True
+
+    hits = search_song_hints("아이유")
+    assert len(hits) >= 2
+    assert all("아이유" in h.artist for h in hits)
 
     assert lookup_song_hint("없는곡제목xyz") is None
 

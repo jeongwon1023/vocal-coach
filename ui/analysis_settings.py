@@ -8,6 +8,23 @@ from ui import styles
 from ui.runtime_env import default_use_queue
 
 
+def _render_popular_song_picker() -> None:
+    from song_hints import all_song_hints, format_song_label
+
+    hints = all_song_hints()
+    with st.expander(f"🎵 인기곡 빠른 선택 ({len(hints)}곡)", expanded=False):
+        cols = st.columns(3)
+        for i, hint in enumerate(hints[:24]):
+            label = format_song_label(hint)
+            if cols[i % 3].button(
+                label,
+                key=f"pick_song_{i}",
+                use_container_width=True,
+            ):
+                st.session_state["song_title"] = f"{hint.artist} {hint.title}"
+                st.rerun()
+
+
 def render_analysis_settings() -> None:
     from style_presets import PRESETS
     from ui.help_guide import render_song_title_help, render_youtube_guide_sidebar
@@ -40,6 +57,13 @@ def render_analysis_settings() -> None:
         "곡 제목",
         key="song_title",
         placeholder="예: 아이유 밤편지, NewJeans Ditto",
+    )
+    _render_popular_song_picker()
+    st.checkbox(
+        "인기곡 매칭 시 유튜브 가이드 자동",
+        key="auto_youtube_on_hint",
+        value=True,
+        help="DB에 있는 곡이면 유튜브 가이드를 자동으로 켭니다.",
     )
     st.checkbox(
         "유튜브 가이드 사용",

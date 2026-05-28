@@ -15,8 +15,17 @@ CREPE_SR = 16000
 
 
 def crepe_available() -> bool:
-    if os.environ.get("USE_CREPE", "1").strip() in ("0", "false", "no"):
+    env = os.environ.get("USE_CREPE", "").strip().lower()
+    if env in ("0", "false", "no"):
         return False
+    if not env:
+        try:
+            from ui.runtime_env import is_streamlit_cloud
+
+            if is_streamlit_cloud():
+                return False
+        except Exception:
+            pass
     try:
         import crepe  # noqa: F401
 

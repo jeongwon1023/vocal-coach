@@ -2253,6 +2253,34 @@ def apply(page: str = "홈") -> None:
             font-size: 0.74rem;
             color: #71717a !important;
         }
+        .vc-note-drill-active {
+            border-color: rgba(99,102,241,0.45) !important;
+            background: rgba(99,102,241,0.08) !important;
+        }
+        .vc-note-timeline {
+            position: relative;
+            height: 0.55rem;
+            margin: 0.5rem 0 0.85rem;
+            border-radius: 999px;
+            background: rgba(161,161,170,0.2);
+            overflow: hidden;
+        }
+        .vc-note-tick {
+            position: absolute;
+            top: 0;
+            left: var(--left);
+            width: var(--width);
+            min-width: 3px;
+            height: 100%;
+            border-radius: 2px;
+        }
+        .vc-note-tick-hit { background: #22c55e; opacity: 0.75; }
+        .vc-note-tick-miss { background: #ef4444; opacity: 0.8; }
+        .vc-note-tick-active {
+            outline: 2px solid #6366f1;
+            outline-offset: 1px;
+            z-index: 2;
+        }
         .vc-report-section {
             margin-top: 1.25rem;
         }
