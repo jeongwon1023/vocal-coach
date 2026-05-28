@@ -359,6 +359,18 @@ def _render_song_hint_banner() -> None:
             st.rerun()
 
 
+def _invalidate_mr_cache_on_new_upload(recorded, uploaded) -> None:
+    sig = None
+    if recorded is not None:
+        sig = f"rec:{getattr(recorded, 'size', 0)}"
+    elif uploaded is not None:
+        sig = f"up:{uploaded.name}:{getattr(uploaded, 'size', 0)}"
+    prev = st.session_state.get("_upload_file_sig")
+    if sig != prev:
+        st.session_state["_upload_file_sig"] = sig
+        st.session_state.pop("upload_mr_likely", None)
+
+
 def _quick_mr_check(audio_path: Path) -> bool:
     """앞 30초만 샘플링 — MR 포함 가능성."""
     try:
@@ -444,6 +456,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
 
     recorded = render_live_recorder(disabled=disabled, key="analysis_live_recorder")
     uploaded, use_sample = render_file_upload_fallback(disabled=disabled)
+    _invalidate_mr_cache_on_new_upload(recorded, uploaded)
     _render_song_hint_banner()
 
     upload_dir = PROJECT_DIR / ".cache" / "uploads"

@@ -2912,6 +2912,19 @@ def apply(page: str = "홈") -> None:
             color: #6366f1 !important;
             line-height: 1.45;
         }
+        .vc-weekly-inline {
+            margin: 0 0 0.85rem;
+            font-size: 0.82rem;
+            color: #6366f1 !important;
+            padding: 0.45rem 0.65rem;
+            background: rgba(99,102,241,0.08);
+            border-radius: 8px;
+            border: 1px solid rgba(129,140,248,0.25);
+        }
+        .st-key-note_chip_1 button, [class*="st-key-note_chip_"] button {
+            min-height: 2rem !important;
+            font-weight: 700 !important;
+        }
         .vc-empty-card {
             text-align: center;
             padding: 2rem 1.25rem;

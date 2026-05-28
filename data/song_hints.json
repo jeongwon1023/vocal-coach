@@ -619,6 +619,354 @@
       "style_preset": "ballad",
       "genre_label": "트로트",
       "aliases": []
+    },
+    {
+      "title": "Stereotype",
+      "artist": "STAYC",
+      "youtube_query": "STAYC Stereotype instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "스테레오타입"
+      ]
+    },
+    {
+      "title": "Teddy Bear",
+      "artist": "STAYC",
+      "youtube_query": "STAYC Teddy Bear instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "테디베어"
+      ]
+    },
+    {
+      "title": "DASH",
+      "artist": "NMIXX",
+      "youtube_query": "NMIXX DASH instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Love Me Like This",
+      "artist": "NMIXX",
+      "youtube_query": "NMIXX Love Me Like This instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Sugar Rush Ride",
+      "artist": "TXT",
+      "youtube_query": "TXT Sugar Rush Ride instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "슈가러시라이드"
+      ]
+    },
+    {
+      "title": "In Bloom",
+      "artist": "ZEROBASEONE",
+      "youtube_query": "ZEROBASEONE In Bloom instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Candy",
+      "artist": "NCT DREAM",
+      "youtube_query": "NCT DREAM Candy instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "캔디"
+      ]
+    },
+    {
+      "title": "View",
+      "artist": "SHINee",
+      "youtube_query": "SHINee View MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "뷰"
+      ]
+    },
+    {
+      "title": "HIP",
+      "artist": "MAMAMOO",
+      "youtube_query": "MAMAMOO HIP instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Gashina",
+      "artist": "Sunmi",
+      "youtube_query": "Sunmi Gashina MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "가시나"
+      ]
+    },
+    {
+      "title": "Me After You",
+      "artist": "Paul Kim",
+      "youtube_query": "Paul Kim Me After You MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "너를 만나"
+      ]
+    },
+    {
+      "title": "Love, Maybe",
+      "artist": "Melomance",
+      "youtube_query": "Melomance Love Maybe MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "나의 만화"
+      ]
+    },
+    {
+      "title": "Spring Snow",
+      "artist": "10CM",
+      "youtube_query": "10CM Spring Snow MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Cruel Summer",
+      "artist": "Taylor Swift",
+      "youtube_query": "Taylor Swift Cruel Summer instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Speechless",
+      "artist": "Naomi Scott",
+      "youtube_query": "Speechless Aladdin instrumental",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Counting Stars",
+      "artist": "OneRepublic",
+      "youtube_query": "OneRepublic Counting Stars instrumental",
+      "style_preset": "rock",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Golden",
+      "artist": "HUNTR/X",
+      "youtube_query": "Golden Huntrix instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "골든"
+      ]
+    },
+    {
+      "title": "APT.",
+      "artist": "ROSÉ & Bruno Mars",
+      "youtube_query": "APT Rose Bruno Mars instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": [
+        "아파트"
+      ]
+    },
+    {
+      "title": "Espresso",
+      "artist": "Sabrina Carpenter",
+      "youtube_query": "Sabrina Carpenter Espresso instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Nxde",
+      "artist": "(G)I-DLE",
+      "youtube_query": "(G)I-DLE Nxde instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "엑스디"
+      ]
+    },
+    {
+      "title": "Cupid",
+      "artist": "FIFTY FIFTY",
+      "youtube_query": "FIFTY FIFTY Cupid instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "큐피드"
+      ]
+    },
+    {
+      "title": "Standing Next to You",
+      "artist": "Jungkook",
+      "youtube_query": "Jungkook Standing Next to You instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Die With A Smile",
+      "artist": "Lady Gaga & Bruno Mars",
+      "youtube_query": "Die With A Smile instrumental",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Beautiful Things",
+      "artist": "Benson Boone",
+      "youtube_query": "Beautiful Things instrumental",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "비밀번호 486",
+      "artist": "윤하",
+      "youtube_query": "Younha Password 486 MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "486"
+      ]
+    },
+    {
+      "title": "혜성",
+      "artist": "윤하",
+      "youtube_query": "Younha Comet MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "좋니",
+      "artist": "윤종신",
+      "youtube_query": "Yoon Jong Shin Like It MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "벚꽃 엔딩",
+      "artist": "Busker Busker",
+      "youtube_query": "Busker Busker Cherry Blossom Ending MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "벚꽃"
+      ]
+    },
+    {
+      "title": "벌써 일년",
+      "artist": "Brown Eyed Soul",
+      "youtube_query": "Brown Eyed Soul Already One Year MR",
+      "style_preset": "ballad",
+      "genre_label": "R&B",
+      "aliases": []
+    },
+    {
+      "title": "소주 한 잔",
+      "artist": "임창정",
+      "youtube_query": "Im Chang Jung One Shot of Soju MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "신호등",
+      "artist": "Lee Young Ji",
+      "youtube_query": "Lee Youngji Traffic Light MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Everyday",
+      "artist": "Ariana Grande",
+      "youtube_query": "Ariana Grande Everyday instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Into the Unknown",
+      "artist": "Idina Menzel",
+      "youtube_query": "Into the Unknown instrumental karaoke",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Can You Feel the Love Tonight",
+      "artist": "Elton John",
+      "youtube_query": "Can You Feel the Love Tonight instrumental",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "A Whole New World",
+      "artist": "Peabo Bryson",
+      "youtube_query": "A Whole New World instrumental karaoke",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Fly Me to the Moon",
+      "artist": "Frank Sinatra",
+      "youtube_query": "Fly Me to the Moon karaoke",
+      "style_preset": "ballad",
+      "genre_label": "Jazz",
+      "aliases": []
+    },
+    {
+      "title": "River Flows in You",
+      "artist": "Yiruma",
+      "youtube_query": "River Flows in You piano",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Lemon",
+      "artist": "Yonezu Kenshi",
+      "youtube_query": "Kenshi Yonezu Lemon instrumental",
+      "style_preset": "ballad",
+      "genre_label": "J-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Pretender",
+      "artist": "Official HIGE DANdism",
+      "youtube_query": "Official Hige Dandism Pretender instrumental",
+      "style_preset": "rock",
+      "genre_label": "J-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Night Dancer",
+      "artist": "imase",
+      "youtube_query": "imase Night Dancer instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "J-Pop",
+      "aliases": []
     }
   ]
 }

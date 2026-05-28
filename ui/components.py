@@ -575,14 +575,40 @@ def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]
         return f"#{e['idx']} {e['note']} · {e['t0']:.1f}s · {status}"
 
     misses_first = sorted(entries, key=lambda e: (e["hit"], -e["err"]))
-    options = { _label(e): e for e in misses_first }
+    labels = [_label(e) for e in misses_first]
+    label_to_entry = {_label(e): e for e in misses_first}
+    pick_idx_key = "vc_note_pick_idx"
+
+    st.caption("히트맵 번호 버튼을 누르면 해당 구간을 재생해요.")
+    chip_cols = st.columns(6)
+    for i, e in enumerate(misses_first[:18]):
+        kind = "primary" if e["idx"] == st.session_state.get(pick_idx_key) else "secondary"
+        if chip_cols[i % 6].button(
+            f"#{e['idx']}",
+            key=f"note_chip_{e['idx']}",
+            type=kind,
+            use_container_width=True,
+            help=f"{e['note']} · {e['t0']:.1f}s",
+        ):
+            st.session_state[pick_idx_key] = e["idx"]
+            st.rerun()
+
+    default_idx = 0
+    if pick_idx_key in st.session_state:
+        for i, e in enumerate(misses_first):
+            if e["idx"] == st.session_state[pick_idx_key]:
+                default_idx = i
+                break
+
     selected = st.selectbox(
         "노트 구간",
-        options=list(options.keys()),
+        options=labels,
+        index=default_idx,
         key="vc_note_drill_pick",
         label_visibility="collapsed",
     )
-    picked = options[selected]
+    picked = label_to_entry[selected]
+    st.session_state[pick_idx_key] = picked["idx"]
 
     dur_total = max((e["t1"] for e in entries), default=picked["t1"] + 1.0)
     timeline = "".join(
@@ -696,6 +722,25 @@ def render_session_results(session: dict[str, Any]) -> None:
         st.markdown('<div class="vc-graph-frame vc-sparkline-frame">', unsafe_allow_html=True)
         st.image(str(sparkline), use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
+
+    try:
+        from ui.auth import current_user_id
+        from weekly_summary import compute_weekly_summary
+
+        uid = current_user_id()
+        if uid:
+            ws = compute_weekly_summary(uid)
+            if ws.get("total_records", 0) > 0 and ws.get("count", 0) > 0:
+                delta = ws.get("delta")
+                delta_txt = f" · 전주 {delta:+.1f}pt" if delta is not None else ""
+                avg = ws.get("avg_score")
+                avg_txt = f"{avg:.0f}점" if avg is not None else "—"
+                st.markdown(
+                    f'<p class="vc-weekly-inline">📅 이번 주 {ws["count"]}회 · 평균 {avg_txt}{delta_txt}</p>',
+                    unsafe_allow_html=True,
+                )
+    except Exception:
+        pass
 
     tab_graph, tab_heatmap, tab_coach, tab_gpt, tab_clips = st.tabs(
         ["🎼 음정 그래프", "🎹 노트 히트맵", "📝 코칭 리포트", "🤖 GPT 멘트", "💾 클립 · 다운로드"]

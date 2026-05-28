@@ -9,16 +9,28 @@ from ui.runtime_env import default_use_queue
 
 
 def _render_popular_song_picker() -> None:
-    from song_hints import all_song_hints, format_song_label
+    from song_hints import all_song_hints, filter_song_hints, format_song_label, unique_genres
 
-    hints = all_song_hints()
-    with st.expander(f"🎵 인기곡 빠른 선택 ({len(hints)}곡)", expanded=False):
+    total = len(all_song_hints())
+    with st.expander(f"🎵 인기곡 빠른 선택 ({total}곡)", expanded=False):
+        filter_q = st.text_input(
+            "🔍 곡 검색",
+            key="song_picker_q",
+            placeholder="가수 · 곡명 · 별칭",
+        )
+        genres = ["전체", *unique_genres()]
+        genre = st.selectbox("장르", genres, key="song_picker_genre")
+        hints = filter_song_hints(filter_q, genre=genre, limit=48)
+        st.caption(f"{len(hints)}곡 표시 · DB {total}곡")
+        if not hints:
+            st.caption("검색 결과가 없어요. 다른 키워드를 입력해 보세요.")
+            return
         cols = st.columns(3)
-        for i, hint in enumerate(hints[:24]):
+        for i, hint in enumerate(hints):
             label = format_song_label(hint)
             if cols[i % 3].button(
                 label,
-                key=f"pick_song_{i}",
+                key=f"pick_song_{hint.artist}_{hint.title}",
                 use_container_width=True,
             ):
                 st.session_state["song_title"] = f"{hint.artist} {hint.title}"

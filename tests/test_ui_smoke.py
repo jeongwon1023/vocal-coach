@@ -239,11 +239,12 @@ def test_song_hints_lookup() -> None:
     from song_hints import (
         all_song_hints,
         apply_song_hints,
+        filter_song_hints,
         lookup_song_hint,
         search_song_hints,
     )
 
-    assert len(all_song_hints()) >= 65
+    assert len(all_song_hints()) >= 100
 
     hint = lookup_song_hint("아이유 밤편지")
     assert hint is not None
@@ -269,6 +270,10 @@ def test_song_hints_lookup() -> None:
     assert all("아이유" in h.artist for h in hits)
 
     assert lookup_song_hint("없는곡제목xyz") is None
+
+    filtered = filter_song_hints("아이유", genre="발라드", limit=10)
+    assert filtered
+    assert all("아이유" in h.artist for h in filtered)
 
 
 if __name__ == "__main__":

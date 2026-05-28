@@ -39,8 +39,8 @@ def _parse_hint(raw: dict) -> SongHint | None:
     )
 
 
-@lru_cache(maxsize=4)
-def _load_hints_from_path(path_str: str) -> tuple[SongHint, ...]:
+@lru_cache(maxsize=8)
+def _load_hints_from_path(path_str: str, mtime_ns: int) -> tuple[SongHint, ...]:
     path = Path(path_str)
     if not path.exists():
         return ()
@@ -62,9 +62,10 @@ def _load_hints_from_path(path_str: str) -> tuple[SongHint, ...]:
 
 
 def load_song_hints(db_path: Path | None = None) -> tuple[SongHint, ...]:
-    """JSON 곡 DB 로드 — 파일 없으면 빈 tuple."""
+    """JSON 곡 DB 로드 — mtime 변경 시 자동 갱신."""
     path = db_path or DEFAULT_DB_PATH
-    return _load_hints_from_path(str(path.resolve()))
+    mtime_ns = int(path.stat().st_mtime_ns) if path.exists() else 0
+    return _load_hints_from_path(str(path.resolve()), mtime_ns)
 
 
 def reload_song_hints() -> tuple[SongHint, ...]:
@@ -130,6 +131,32 @@ def search_song_hints(query: str, *, limit: int = 8) -> list[SongHint]:
             scored.append((score, hint))
     scored.sort(key=lambda x: (x[0], x[1].title))
     return [h for _, h in scored[:limit]]
+
+
+def unique_genres() -> tuple[str, ...]:
+    genres = sorted({h.genre_label for h in _hints() if h.genre_label})
+    return tuple(genres)
+
+
+def filter_song_hints(
+    query: str = "",
+    *,
+    genre: str | None = None,
+    limit: int = 48,
+) -> list[SongHint]:
+    """검색 + 장르 필터."""
+    hints = list(_hints())
+    if genre and genre != "전체":
+        hints = [h for h in hints if h.genre_label == genre]
+    q = _norm(query)
+    if q:
+        filtered: list[SongHint] = []
+        for hint in hints:
+            hay = _norm(f"{hint.artist} {hint.title} {' '.join(hint.aliases)}")
+            if q in hay:
+                filtered.append(hint)
+        hints = filtered
+    return hints[:limit]
 
 
 def apply_song_hints(song_title: str | None, session: dict) -> SongHint | None:
