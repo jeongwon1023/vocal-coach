@@ -25,6 +25,12 @@ def test_ui_imports() -> None:
     assert callable(navigation.go_to)
     assert callable(styles.apply)
 
+    import pitch_estimator
+    import vocal_separation
+
+    assert callable(pitch_estimator.extract_pitch_ensemble)
+    assert callable(vocal_separation.prepare_vocal_signal)
+
 
 def test_analysis_eta() -> None:
     from ui.analysis_eta import default_total_seconds, format_eta, remaining_seconds

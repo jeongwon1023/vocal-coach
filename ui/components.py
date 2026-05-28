@@ -351,6 +351,111 @@ def render_deviation_table(report: Any) -> None:
     )
 
 
+def render_precision_panel(report: Any, full_record: dict[str, Any] | None = None) -> None:
+    """정밀 음정 지표 — Singing Carrots / Yousician 스타일."""
+    full_record = full_record or {}
+    stage_details = full_record.get("stage_details") or {}
+    pitch_d = stage_details.get("pitch") or {}
+
+    s1 = next((s for s in report.stages if s.stage == 1), None)
+    details = {**pitch_d, **(s1.details if s1 else {})}
+
+    precision = details.get("precision_ratio")
+    sustain = details.get("sustain_ratio_pitch")
+    note_hit = details.get("note_hit_ratio")
+    transposition = details.get("transposition_cents")
+    timing = details.get("timing_score")
+    note_count = details.get("note_count")
+
+    if precision is None and sustain is None and note_hit is None:
+        return
+
+    def _pct(v: float | None) -> str:
+        if v is None:
+            return "—"
+        return f"{float(v) * 100:.0f}%"
+
+    engine = full_record.get("analysis_engine") or getattr(report, "analysis_engine", {}) or {}
+    sep = engine.get("separation", "")
+    f0m = engine.get("f0_method", "")
+    mode_badge = "정밀" if engine.get("precision_mode") else "빠른"
+
+    sep_ko = {"enhanced_hpss": "강화 HPSS", "demucs": "Demucs AI", "original": "원본"}.get(
+        sep, sep or "—"
+    )
+    engine_line = f"{mode_badge} · {sep_ko}"
+    if f0m:
+        engine_line += f" · F0 {f0m}"
+
+    trans_html = ""
+    if transposition is not None and abs(float(transposition)) >= 10:
+        trans_html = (
+            f'<div class="vc-precision-chip vc-precision-chip-key">'
+            f"조 보정 {float(transposition):+.0f}¢</div>"
+        )
+
+    st.markdown(
+        f"""
+        <div class="vc-precision-panel">
+            <div class="vc-precision-head">
+                <p class="vc-precision-title">🎯 정밀 음정 분석</p>
+                <span class="vc-precision-engine">{html.escape(engine_line)}</span>
+            </div>
+            <div class="vc-precision-grid">
+                <div class="vc-precision-stat">
+                    <span class="vc-precision-val">{_pct(precision)}</span>
+                    <span class="vc-precision-label">정밀도<br><small>±장르 허용치</small></span>
+                </div>
+                <div class="vc-precision-stat">
+                    <span class="vc-precision-val">{_pct(sustain)}</span>
+                    <span class="vc-precision-label">Sustain<br><small>±5¢ 유지</small></span>
+                </div>
+                <div class="vc-precision-stat">
+                    <span class="vc-precision-val">{_pct(note_hit)}</span>
+                    <span class="vc-precision-label">노트 적중<br><small>{note_count or "—"}개</small></span>
+                </div>
+                <div class="vc-precision-stat">
+                    <span class="vc-precision-val">{f"{timing:.0f}" if timing is not None else "—"}</span>
+                    <span class="vc-precision-label">타이밍<br><small>/ 100</small></span>
+                </div>
+            </div>
+            {trans_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    precise_n = details.get("precise_frames")
+    if precise_n is not None:
+        buckets = [
+            ("너무 낮음", details.get("too_low", 0), "#6366f1"),
+            ("약간 낮음", details.get("slightly_low", 0), "#818cf8"),
+            ("정확", precise_n, "#22c55e"),
+            ("약간 높음", details.get("slightly_high", 0), "#f59e0b"),
+            ("너무 높음", details.get("too_high", 0), "#f87171"),
+        ]
+        total = sum(int(b[1] or 0) for b in buckets) or 1
+        bars = "".join(
+            f'<span class="vc-pitch-bucket" style="--w:{100*int(n or 0)/total:.1f}%;--c:{c}" '
+            f'title="{label} {n}"></span>'
+            for label, n, c in buckets
+            if int(n or 0) > 0
+        )
+        if bars:
+            st.markdown(
+                f"""
+                <div class="vc-pitch-quality">
+                    <p class="vc-pitch-quality-title">음정 분포 (프레임)</p>
+                    <div class="vc-pitch-bucket-row">{bars}</div>
+                    <div class="vc-pitch-quality-legend">
+                        <span>● 정확</span><span>● 낮음</span><span>● 높음</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:
     pills: list[str] = []
 
@@ -403,6 +508,8 @@ def render_session_results(session: dict[str, Any]) -> None:
 
     st.markdown('<p class="vc-section-label">📈 영역별 점수</p>', unsafe_allow_html=True)
     render_stage_score_cards(report.stages)
+
+    render_precision_panel(report, full_record)
 
     _render_insight_pills(report, full_record)
     render_score_feedback(session, full_record)

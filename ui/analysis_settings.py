@@ -21,7 +21,11 @@ def render_analysis_settings() -> None:
         "빠른 분석 (권장)",
         key="fast_mode",
         value=True,
-        help="약 2~4배 빠름. 유튜브/MR 믹스 자동 대응.",
+        help=(
+            "빠른: 16kHz·2분·약 1분. "
+            "정밀(체크 해제): 22kHz·전체·강화 보컬 분리·노트 단위 채점·jitter/HNR (2~3분). "
+            "로컬에서 CREPE/Demucs는 requirements-precision.txt 참고."
+        ),
     )
     st.divider()
     styles.sidebar_label("유튜브 가이드")

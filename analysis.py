@@ -188,6 +188,7 @@ class CurriculumReport:
     research: VoiceResearchMetrics | None = None
     style_preset_id: str = "standard"
     style_preset_label: str = "균형 (기본)"
+    analysis_engine: dict = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1028,6 +1029,12 @@ def stage1_pitch_accuracy(
             "timing_score": (
                 pitch.note_precision.timing_score if pitch.note_precision else None
             ),
+            "too_low": pitch.note_precision.too_low if pitch.note_precision else None,
+            "slightly_low": pitch.note_precision.slightly_low if pitch.note_precision else None,
+            "precise_frames": pitch.note_precision.precise if pitch.note_precision else None,
+            "slightly_high": pitch.note_precision.slightly_high if pitch.note_precision else None,
+            "too_high": pitch.note_precision.too_high if pitch.note_precision else None,
+            "note_count": pitch.note_precision.note_count if pitch.note_precision else None,
         },
     )
 
@@ -1657,14 +1664,28 @@ def run_curriculum(
     duration = len(y) / sr
 
     _prog(0.12, "보컬·MR 분리 중…")
-    y_harm, _ = librosa.effects.hpss(y)
+    from vocal_separation import prepare_vocal_signal
+
+    y_vocal, separation_method = prepare_vocal_signal(
+        y, sr, audio_path=audio_path, fast=fast_mode
+    )
+    y_harm, _ = librosa.effects.hpss(y_vocal)
 
     _prog(0.22, "음정(F0) 추출 중…")
-    times, f0, voiced_probs, pitch_source = extract_pitch_robust(
-        y, sr, hop, y_harm=y_harm, audio_path=audio_path
+    from pitch_estimator import extract_pitch_ensemble
+
+    times, f0, voiced_probs, pitch_source = extract_pitch_ensemble(
+        y_vocal,
+        sr,
+        hop,
+        y_harm=y_harm,
+        audio_path=audio_path,
+        fast=fast_mode,
     )
+    f0_method = pitch_source
+
     f0 = smooth_f0_track(f0, voiced_probs)
-    f0 = gate_f0_by_energy(f0, y, sr, hop)
+    f0 = gate_f0_by_energy(f0, y_vocal, sr, hop)
 
     from mr_detect import detect_mr_content
 
@@ -1696,7 +1717,7 @@ def run_curriculum(
         f0_ref,
         ref_source,
         voiced_probs=voiced_probs,
-        y=y,
+        y=y_vocal,
         sr=sr,
         hop_length=hop,
         y_harm=y_harm,
@@ -1705,10 +1726,17 @@ def run_curriculum(
         timing_tolerance_ms=preset.timing_tolerance_ms,
     )
 
+    analysis_engine = {
+        "separation": separation_method,
+        "f0_method": f0_method,
+        "precision_mode": not fast_mode,
+        "crepe_available": __import__("pitch_estimator", fromlist=["crepe_available"]).crepe_available(),
+    }
+
     _prog(0.52, "박자·리듬 분석 중…")
     s1 = stage1_pitch_accuracy(pitch, dtw_result=dtw_result)
     s2 = stage2_rhythm_stability(
-        y,
+        y_vocal,
         sr,
         hop,
         f0,
@@ -1719,7 +1747,7 @@ def run_curriculum(
     )
     _prog(0.65, "호흡·음색 분석 중…")
     s3, breath_issues, timbre_issues = stage3_breath_support(
-        y, sr, hop, f0, times, pitch.research, y_harm=y_harm, skip_timbre=fast_mode and not mix_mode
+        y_vocal, sr, hop, f0, times, pitch.research, y_harm=y_harm, skip_timbre=fast_mode and not mix_mode
     )
     is_pro_like = bool(s3.details.get("is_pro_like"))
     _prog(0.72, "선생님 관점 분석 중…")
@@ -1782,6 +1810,7 @@ def run_curriculum(
         research=pitch.research,
         style_preset_id=preset.id,
         style_preset_label=preset.label,
+        analysis_engine=analysis_engine,
     )
 
 
@@ -1909,6 +1938,7 @@ def report_to_gpt_payload(report: CurriculumReport) -> dict:
     base["mr_likely"] = report.mr_likely
     base["style_preset"] = report.style_preset_id
     base["style_preset_label"] = report.style_preset_label
+    base["analysis_engine"] = getattr(report, "analysis_engine", {}) or {}
     return base
 
 

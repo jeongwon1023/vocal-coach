@@ -2084,6 +2084,103 @@ def apply(page: str = "홈") -> None:
             color: #818cf8 !important;
             margin-left: 0.35rem;
         }
+        /* ── 정밀 음정 패널 ── */
+        .vc-precision-panel {
+            margin: 0.85rem 0 1rem;
+            padding: 1rem 1rem 0.9rem;
+            border-radius: 16px;
+            background: linear-gradient(155deg, #ede9fe 0%, #faf8ff 55%, #ffffff 100%);
+            border: 1px solid rgba(99,102,241,0.18);
+        }
+        .vc-precision-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem;
+            margin-bottom: 0.75rem;
+        }
+        .vc-precision-title {
+            margin: 0;
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+        }
+        .vc-precision-engine {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+            background: rgba(99,102,241,0.12);
+            color: #4338ca !important;
+        }
+        .vc-precision-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.45rem;
+        }
+        .vc-precision-stat {
+            text-align: center;
+            padding: 0.55rem 0.25rem;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.85);
+            border: 1px solid rgba(99,102,241,0.1);
+        }
+        .vc-precision-val {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #4338ca !important;
+            line-height: 1.2;
+        }
+        .vc-precision-label {
+            display: block;
+            margin-top: 0.2rem;
+            font-size: 0.62rem;
+            font-weight: 700;
+            color: #6e667d !important;
+            line-height: 1.35;
+        }
+        .vc-precision-label small { font-weight: 500; color: #a1a1aa !important; }
+        .vc-precision-chip {
+            display: inline-block;
+            margin-top: 0.65rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+        }
+        .vc-precision-chip-key {
+            background: rgba(99,102,241,0.14);
+            color: #4338ca !important;
+        }
+        .vc-pitch-quality { margin-top: 0.75rem; }
+        .vc-pitch-quality-title {
+            margin: 0 0 0.35rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #6e667d !important;
+        }
+        .vc-pitch-bucket-row {
+            display: flex;
+            height: 8px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #ebe6f5;
+        }
+        .vc-pitch-bucket {
+            display: block;
+            width: var(--w);
+            background: var(--c);
+            min-width: 2px;
+        }
+        .vc-pitch-quality-legend {
+            display: flex;
+            gap: 0.65rem;
+            margin-top: 0.35rem;
+            font-size: 0.62rem;
+            color: #6e667d !important;
+        }
         .vc-report-section {
             margin-top: 1.25rem;
         }
@@ -2862,6 +2959,7 @@ def apply(page: str = "홈") -> None:
             .vc-record-hero-title { font-size: 1.2rem; }
             .vc-record-hero-lead { font-size: 0.82rem; }
             [data-testid="stAudioInput"] button { min-width: 100% !important; }
+            .vc-precision-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-landing_cta, .st-key-landing_cta_bottom,
             .st-key-landing_my, .st-key-btn_open_analysis_settings,
             .st-key-btn_open_analysis_settings_results,
