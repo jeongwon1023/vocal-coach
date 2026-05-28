@@ -47,6 +47,15 @@ from vocal_research import (
     research_pitch_score,
     research_rhythm_score,
 )
+from vocal_precision import (
+    NotePrecisionMetrics,
+    analyze_note_precision,
+    cents_vs_reference_transposed,
+    estimate_transposition_cents,
+    gate_f0_by_energy,
+    precision_pitch_score,
+    smooth_f0_track,
+)
 from scipy.ndimage import median_filter, uniform_filter1d
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -153,6 +162,8 @@ class PitchAnalysis:
     research: VoiceResearchMetrics | None = None
     f0_user: np.ndarray = field(default_factory=lambda: np.array([]))
     interval_match_ratio: float = 0.0
+    note_precision: NotePrecisionMetrics | None = None
+    transposition_cents: float = 0.0
 
 
 @dataclass
@@ -574,6 +585,9 @@ def analyze_pitch_regions(
     hop_length: int = 512,
     y_harm: np.ndarray | None = None,
     fast: bool = False,
+    *,
+    melody_match_cents: float = MELODY_MATCH_CENTS,
+    timing_tolerance_ms: float = 80.0,
 ) -> PitchAnalysis:
     n = len(f0)
     frame_labels = np.array([""] * n, dtype=object)
@@ -609,10 +623,31 @@ def analyze_pitch_regions(
 
     if np.any(eval_mask):
         melody_match_ratio = float(
-            np.mean(np.abs(cents_ref[eval_mask]) <= MELODY_MATCH_CENTS)
+            np.mean(np.abs(cents_ref[eval_mask]) <= melody_match_cents)
         )
     else:
         melody_match_ratio = 0.0
+
+    transposition = estimate_transposition_cents(
+        f0, f0_reference, voiced_prob=voiced_probs
+    )
+    if abs(transposition) >= 15.0:
+        cents_ref = cents_vs_reference_transposed(f0, f0_reference, transposition)
+        if np.any(eval_mask):
+            melody_match_ratio = float(
+                np.mean(np.abs(cents_ref[eval_mask]) <= melody_match_cents)
+            )
+
+    note_precision = analyze_note_precision(
+        times,
+        f0,
+        f0_reference,
+        cents_ref,
+        eval_mask,
+        match_cents=melody_match_cents,
+        timing_tolerance_ms=timing_tolerance_ms,
+    )
+    note_precision.transposition_cents = round(transposition, 1)
 
     research = None
     if y is not None:
@@ -628,16 +663,17 @@ def analyze_pitch_regions(
             frame_labels=frame_labels,
             y_harm=y_harm,
             fast=fast,
+            melody_match_cents=melody_match_cents,
         )
         if research.melody_match_weighted > 0:
             melody_match_ratio = research.melody_match_weighted
         elif melody_match_ratio <= 0 and np.any(eval_mask):
             melody_match_ratio = float(
-                np.mean(np.abs(cents_ref[eval_mask]) <= MELODY_MATCH_CENTS)
+                np.mean(np.abs(cents_ref[eval_mask]) <= melody_match_cents)
             )
 
     stable_mask = (
-        eval_mask & (np.abs(cents_ref) <= MELODY_MATCH_CENTS)
+        eval_mask & (np.abs(cents_ref) <= melody_match_cents)
     )
     if not np.any(stable_mask):
         stable_mask = (
@@ -688,6 +724,8 @@ def analyze_pitch_regions(
         research=research,
         f0_user=f0.copy(),
         interval_match_ratio=_local_interval_match(f0, f0_reference),
+        note_precision=note_precision,
+        transposition_cents=transposition,
     )
 
 
@@ -758,9 +796,18 @@ def stage1_pitch_accuracy(
 
     match_pct = pitch.melody_match_ratio * 100
     seg_penalty = min(20.0, len(pitch.deviation_segments) * 2.5)
-    score = max(0.0, min(100.0, match_pct * 0.85 + pitch.sustained_ratio * 15 - seg_penalty))
+    if pitch.note_precision is not None:
+        score = precision_pitch_score(
+            pitch.note_precision,
+            base_match_pct=match_pct,
+            sustained_ratio=pitch.sustained_ratio,
+            seg_penalty=seg_penalty,
+        )
+    else:
+        score = max(0.0, min(100.0, match_pct * 0.85 + pitch.sustained_ratio * 15 - seg_penalty))
     if pitch.research:
-        score = research_pitch_score(pitch.research, match_pct)
+        research_score = research_pitch_score(pitch.research, match_pct)
+        score = max(score, research_score * 0.55 + score * 0.45)
         if pitch.research.pitch_tier == "pro" and score < 70:
             score = max(score, 72.0)
         if pitch.research.pitch_tier == "good" and score < 55:
@@ -802,6 +849,16 @@ def stage1_pitch_accuracy(
         summary += f" · 평균 음정 편차 {pitch.research.mean_abs_cents_ref:.0f}센트 ({tier_ko})"
         if pitch.research.vibrato and pitch.research.vibrato.rate_hz > 0:
             summary += f" · 비브라토 {pitch.research.vibrato.rate_hz}Hz"
+    if pitch.note_precision is not None:
+        np_ = pitch.note_precision
+        summary += (
+            f" · 정밀도 {np_.precision_ratio * 100:.0f}%"
+            f" · 노트 적중 {np_.note_hit_ratio * 100:.0f}%"
+        )
+        if abs(np_.transposition_cents) >= 15:
+            summary += f" · 조 보정 {np_.transposition_cents:+.0f}¢"
+        if np_.timing_score is not None:
+            summary += f" · 노트 타이밍 {np_.timing_score:.0f}점"
     if pitch.interval_match_ratio > 0:
         summary += f" · 인터벌 일치 {pitch.interval_match_ratio:.0f}%"
     if dtw_interval is not None:
@@ -952,6 +1009,25 @@ def stage1_pitch_accuracy(
             "mean_abs_cents": pitch.research.mean_abs_cents_ref if pitch.research else None,
             "pitch_tier": pitch.research.pitch_tier if pitch.research else None,
             "voiced_prob_mean": pitch.research.voiced_prob_mean if pitch.research else None,
+            "note_hit_ratio": (
+                round(pitch.note_precision.note_hit_ratio, 3)
+                if pitch.note_precision
+                else None
+            ),
+            "precision_ratio": (
+                round(pitch.note_precision.precision_ratio, 3)
+                if pitch.note_precision
+                else None
+            ),
+            "sustain_ratio_pitch": (
+                round(pitch.note_precision.sustain_ratio, 3)
+                if pitch.note_precision
+                else None
+            ),
+            "transposition_cents": round(pitch.transposition_cents, 1),
+            "timing_score": (
+                pitch.note_precision.timing_score if pitch.note_precision else None
+            ),
         },
     )
 
@@ -990,6 +1066,7 @@ def stage2_rhythm_stability(
     *,
     y_harm: np.ndarray | None = None,
     dtw_result: object | None = None,
+    rhythm_cv_target: float = 0.28,
 ) -> StageResult:
     env_times, env = extract_vocal_energy_envelope(
         y, sr, hop_length, f0, y_harm=y_harm
@@ -1042,7 +1119,7 @@ def stage2_rhythm_stability(
     gaps = gaps[(gaps > 0.1) & (gaps < 3.0)]
     rhythm_cv = float(np.std(gaps) / (np.mean(gaps) + 1e-6)) if gaps.size >= 2 else 1.0
     cv_superflux = research.rhythm_cv_superflux if research else None
-    score = research_rhythm_score(cv_superflux, rhythm_cv)
+    score = research_rhythm_score(cv_superflux, rhythm_cv, cv_target=rhythm_cv_target)
 
     summary = rhythm_summary(int(attack_times.size), rhythm_cv)
     if cv_superflux is not None:
@@ -1066,13 +1143,13 @@ def stage2_rhythm_stability(
             )
         )
 
-    if rhythm_cv_eval > 0.28:
+    if rhythm_cv_eval > rhythm_cv_target:
         avg_gap = float(np.mean(gaps)) if gaps.size >= 2 else 0.0
         blocks.append(
             CoachingBlock(
                 result=f"박자가 자주 어긋나요. {rhythm_cv_to_words(rhythm_cv)}",
                 cause=(
-                    f"소리를 내는 간격이 들쭉날쭉합니다 (지수 {rhythm_cv_eval:.2f}, 목표 0.28 이하). "
+                    f"소리를 내는 간격이 들쭉날쭉합니다 (지수 {rhythm_cv_eval:.2f}, 목표 {rhythm_cv_target:.2f} 이하). "
                     f"{f'평균 {avg_gap:.1f}초마다 한 번씩 소리를 내는데 간격이 일정하지 않아요. ' if avg_gap else ''}"
                     "Superflux onset(논문 Böck 2013)으로 비브라토 오검출을 줄여 분석했습니다."
                 ),
@@ -1586,6 +1663,8 @@ def run_curriculum(
     times, f0, voiced_probs, pitch_source = extract_pitch_robust(
         y, sr, hop, y_harm=y_harm, audio_path=audio_path
     )
+    f0 = smooth_f0_track(f0, voiced_probs)
+    f0 = gate_f0_by_energy(f0, y, sr, hop)
 
     from mr_detect import detect_mr_content
 
@@ -1622,12 +1701,21 @@ def run_curriculum(
         hop_length=hop,
         y_harm=y_harm,
         fast=fast_mode or mix_mode,
+        melody_match_cents=preset.melody_match_cents,
+        timing_tolerance_ms=preset.timing_tolerance_ms,
     )
 
     _prog(0.52, "박자·리듬 분석 중…")
     s1 = stage1_pitch_accuracy(pitch, dtw_result=dtw_result)
     s2 = stage2_rhythm_stability(
-        y, sr, hop, f0, pitch.research, y_harm=y_harm, dtw_result=dtw_result
+        y,
+        sr,
+        hop,
+        f0,
+        pitch.research,
+        y_harm=y_harm,
+        dtw_result=dtw_result,
+        rhythm_cv_target=preset.rhythm_cv_target,
     )
     _prog(0.65, "호흡·음색 분석 중…")
     s3, breath_issues, timbre_issues = stage3_breath_support(
@@ -1765,6 +1853,11 @@ def report_to_gpt_payload(report: CurriculumReport) -> dict:
     stage_details = {
         "pitch": {
             "melody_match_ratio": s1.details.get("melody_match_ratio") if s1 else None,
+            "note_hit_ratio": s1.details.get("note_hit_ratio") if s1 else None,
+            "precision_ratio": s1.details.get("precision_ratio") if s1 else None,
+            "sustain_ratio_pitch": s1.details.get("sustain_ratio_pitch") if s1 else None,
+            "transposition_cents": s1.details.get("transposition_cents") if s1 else None,
+            "timing_score": s1.details.get("timing_score") if s1 else None,
             "deviation_count": len(report.pitch_deviation_segments),
         },
         "rhythm": {

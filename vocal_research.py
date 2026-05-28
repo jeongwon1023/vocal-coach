@@ -323,9 +323,12 @@ def build_research_metrics(
     frame_labels: np.ndarray,
     y_harm: np.ndarray | None = None,
     fast: bool = False,
+    melody_match_cents: float = MELODY_MATCH_STRICT_CENTS,
 ) -> VoiceResearchMetrics:
     notes: list[str] = []
-    match_w, mean_abs = weighted_melody_match(cents_ref, voiced_probs, eval_mask)
+    match_w, mean_abs = weighted_melody_match(
+        cents_ref, voiced_probs, eval_mask, threshold_cents=melody_match_cents
+    )
     tier = pitch_tier_from_cents(mean_abs, match_w)
 
     voiced_p = voiced_probs[np.isfinite(voiced_probs)]
@@ -435,13 +438,17 @@ def research_pitch_score(metrics: VoiceResearchMetrics, base_match_pct: float) -
     return max(0.0, min(100.0, score))
 
 
-def research_rhythm_score(cv_superflux: float | None, cv_legacy: float) -> float:
+def research_rhythm_score(
+    cv_superflux: float | None,
+    cv_legacy: float,
+    *,
+    cv_target: float = RHYTHM_IOI_CV_TARGET,
+) -> float:
     """Superflux IOI CV 우선, legacy envelope CV 보조."""
     cv = cv_superflux if cv_superflux is not None else cv_legacy
-    base = max(0.0, min(100.0, 100 - cv * 160))
+    base = max(0.0, min(100.0, 100 - cv * (100.0 / max(cv_target, 0.12))))
     if cv_superflux is not None and cv_legacy is not None:
-        # 두 방법 모두 좋으면 보너스
-        if cv_superflux <= RHYTHM_IOI_CV_TARGET and cv_legacy <= 0.35:
+        if cv_superflux <= cv_target and cv_legacy <= cv_target + 0.07:
             base = min(100.0, base + 8)
     return round(base, 1)
 

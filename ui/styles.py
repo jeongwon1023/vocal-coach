@@ -10,10 +10,15 @@ def apply(page: str = "홈") -> None:
         [data-testid="stSidebar"],
         [data-testid="stSidebarCollapsedControl"],
         [data-testid="collapsedControl"],
-        [data-testid="stSidebarNav"] {
+        [data-testid="stSidebarNav"],
+        button[data-testid="stSidebarCollapsedControl"],
+        [data-testid="stSidebarHeader"] {
             display: none !important;
+            visibility: hidden !important;
             width: 0 !important;
             min-width: 0 !important;
+            max-width: 0 !important;
+            overflow: hidden !important;
         }
         [data-testid="stAppViewContainer"] > section.main {
             margin-left: 0 !important;
@@ -117,70 +122,87 @@ def apply(page: str = "홈") -> None:
             margin: -0.25rem 0 0.5rem !important;
             box-shadow: 0 8px 32px rgba(99,102,241,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
         }
-        .vc-navbar-marker + [data-testid="stHorizontalBlock"] > div > [data-testid="column"]:nth-child(2) > div > [data-testid="stHorizontalBlock"] {
-            background: rgba(99,102,241,0.06);
-            border: 1px solid rgba(99,102,241,0.12);
-            border-radius: 13px;
-            padding: 4px !important;
-            gap: 4px !important;
+        .vc-navbar-marker + [data-testid="stHorizontalBlock"] > div {
+            align-items: center !important;
+            flex-wrap: nowrap !important;
         }
-        [class*="st-key-nav_btn_"] {
+        .vc-navbar-marker + [data-testid="stHorizontalBlock"] [data-testid="column"] {
+            min-width: 0 !important;
+        }
+        .vc-nav-menu-title {
+            margin: 0 0 0.55rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #6e667d !important;
+        }
+        .st-key-nav_mobile_menu,
+        .st-key-nav_menu {
             position: relative;
             z-index: 201;
         }
-        [class*="st-key-nav_btn_"] button {
-            font-size: 0.8rem !important;
-            font-weight: 700 !important;
-            padding: 0.4rem 0.35rem !important;
-            min-height: 2.5rem !important;
-            border-radius: 10px !important;
-            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease !important;
-        }
-        [class*="st-key-nav_btn_"] button[kind="secondary"] {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            color: #6e667d !important;
-        }
-        [class*="st-key-nav_btn_"] button[kind="secondary"]:hover {
+        .st-key-nav_mobile_menu > div > button,
+        .st-key-nav_menu > div > button {
             background: rgba(99,102,241,0.1) !important;
+            border: 1px solid rgba(99,102,241,0.22) !important;
+            color: #4338ca !important;
+            font-size: 1.15rem !important;
+            font-weight: 800 !important;
+            min-height: 2.65rem !important;
+            min-width: 2.65rem !important;
+            padding: 0.35rem 0.5rem !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
+        .st-key-nav_mobile_menu > div > button:hover,
+        .st-key-nav_menu > div > button:hover {
+            background: rgba(99,102,241,0.16) !important;
+            border-color: rgba(99,102,241,0.35) !important;
             color: #4f46e5 !important;
         }
-        [class*="st-key-nav_btn_"] button[kind="primary"] {
+        [data-testid="stPopoverBody"]:has(.st-key-nav_menu_btn_홈),
+        [data-testid="stPopoverBody"]:has([class*="st-key-nav_menu_btn_"]) {
+            min-width: min(88vw, 280px) !important;
+            padding: 0.85rem 0.75rem !important;
+        }
+        [class*="st-key-nav_menu_btn_"] button {
+            font-size: 0.92rem !important;
+            font-weight: 700 !important;
+            min-height: 2.75rem !important;
+            border-radius: 12px !important;
+        }
+        .st-key-nav_brand_home button {
+            background: rgba(99,102,241,0.08) !important;
+            border: 1px solid rgba(129,140,248,0.2) !important;
+            color: #1c1528 !important;
+            font-weight: 800 !important;
+            font-size: 0.88rem !important;
+            letter-spacing: -0.02em !important;
+            text-align: left !important;
+            padding: 0.45rem 0.65rem !important;
+            justify-content: flex-start !important;
+            border-radius: 12px !important;
+            min-height: 2.65rem !important;
+        }
+        .st-key-nav_brand_home button:hover {
+            color: #4f46e5 !important;
+            background: rgba(99,102,241,0.14) !important;
+        }
+        [class*="st-key-nav_menu_btn_"] button[kind="primary"] {
             background: var(--vc-gradient) !important;
             border: none !important;
             color: #fff !important;
             box-shadow: 0 2px 14px var(--vc-glow) !important;
         }
-        .vc-nav-track { display: none; }
+        [class*="st-key-nav_menu_btn_"] button[kind="secondary"] {
+            background: rgba(99,102,241,0.06) !important;
+            border: 1px solid rgba(99,102,241,0.12) !important;
+            color: #52525b !important;
+        }
         .st-key-nav_brand_home {
             position: relative;
             z-index: 201;
-        }
-        .st-key-nav_brand_home button {
-            background: rgba(99,102,241,0.1) !important;
-            border: 1px solid rgba(129,140,248,0.2) !important;
-            box-shadow: none !important;
-            color: #fafafa !important;
-            font-weight: 800 !important;
-            font-size: 0.78rem !important;
-            letter-spacing: -0.02em !important;
-            text-align: left !important;
-            padding: 0.45rem 0.55rem !important;
-            justify-content: flex-start !important;
-            border-radius: 12px !important;
-            min-height: 2.5rem !important;
-        }
-        .st-key-nav_brand_home button:hover {
-            color: #e0e7ff !important;
-            background: rgba(99,102,241,0.18) !important;
-            border-color: rgba(129,140,248,0.45) !important;
-        }
-        .st-key-nav_segment,
-        .st-key-top_auth_popover,
-        .st-key-top_auth_user {
-            position: relative;
-            z-index: 101;
         }
         .vc-beta-banner {
             pointer-events: none;
@@ -794,6 +816,18 @@ def apply(page: str = "홈") -> None:
             border-radius: 20px;
             box-shadow: 0 12px 40px rgba(0,0,0,0.35);
         }
+        .vc-login-card-marker + [data-testid="stVerticalBlockBorderWrapper"] {
+            max-width: 400px !important;
+            margin: 0 auto 1.25rem !important;
+            background: linear-gradient(165deg, #ffffff 0%, #faf8ff 100%) !important;
+            border: 1px solid rgba(99,102,241,0.16) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 10px 32px rgba(99,102,241,0.08) !important;
+            padding: 0.35rem 0.5rem !important;
+        }
+        .vc-login-card-marker + [data-testid="stVerticalBlockBorderWrapper"] > div {
+            padding: 0.65rem 0.55rem 0.75rem !important;
+        }
         .vc-login-card-heading {
             margin: 0 0 1rem;
             font-size: 0.95rem;
@@ -1215,6 +1249,159 @@ def apply(page: str = "홈") -> None:
             margin: 0.25rem 0 0;
             font-size: 0.82rem;
             color: #71717a !important;
+        }
+        .vc-upload-card-inline {
+            margin-bottom: 0.65rem;
+        }
+        /* ── 실시간 녹음 (히어로 + 위젯) ── */
+        .vc-new-analysis-head {
+            margin-bottom: 0.85rem;
+        }
+        .vc-new-analysis-title {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+        }
+        .vc-new-analysis-desc {
+            margin: 0.2rem 0 0;
+            font-size: 0.82rem;
+            color: #6e667d !important;
+        }
+        .vc-record-hero {
+            padding: 1.25rem 1.15rem;
+            margin-bottom: 0.85rem;
+            border-radius: 18px;
+            background:
+                radial-gradient(ellipse 70% 80% at 10% 0%, rgba(99,102,241,0.28), transparent),
+                linear-gradient(155deg, #ddd6fe 0%, #ede9fe 45%, #f5f3ff 100%);
+            border: 1px solid rgba(99,102,241,0.28);
+            box-shadow: 0 8px 28px rgba(99,102,241,0.12);
+        }
+        .vc-record-hero-badge {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            padding: 0.22rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(99,102,241,0.18);
+            color: #4338ca !important;
+            margin-bottom: 0.45rem;
+        }
+        .vc-record-hero-title {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: #1c1528 !important;
+            letter-spacing: -0.02em;
+        }
+        .vc-record-hero-lead {
+            margin: 0.45rem 0 0.75rem;
+            font-size: 0.88rem;
+            color: #52525b !important;
+            line-height: 1.55;
+        }
+        .vc-record-hero-lead b { color: #4338ca !important; }
+        .vc-record-steps {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .vc-record-step {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.85);
+            color: #4338ca !important;
+            border: 1px solid rgba(99,102,241,0.2);
+        }
+        .vc-record-step-arrow {
+            font-size: 0.75rem;
+            color: #6366f1 !important;
+            font-weight: 700;
+        }
+        .vc-record-panel-label {
+            margin: 0 0 0.35rem;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #4338ca !important;
+            text-align: center;
+        }
+        .vc-record-card {
+            text-align: center;
+            background: linear-gradient(145deg, #ffffff 0%, #ede9fe 100%);
+            border: 2px solid rgba(99,102,241,0.22);
+            border-radius: 20px;
+            padding: 1.35rem 1rem 1rem;
+            margin-bottom: 0.65rem;
+        }
+        .vc-record-title {
+            margin: 0;
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: #1c1528 !important;
+        }
+        .vc-record-desc {
+            margin: 0.35rem 0 0;
+            font-size: 0.82rem;
+            color: #52525b !important;
+            line-height: 1.5;
+        }
+        .vc-record-hint {
+            margin: 0.5rem 0 0.25rem;
+            font-size: 0.78rem;
+            color: #6e667d !important;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .vc-record-hint b { color: #4338ca !important; }
+        .vc-record-done {
+            margin: 0.5rem 0 0.25rem;
+            font-size: 0.82rem;
+            color: #4338ca !important;
+            text-align: center;
+            font-weight: 600;
+        }
+        .vc-record-done b { color: #1c1528 !important; }
+        [data-testid="stAudioInput"] {
+            margin: 0.25rem 0 0.5rem;
+            padding: 0.85rem 0.75rem;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #ffffff 0%, #faf8ff 100%);
+            border: 2px dashed rgba(99,102,241,0.35);
+        }
+        [data-testid="stAudioInput"] label,
+        [data-testid="stAudioInput"] [data-testid="stWidgetLabel"] p {
+            color: #1c1528 !important;
+            font-weight: 700 !important;
+            font-size: 0.92rem !important;
+            text-align: center !important;
+        }
+        [data-testid="stAudioInput"] button {
+            display: block !important;
+            margin: 0.5rem auto 0 !important;
+            min-width: 220px !important;
+            background: var(--vc-gradient) !important;
+            border: none !important;
+            color: #fff !important;
+            border-radius: 999px !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            min-height: 3.25rem !important;
+            box-shadow: 0 6px 22px var(--vc-glow) !important;
+        }
+        [data-testid="stAudioInput"] button:hover {
+            filter: brightness(1.06) !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stAudioInput"]) {
+            border-color: rgba(99,102,241,0.22) !important;
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            padding: 0.5rem !important;
+            margin-bottom: 0.65rem !important;
         }
         .vc-upload-hint {
             display: flex;
@@ -2647,17 +2834,11 @@ def apply(page: str = "홈") -> None:
             .vc-header-tag { display: none; }
             .vc-header-logo { width: 34px; height: 34px; font-size: 1rem; }
             .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
-                padding: 0.4rem 0.45rem !important;
-                border-radius: 12px !important;
+                padding: 0.45rem 0.55rem !important;
+                border-radius: 16px !important;
             }
-            .st-key-nav_brand_home button { font-size: 0.78rem !important; min-height: 2.5rem !important; }
-            [class*="st-key-nav_btn_"] button {
-                font-size: 0.68rem !important;
-                padding: 0.32rem 0.08rem !important;
-                min-height: 2.65rem !important;
-                line-height: 1.2 !important;
-            }
-            .st-key-beta_feedback_shortcut button { font-size: 0.72rem !important; }
+            .st-key-nav_brand_home button { font-size: 0.82rem !important; min-height: 2.5rem !important; }
+            .st-key-nav_menu > div > button { min-width: 2.5rem !important; }
             .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-top_auth_popover,
             .st-key-top_auth_user { max-width: 100%; }
@@ -2677,6 +2858,10 @@ def apply(page: str = "홈") -> None:
                 padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)) !important;
             }
             .vc-hero-h1 { font-size: clamp(1.75rem, 8vw, 2.4rem); }
+            .vc-record-hero { padding: 1rem 0.9rem; margin-bottom: 0.65rem; }
+            .vc-record-hero-title { font-size: 1.2rem; }
+            .vc-record-hero-lead { font-size: 0.82rem; }
+            [data-testid="stAudioInput"] button { min-width: 100% !important; }
             .st-key-landing_cta, .st-key-landing_cta_bottom,
             .st-key-landing_my, .st-key-btn_open_analysis_settings,
             .st-key-btn_open_analysis_settings_results,
@@ -3120,6 +3305,17 @@ def apply(page: str = "홈") -> None:
                 background: rgba(255,255,255,0.96) !important;
                 border-top: 1px solid rgba(99,102,241,0.12) !important;
                 box-shadow: 0 -4px 24px rgba(99,102,241,0.06) !important;
+            }
+            .vc-beta-banner {
+                flex-wrap: nowrap !important;
+                gap: 0.35rem !important;
+            }
+            .vc-beta-tag { font-size: 0.58rem !important; padding: 0.18rem 0.4rem !important; }
+            .vc-beta-text { font-size: 0.68rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .st-key-beta_feedback_shortcut button {
+                font-size: 0.68rem !important;
+                min-height: 2.2rem !important;
+                padding: 0.3rem 0.45rem !important;
             }
         }
         """

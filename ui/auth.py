@@ -70,25 +70,41 @@ def logout() -> None:
 
 
 def render_topbar_auth() -> None:
-    """우측 상단 — 로그인 팝오버 또는 사용자 메뉴."""
+    """우측 상단 — 로그인 팝오버 또는 사용자 메뉴 (데스크톱)."""
     user = current_user()
     if user:
         name = user.get("name", "학습자")
         with st.popover(f"👤 {name}", use_container_width=True, key="top_auth_user"):
-            st.markdown(f"**{name}**")
-            if user.get("email"):
-                st.caption(user["email"])
-            provider = {"google": "Google", "kakao": "카카오", "demo": "체험"}.get(
-                user.get("provider", ""), ""
-            )
-            if provider:
-                st.caption(f"연동: {provider}")
-            if st.button("로그아웃", key="btn_logout_top", use_container_width=True):
-                logout()
+            _render_user_popover_body(user)
         return
 
     with st.popover("로그인", use_container_width=True, key="top_auth_popover"):
         render_login_compact(key_prefix="top_auth")
+
+
+def render_menu_auth(*, key_prefix: str = "nav_menu") -> None:
+    """모바일 햄버거 메뉴 안 — 계정 · 로그인."""
+    user = current_user()
+    if user:
+        _render_user_popover_body(user, logout_key=f"{key_prefix}_logout")
+        return
+
+    st.caption("3초 만에 시작 · 기록 저장")
+    render_login_compact(key_prefix=key_prefix)
+
+
+def _render_user_popover_body(user: dict, *, logout_key: str = "btn_logout_top") -> None:
+    name = user.get("name", "학습자")
+    st.markdown(f"**{name}**")
+    if user.get("email"):
+        st.caption(user["email"])
+    provider = {"google": "Google", "kakao": "카카오", "demo": "체험"}.get(
+        user.get("provider", ""), ""
+    )
+    if provider:
+        st.caption(f"연동: {provider}")
+    if st.button("로그아웃", key=logout_key, use_container_width=True):
+        logout()
 
 
 def render_login_compact(*, key_prefix: str = "auth_pop") -> None:

@@ -11,11 +11,14 @@ if str(ROOT) not in sys.path:
 
 
 def test_ui_imports() -> None:
-    from ui import analysis_settings, auth, beta, coach_chat, dashboard, landing, my_page, navbar, navigation, progress, styles
+    from ui import analysis_settings, audio_recorder, auth, beta, coach_chat, dashboard, landing, my_page, navbar, navigation, progress, styles
 
     assert callable(analysis_settings.open_analysis_settings_dialog)
+    assert callable(audio_recorder.render_live_recorder)
+    assert callable(audio_recorder.render_file_upload_fallback)
 
     assert callable(auth.render_login_compact)
+    assert callable(auth.render_menu_auth)
     assert callable(beta.render_beta_banner)
     assert callable(coach_chat.render_coach_dm)
     assert callable(dashboard.render)

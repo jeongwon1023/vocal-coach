@@ -283,56 +283,63 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
         return False
 
 
+def _resolve_audio_source(
+    *,
+    recorded,
+    uploaded,
+    use_sample: bool,
+    sample: Path,
+    upload_dir: Path,
+) -> Path | None:
+    """녹음 > 업로드 > 샘플 순으로 분석용 파일 경로 결정."""
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    if recorded is not None:
+        from datetime import datetime
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        audio_path = upload_dir / f"recording_{ts}.wav"
+        audio_path.write_bytes(recorded.getvalue())
+        return audio_path
+
+    if uploaded is not None:
+        audio_path = upload_dir / uploaded.name
+        audio_path.write_bytes(uploaded.getvalue())
+        return audio_path
+
+    if use_sample and sample.exists():
+        return sample
+
+    return None
+
+
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
+    from ui.audio_recorder import render_file_upload_fallback, render_live_recorder
+
     st.markdown(
         """
-        <div class="vc-upload-card">
-            <p class="vc-upload-emoji">🎙️</p>
-            <p class="vc-upload-title">녹음 파일을 올려 주세요</p>
-            <p class="vc-upload-desc">MP3 · WAV · M4A · 핸드폰 녹음도 OK</p>
+        <div class="vc-new-analysis-head">
+            <p class="vc-new-analysis-title">🎤 새 분석</p>
+            <p class="vc-new-analysis-desc">녹음 → 점수 · 코치 DM까지 한 번에</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    uploaded = st.file_uploader(
-        "녹음 파일",
-        type=["mp3", "wav", "m4a", "flac", "ogg"],
-        label_visibility="collapsed",
-        key="analysis_uploader",
-        disabled=disabled,
+    recorded = render_live_recorder(disabled=disabled, key="analysis_live_recorder")
+    uploaded, use_sample = render_file_upload_fallback(disabled=disabled)
+
+    has_file = (
+        recorded is not None
+        or uploaded is not None
+        or (use_sample and (PROJECT_DIR / "sample.mp3").exists())
     )
-
-    sample = PROJECT_DIR / "sample.mp3"
-    use_sample = st.toggle(
-        "샘플(sample.mp3)으로 테스트",
-        value=False,
-        key="use_sample_check",
-        disabled=disabled,
-    )
-
-    has_file = uploaded is not None or (use_sample and sample.exists())
-
-    if uploaded is not None and not disabled:
-        ext = uploaded.name.rsplit(".", 1)[-1].lower()
-        st.audio(uploaded.getvalue(), format=f"audio/{ext}")
 
     if not has_file and not disabled:
-        st.markdown(
-            """
-            <div class="vc-upload-hint">
-                <span class="vc-upload-hint-icon">📎</span>
-                <p class="vc-upload-hint-text">
-                    아직 녹음 파일이 없어요.<br>
-                    <span>위에서 파일을 선택하면 분석을 시작할 수 있어요.</span>
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        from ui.welcome import render as render_welcome
+        with st.expander("💡 Vocal Coach AI가 이렇게 도와드려요", expanded=False):
+            from ui.welcome import render as render_welcome
 
-        render_welcome()
+            render_welcome()
 
     mode_label = _mode_label(opts)
     st.markdown(
@@ -358,15 +365,16 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         disabled=not has_file,
     ):
         upload_dir = PROJECT_DIR / ".cache" / "uploads"
-        upload_dir.mkdir(parents=True, exist_ok=True)
-
-        if uploaded is not None:
-            audio_path = upload_dir / uploaded.name
-            audio_path.write_bytes(uploaded.getvalue())
-        elif use_sample and sample.exists():
-            audio_path = sample
-        else:
-            st.warning("녹음 파일을 업로드하지 않았어요. 파일을 선택한 뒤 다시 시도해 주세요.")
+        sample = PROJECT_DIR / "sample.mp3"
+        audio_path = _resolve_audio_source(
+            recorded=recorded,
+            uploaded=uploaded,
+            use_sample=use_sample,
+            sample=sample,
+            upload_dir=upload_dir,
+        )
+        if audio_path is None:
+            st.warning("녹음 또는 파일을 선택한 뒤 다시 시도해 주세요.")
             return
 
         try:

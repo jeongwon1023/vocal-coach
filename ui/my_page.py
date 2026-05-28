@@ -72,9 +72,7 @@ def _load_session_for_record(user_id: str, path: Path) -> dict:
 def _render_login_gate() -> None:
     from ui.auth_ui import render_login_card
 
-    st.markdown('<div class="vc-login-gate">', unsafe_allow_html=True)
     render_login_card(key_prefix="mypage_gate", compact=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_history_banner(record: dict, overall: float, song: str, idx: int, path: Path) -> None:

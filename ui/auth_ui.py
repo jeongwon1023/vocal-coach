@@ -34,8 +34,6 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
     k_ok = kakao_configured()
     sm = " vc-auth-sm" if compact else ""
 
-    st.markdown('<div class="vc-auth-stack">', unsafe_allow_html=True)
-
     if k_ok:
         st.markdown(
             f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao{sm}">'
@@ -48,8 +46,6 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
             f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</span>',
             unsafe_allow_html=True,
         )
-        if not compact:
-            st.caption(_oauth_hint("카카오"))
 
     if g_ok:
         st.markdown(
@@ -63,8 +59,9 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
             f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</span>',
             unsafe_allow_html=True,
         )
-        if not compact:
-            st.caption(_oauth_hint("Google"))
+
+    if not k_ok and not g_ok and not compact:
+        st.caption("소셜 로그인은 준비 중이에요 · **체험 계정**으로 바로 이용해 보세요")
 
     st.markdown(
         """
@@ -80,8 +77,6 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
         from ui.auth import start_demo
 
         start_demo()
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_login_hero(*, compact: bool = False) -> None:
@@ -117,15 +112,17 @@ def render_login_hero(*, compact: bool = False) -> None:
 
 def render_login_card(*, key_prefix: str = "login", compact: bool = False) -> None:
     render_login_hero(compact=compact)
-    st.markdown('<div class="vc-login-card-panel">', unsafe_allow_html=True)
-    if not compact:
-        st.markdown(
-            '<p class="vc-login-card-heading">3초 만에 시작하기</p>',
-            unsafe_allow_html=True,
+    st.markdown('<div class="vc-login-card-marker"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        if not compact:
+            st.markdown(
+                '<p class="vc-login-card-heading">3초 만에 시작하기</p>',
+                unsafe_allow_html=True,
+            )
+        render_auth_buttons(key_prefix=key_prefix, compact=compact)
+        foot = (
+            "가입 없이 체험 계정으로도 모든 기능을 써볼 수 있어요"
+            if not compact
+            else "체험 계정으로 바로 시작할 수 있어요"
         )
-    render_auth_buttons(key_prefix=key_prefix, compact=compact)
-    st.markdown(
-        '<p class="vc-login-footnote">가입 없이 체험 계정으로도 모든 기능을 써볼 수 있어요</p>',
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(f'<p class="vc-login-footnote">{foot}</p>', unsafe_allow_html=True)

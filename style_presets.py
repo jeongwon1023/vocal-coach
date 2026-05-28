@@ -17,6 +17,7 @@ class StylePreset:
     stage_weights: tuple[float, float, float]  # pitch, rhythm, breath/timbre
     melody_match_cents: float = 35.0
     rhythm_cv_target: float = 0.28
+    timing_tolerance_ms: float = 80.0
     pro_score_floor: float = 72.0
     description: str = ""
 
@@ -34,6 +35,7 @@ PRESETS: dict[str, StylePreset] = {
         stage_weights=(0.60, 0.20, 0.20),
         melody_match_cents=30.0,
         rhythm_cv_target=0.32,
+        timing_tolerance_ms=100.0,
         pro_score_floor=75.0,
         description="음정·멜로디 라인 정확도 중심 (60%).",
     ),
@@ -43,6 +45,7 @@ PRESETS: dict[str, StylePreset] = {
         stage_weights=(0.20, 0.35, 0.45),
         melody_match_cents=45.0,
         rhythm_cv_target=0.38,
+        timing_tolerance_ms=120.0,
         pro_score_floor=78.0,
         description="리듬·배음(에너지·음색) 중심 (80%).",
     ),
@@ -52,6 +55,7 @@ PRESETS: dict[str, StylePreset] = {
         stage_weights=(0.20, 0.30, 0.50),
         melody_match_cents=40.0,
         rhythm_cv_target=0.35,
+        timing_tolerance_ms=90.0,
         pro_score_floor=78.0,
         description="그루브·음색·리듬 중심 (80%).",
     ),

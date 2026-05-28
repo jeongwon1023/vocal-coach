@@ -11,6 +11,13 @@ def render() -> None:
         <p class="vc-welcome-lead">Vocal Coach AI가 이렇게 도와드려요</p>
         <div class="vc-feature-grid">
             <div class="vc-feature-card">
+                <span class="vc-feature-icon">🎙️</span>
+                <div>
+                    <p class="vc-feature-title">실시간 녹음</p>
+                    <p class="vc-feature-desc">마이크로 바로 부르고, 정지하면 1분 안에 분석 결과를 받아요.</p>
+                </div>
+            </div>
+            <div class="vc-feature-card">
                 <span class="vc-feature-icon">🎵</span>
                 <div>
                     <p class="vc-feature-title">음정</p>
@@ -46,7 +53,7 @@ def render() -> None:
             """
             <div class="vc-tip-soft">
                 <p class="vc-tip-soft-title">🎧 녹음 팁</p>
-                <p class="vc-tip-soft-body">MR은 이어폰으로 듣고, 마이크에는 <b>목소리만</b> 녹음하면 분석이 더 정확해요.</p>
+                <p class="vc-tip-soft-body">MR은 이어폰으로 듣고, 마이크에는 <b>목소리만</b> 녹음하면 분석이 더 정확해요. 실시간 녹음 탭을 이용해 보세요.</p>
             </div>
             """,
             unsafe_allow_html=True,
