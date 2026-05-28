@@ -89,18 +89,14 @@ def render_analysis_settings() -> None:
         key="fast_mode",
         value=True,
         on_change=_on_fast_mode_change,
-        help=(
-            "빠른: 약 1분. "
-            "정밀(체크 해제): 더 깊은 코칭·노트별 피드백 (2~3분). "
-            "로컬 고급 옵션은 docs/PRECISION-LOCAL.md 참고."
-        ),
     )
+    st.caption("빠른: 약 1분 · 정밀(체크 해제): 더 깊은 코칭·노트별 피드백 (2~3분)")
     st.checkbox(
         "MR 감지 시 정밀 분석 자동",
         key="auto_precision_on_mr",
         value=True,
-        help="반주·MR이 섞인 녹음이면 분석 시작 시 자동으로 정밀 모드로 전환합니다.",
     )
+    st.caption("반주·MR이 섞인 녹음이면 분석 시작 시 자동으로 정밀 모드로 전환합니다.")
     st.divider()
     styles.sidebar_label("유튜브 가이드")
     render_song_title_help()
@@ -114,14 +110,14 @@ def render_analysis_settings() -> None:
         "인기곡 매칭 시 유튜브 가이드 자동",
         key="auto_youtube_on_hint",
         value=True,
-        help="DB에 있는 곡이면 유튜브 가이드를 자동으로 켭니다.",
     )
+    st.caption("DB에 있는 곡이면 유튜브 가이드를 자동으로 켭니다.")
     st.checkbox(
         "유튜브 가이드 사용",
         key="use_youtube",
         value=False,
-        help="켜면 곡 제목으로 MR·가이드 멜로디를 찾아 원곡과 비교합니다.",
     )
+    st.caption("켜면 곡 제목으로 MR·가이드 멜로디를 찾아 원곡과 비교합니다.")
     render_youtube_guide_sidebar()
     _render_midi_reference_upload()
     st.divider()
@@ -138,7 +134,8 @@ def render_analysis_settings() -> None:
     st.divider()
     styles.sidebar_label("고급")
     st.checkbox("문제 구간 클립", key="export_clips", value=False)
-    st.checkbox("성장 그래프", key="growth_chart", value=False, help="정밀 분석 시 상세 성장 곡선 추가 생성. 기록 저장 시 기본 곡선은 자동 갱신됩니다.")
+    st.checkbox("성장 그래프", key="growth_chart", value=False)
+    st.caption("정밀 분석 시 상세 성장 곡선 추가 생성. 기록 저장 시 기본 곡선은 자동 갱신됩니다.")
     st.checkbox("백그라운드 분석 큐", key="use_queue", value=default_use_queue())
     st.divider()
     st.markdown(

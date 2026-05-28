@@ -329,6 +329,19 @@ def _maybe_fetch_gpt_suggestions(session: dict[str, Any]) -> None:
         pass
 
 
+def _run_stream(gen_func):
+    """st.write_stream + 구버전 Streamlit 폴백."""
+    if hasattr(st, "write_stream"):
+        try:
+            return st.write_stream(gen_func)
+        except Exception:
+            pass
+    text = "".join(gen_func())
+    if text:
+        st.markdown(text)
+    return text
+
+
 def _stream_opening_safe(session: dict[str, Any]) -> str:
     """첫 DM — st.write_stream + 실패 시 규칙 기반 폴백."""
 
@@ -351,7 +364,7 @@ def _stream_opening_safe(session: dict[str, Any]) -> str:
         except Exception:
             yield rule
 
-    return st.write_stream(_gen)
+    return _run_stream(_gen)
 
 
 def _stream_reply_safe(session: dict[str, Any]) -> str:
@@ -381,7 +394,7 @@ def _stream_reply_safe(session: dict[str, Any]) -> str:
         except Exception:
             yield fallback
 
-    return st.write_stream(_gen)
+    return _run_stream(_gen)
 
 
 def _append_rule_reply(session: dict[str, Any]) -> None:
@@ -776,7 +789,7 @@ def render_coach_dm(session: dict[str, Any]) -> None:
 
         go_to("피드백")
     if st.button("🎤 다른 곡 분석하기", use_container_width=True, key="btn_new_analysis"):
-        from ui.dashboard import reset_user_session_state
+        from ui.session_reset import reset_user_session_state
 
         reset_user_session_state()
         st.rerun()

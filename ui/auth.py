@@ -68,7 +68,7 @@ def logout() -> None:
         delete_session(token)
     st.session_state.auth_token = None
     st.session_state.user = None
-    from ui.dashboard import reset_user_session_state
+    from ui.session_reset import reset_user_session_state
 
     reset_user_session_state()
     st.rerun()

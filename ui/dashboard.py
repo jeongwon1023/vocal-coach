@@ -15,7 +15,6 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 from ui.analysis_eta import format_eta, remaining_seconds
-from ui.coach_chat import render_coach_dm
 from ui.progress import make_callback, render_stepper
 
 
@@ -650,44 +649,9 @@ def render_analysis_section(*, show_settings: bool = True) -> None:
 
 
 def render_results_view() -> None:
+    from ui.coach_chat import render_coach_dm
+
     render_coach_dm(st.session_state["last_session"])
-
-
-def clear_results_state() -> None:
-    for key in (
-        "last_session",
-        "last_log",
-        "coach_chat_fp",
-        "coach_chat_messages",
-        "coach_suggested_questions",
-        "coach_gpt_enhanced",
-        "mypage_show_result",
-        "coach_pending_message",
-        "coach_used_suggestions",
-        "coach_scroll_tick",
-        "coach_opening_stream",
-        "coach_opening_inflight",
-        "coach_stream_completed_id",
-        "coach_stream_inflight_id",
-        "coach_gpt_suggestions_done",
-        "coach_chat_ready",
-        "force_precision",
-        "upload_mr_likely",
-        "_upload_file_sig",
-        "scroll_result",
-        "scroll_analyze",
-        "scroll_analyze_ticks",
-    ):
-        st.session_state.pop(key, None)
-
-
-def reset_user_session_state() -> None:
-    """로그아웃 · 새 분석 — 사용자별·분석 UI 상태 초기화."""
-    clear_results_state()
-    clear_analysis_state()
-    from ui.loading import clear_loading
-
-    clear_loading()
 
 
 def render() -> None:

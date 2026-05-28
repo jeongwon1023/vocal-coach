@@ -18,6 +18,7 @@ from weekly_summary import compute_weekly_summary
 from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
 from ui.navigation import go_to
+from ui.session_reset import clear_results_state
 
 
 def _format_date(record: dict) -> str:
@@ -111,8 +112,6 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
             from ui.loading import mark_loading
 
             mark_loading(message="결과를 불러오고 있어요…")
-            from ui.dashboard import clear_results_state
-
             clear_results_state()
             st.session_state["last_session"] = _load_session_for_record(user_id, path)
             st.session_state["mypage_show_result"] = True
@@ -288,7 +287,7 @@ def render() -> None:
 
             scroll_to_top(anchor_id="vc-result-top")
         if st.button("← 기록 목록으로", key="mypage_back_list", type="secondary"):
-            dashboard.clear_results_state()
+            clear_results_state()
             st.rerun()
         dashboard.render_results_view()
         from ui.beta import render_beta_footer

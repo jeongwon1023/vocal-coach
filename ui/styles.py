@@ -1980,6 +1980,18 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_panel [data-testid="stChatInput"] textarea::placeholder {
             color: #a1a1aa !important;
         }
+        /* 분석 설정 expander — help 툴팁이 본문처럼 겹치는 현상 방지 */
+        [data-testid="stExpander"] [data-testid="stTooltipHoverTarget"],
+        [data-testid="stDialog"] [data-testid="stTooltipHoverTarget"] {
+            display: inline-flex !important;
+        }
+        [data-testid="stExpander"] .vc-settings-caption,
+        [data-testid="stDialog"] .vc-settings-caption {
+            margin: -0.35rem 0 0.55rem 0 !important;
+            font-size: 0.78rem !important;
+            color: #6e667d !important;
+            line-height: 1.45 !important;
+        }
         .vc-beta-footer {
             text-align: center;
             font-size: 0.78rem;
