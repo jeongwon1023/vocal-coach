@@ -243,7 +243,7 @@ def test_song_hints_lookup() -> None:
         search_song_hints,
     )
 
-    assert len(all_song_hints()) >= 35
+    assert len(all_song_hints()) >= 65
 
     hint = lookup_song_hint("아이유 밤편지")
     assert hint is not None

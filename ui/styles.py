@@ -2848,6 +2848,70 @@ def apply(page: str = "홈") -> None:
             color: #71717a !important;
             margin-top: 0.15rem;
         }
+        .vc-weekly-card {
+            margin-bottom: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.06));
+            border: 1px solid rgba(129,140,248,0.35);
+        }
+        .vc-weekly-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.65rem;
+        }
+        .vc-weekly-title {
+            margin: 0;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #4338ca !important;
+        }
+        .vc-weekly-range {
+            font-size: 0.68rem;
+            color: #6366f1 !important;
+            background: rgba(99,102,241,0.12);
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+        }
+        .vc-weekly-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.45rem;
+        }
+        .vc-weekly-stat {
+            text-align: center;
+            background: rgba(255,255,255,0.55);
+            border-radius: 10px;
+            padding: 0.45rem 0.25rem;
+        }
+        .vc-weekly-val {
+            display: block;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #27272a !important;
+        }
+        .vc-week-delta-up { color: #16a34a !important; }
+        .vc-week-delta-down { color: #dc2626 !important; }
+        .vc-week-delta-neutral { color: #71717a !important; }
+        .vc-weekly-lbl {
+            display: block;
+            font-size: 0.62rem;
+            color: #71717a !important;
+            margin-top: 0.1rem;
+        }
+        .vc-weekly-song {
+            margin: 0.65rem 0 0.25rem;
+            font-size: 0.78rem;
+            color: #52525b !important;
+        }
+        .vc-weekly-msg {
+            margin: 0;
+            font-size: 0.76rem;
+            color: #6366f1 !important;
+            line-height: 1.45;
+        }
         .vc-empty-card {
             text-align: center;
             padding: 2rem 1.25rem;
@@ -3045,6 +3109,7 @@ def apply(page: str = "홈") -> None:
             .st-key-nav_brand_home button { font-size: 0.82rem !important; min-height: 2.5rem !important; }
             .st-key-nav_menu > div > button { min-width: 2.5rem !important; }
             .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
+            .vc-weekly-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .st-key-top_auth_popover,
             .st-key-top_auth_user { max-width: 100%; }
             .st-key-top_auth_popover > div > button,

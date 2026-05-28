@@ -365,6 +365,260 @@
       "style_preset": "ballad",
       "genre_label": "발라드",
       "aliases": []
+    },
+    {
+      "title": "Love Dive",
+      "artist": "IVE",
+      "youtube_query": "IVE Love Dive instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "러브다이브"
+      ]
+    },
+    {
+      "title": "I AM",
+      "artist": "IVE",
+      "youtube_query": "IVE I AM instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Super",
+      "artist": "SEVENTEEN",
+      "youtube_query": "SEVENTEEN Super instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "손오공"
+      ]
+    },
+    {
+      "title": "HOT",
+      "artist": "SEVENTEEN",
+      "youtube_query": "SEVENTEEN HOT instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "WANNABE",
+      "artist": "ITZY",
+      "youtube_query": "ITZY WANNABE instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "워너비"
+      ]
+    },
+    {
+      "title": "Sneakers",
+      "artist": "ITZY",
+      "youtube_query": "ITZY Sneakers instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "스니커즈"
+      ]
+    },
+    {
+      "title": "Psycho",
+      "artist": "Red Velvet",
+      "youtube_query": "Red Velvet Psycho instrumental",
+      "style_preset": "ballad",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "사이코"
+      ]
+    },
+    {
+      "title": "Fine",
+      "artist": "태연",
+      "youtube_query": "Taeyeon Fine MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "INVU",
+      "artist": "태연",
+      "youtube_query": "Taeyeon INVU instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "You Were Beautiful",
+      "artist": "DAY6",
+      "youtube_query": "DAY6 You Were Beautiful MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "예뻤어"
+      ]
+    },
+    {
+      "title": "HAPPY",
+      "artist": "DAY6",
+      "youtube_query": "DAY6 HAPPY instrumental",
+      "style_preset": "rock",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Really Really",
+      "artist": "WINNER",
+      "youtube_query": "WINNER Really Really MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "릴리릴리"
+      ]
+    },
+    {
+      "title": "Loser",
+      "artist": "BIGBANG",
+      "youtube_query": "BIGBANG Loser MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "루저"
+      ]
+    },
+    {
+      "title": "Seven",
+      "artist": "정국",
+      "youtube_query": "Jungkook Seven instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Palette",
+      "artist": "아이유",
+      "youtube_query": "아이유 Palette MR",
+      "style_preset": "ballad",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "팔레트"
+      ]
+    },
+    {
+      "title": "Slow Dancing",
+      "artist": "V",
+      "youtube_query": "V Slow Dancing instrumental",
+      "style_preset": "ballad",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Yellow",
+      "artist": "Coldplay",
+      "youtube_query": "Coldplay Yellow instrumental",
+      "style_preset": "rock",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "All of Me",
+      "artist": "John Legend",
+      "youtube_query": "John Legend All of Me piano instrumental",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Anti-Hero",
+      "artist": "Taylor Swift",
+      "youtube_query": "Taylor Swift Anti-Hero instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": [
+        "안티히어로"
+      ]
+    },
+    {
+      "title": "Let It Go",
+      "artist": "Idina Menzel",
+      "youtube_query": "Let It Go instrumental karaoke",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": [
+        "렛잇고"
+      ]
+    },
+    {
+      "title": "청춘",
+      "artist": "AKMU",
+      "youtube_query": "AKMU How People Move MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "사건의 지평선",
+      "artist": "윤하",
+      "youtube_query": "Younha Event Horizon MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "event horizon"
+      ]
+    },
+    {
+      "title": "Polaroid Love",
+      "artist": "ENHYPEN",
+      "youtube_query": "ENHYPEN Polaroid Love instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "폴라로이드 러브"
+      ]
+    },
+    {
+      "title": "Magnetic",
+      "artist": "ILLIT",
+      "youtube_query": "ILLIT Magnetic instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "마그네틱"
+      ]
+    },
+    {
+      "title": "Smart",
+      "artist": "LE SSERAFIM",
+      "youtube_query": "LE SSERAFIM Smart instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "스마트"
+      ]
+    },
+    {
+      "title": "첫사랑",
+      "artist": "볼빨간사춘기",
+      "youtube_query": "Bol4 First Love MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "가을타나봐",
+      "artist": "이무진",
+      "youtube_query": "Lee Mujin Maybe Its Spring MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "사랑은 늘 도망가",
+      "artist": "임영웅",
+      "youtube_query": "Lim Young Woong Love Always Run Away MR",
+      "style_preset": "ballad",
+      "genre_label": "트로트",
+      "aliases": []
     }
   ]
 }

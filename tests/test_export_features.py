@@ -17,7 +17,7 @@ def test_song_hints_json_load() -> None:
 
     assert DEFAULT_DB_PATH.exists()
     hints = load_song_hints()
-    assert len(hints) >= 35
+    assert len(hints) >= 65
     assert all_song_hints() == hints
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -46,7 +46,7 @@ def test_song_hints_json_load() -> None:
         assert loaded[0].title == "Test Song"
 
     reload_song_hints()
-    assert len(all_song_hints()) >= 35
+    assert len(all_song_hints()) >= 65
 
 
 def test_report_pdf_minimal() -> None:

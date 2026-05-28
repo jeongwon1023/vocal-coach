@@ -14,6 +14,7 @@ if str(PROJECT_DIR) not in sys.path:
 
 from progress_chart import generate_growth_chart, generate_history_sparkline
 from progress_tracker import list_records, load_record
+from weekly_summary import compute_weekly_summary
 from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
 from ui.navigation import go_to
@@ -115,6 +116,62 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
             st.rerun()
 
 
+def _render_weekly_summary_card(user_id: str) -> None:
+    summary = compute_weekly_summary(user_id)
+    if summary.get("total_records", 0) == 0:
+        return
+
+    count = summary["count"]
+    avg = summary.get("avg_score")
+    delta = summary.get("delta")
+    best = summary.get("best_score")
+    top_song = summary.get("top_song") or "—"
+    message = summary.get("message") or ""
+
+    avg_txt = f"{avg:.0f}점" if avg is not None else "—"
+    if delta is not None:
+        sign = "+" if delta >= 0 else ""
+        delta_txt = f"{sign}{delta:.1f}pt"
+        delta_cls = "vc-week-delta-up" if delta >= 0 else "vc-week-delta-down"
+    else:
+        delta_txt = "—"
+        delta_cls = "vc-week-delta-neutral"
+
+    best_txt = f"{best:.0f}점" if best is not None else "—"
+
+    st.markdown(
+        f"""
+        <div class="vc-weekly-card">
+            <div class="vc-weekly-head">
+                <p class="vc-weekly-title">📅 이번 주 연습 요약</p>
+                <span class="vc-weekly-range">최근 7일</span>
+            </div>
+            <div class="vc-weekly-grid">
+                <div class="vc-weekly-stat">
+                    <span class="vc-weekly-val">{count}회</span>
+                    <span class="vc-weekly-lbl">분석</span>
+                </div>
+                <div class="vc-weekly-stat">
+                    <span class="vc-weekly-val">{avg_txt}</span>
+                    <span class="vc-weekly-lbl">평균</span>
+                </div>
+                <div class="vc-weekly-stat">
+                    <span class="vc-weekly-val {delta_cls}">{delta_txt}</span>
+                    <span class="vc-weekly-lbl">전주 대비</span>
+                </div>
+                <div class="vc-weekly-stat">
+                    <span class="vc-weekly-val">{best_txt}</span>
+                    <span class="vc-weekly-lbl">주간 최고</span>
+                </div>
+            </div>
+            <p class="vc-weekly-song">🎵 많이 연습한 곡 · {html.escape(str(top_song))}</p>
+            <p class="vc-weekly-msg">{html.escape(message)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
     stats = _record_stats(records_paths)
     try:
@@ -138,6 +195,8 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+    _render_weekly_summary_card(user_id)
 
     if records_paths:
         st.markdown("##### 📋 분석 완료 기록")
