@@ -31,6 +31,10 @@ def test_ui_imports() -> None:
     assert callable(pitch_estimator.extract_pitch_ensemble)
     assert callable(vocal_separation.prepare_vocal_signal)
 
+    import pitch_heatmap
+
+    assert callable(pitch_heatmap.plot_note_heatmap)
+
 
 def test_analysis_eta() -> None:
     from ui.analysis_eta import default_total_seconds, format_eta, remaining_seconds

@@ -514,8 +514,8 @@ def render_session_results(session: dict[str, Any]) -> None:
     _render_insight_pills(report, full_record)
     render_score_feedback(session, full_record)
 
-    tab_graph, tab_coach, tab_gpt, tab_clips = st.tabs(
-        ["🎼 음정 그래프", "📝 코칭 리포트", "🤖 GPT 멘트", "💾 클립 · 다운로드"]
+    tab_graph, tab_heatmap, tab_coach, tab_gpt, tab_clips = st.tabs(
+        ["🎼 음정 그래프", "🎹 노트 히트맵", "📝 코칭 리포트", "🤖 GPT 멘트", "💾 클립 · 다운로드"]
     )
 
     with tab_graph:
@@ -547,6 +547,32 @@ def render_session_results(session: dict[str, Any]) -> None:
                     unsafe_allow_html=True,
                 )
         render_deviation_table(report)
+
+    with tab_heatmap:
+        heatmap = session.get("heatmap_path")
+        heatmap_err = session.get("heatmap_error")
+        if heatmap and Path(heatmap).exists():
+            st.markdown(
+                """
+                <p class="vc-graph-legend">
+                    <span class="vc-legend-pill vc-legend-ok">● 녹색=정확</span>
+                    <span class="vc-legend-pill vc-legend-bad">● 빨강=벗어남</span>
+                    · 노트 박스 + 점 = 프레임별 센트
+                </p>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div class="vc-graph-frame">', unsafe_allow_html=True)
+            st.image(str(heatmap), use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        elif heatmap_err:
+            st.caption(f"노트 히트맵 생성 실패 ({heatmap_err})")
+        else:
+            st.markdown(
+                '<p class="vc-empty-note">정밀 분석 후 노트 히트맵이 여기에 표시됩니다. '
+                "⚙️ 분석 설정에서 <b>빠른 분석</b>을 끄고 다시 분석해 보세요.</p>",
+                unsafe_allow_html=True,
+            )
 
     with tab_coach:
         render_coaching_stages(report)

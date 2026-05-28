@@ -189,6 +189,7 @@ class CurriculumReport:
     style_preset_id: str = "standard"
     style_preset_label: str = "균형 (기본)"
     analysis_engine: dict = field(default_factory=dict)
+    note_segments: list = field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1732,6 +1733,11 @@ def run_curriculum(
         "precision_mode": not fast_mode,
         "crepe_available": __import__("pitch_estimator", fromlist=["crepe_available"]).crepe_available(),
     }
+    note_segments = []
+    if pitch.note_precision and pitch.note_precision.note_segments:
+        from pitch_heatmap import _segments_to_dicts
+
+        note_segments = _segments_to_dicts(pitch.note_precision.note_segments)
 
     _prog(0.52, "박자·리듬 분석 중…")
     s1 = stage1_pitch_accuracy(pitch, dtw_result=dtw_result)
@@ -1811,6 +1817,7 @@ def run_curriculum(
         style_preset_id=preset.id,
         style_preset_label=preset.label,
         analysis_engine=analysis_engine,
+        note_segments=note_segments,
     )
 
 
@@ -1939,6 +1946,7 @@ def report_to_gpt_payload(report: CurriculumReport) -> dict:
     base["style_preset"] = report.style_preset_id
     base["style_preset_label"] = report.style_preset_label
     base["analysis_engine"] = getattr(report, "analysis_engine", {}) or {}
+    base["note_segments"] = getattr(report, "note_segments", []) or []
     return base
 
 
@@ -2107,6 +2115,21 @@ def run_full_session(
     except Exception as exc:
         result["plot_path"] = None
         result["plot_error"] = str(exc)
+
+    heatmap_path = PROJECT_DIR / "pitch_heatmap.png"
+    try:
+        from pitch_heatmap import plot_note_heatmap_from_report
+
+        plot_note_heatmap_from_report(
+            report,
+            save_path=heatmap_path,
+            dpi=72 if fast_mode else 130,
+        )
+        result["heatmap_path"] = heatmap_path
+    except Exception as exc:
+        result["heatmap_path"] = None
+        result["heatmap_error"] = str(exc)
+
     result["fast_mode"] = fast_mode
     _prog(1.0, "완료")
     return result

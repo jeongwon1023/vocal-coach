@@ -37,6 +37,8 @@ def save_session_cache(user_id: str, session: dict[str, Any], record_path: str |
         "gpt_error": session.get("gpt_error"),
         "plot_path": str(session.get("plot_path") or ""),
         "plot_error": session.get("plot_error"),
+        "heatmap_path": str(session.get("heatmap_path") or ""),
+        "heatmap_error": session.get("heatmap_error"),
         "clip_paths": [str(p) for p in session.get("clip_paths") or []],
         "chart_path": str(session.get("chart_path") or "") if session.get("chart_path") else "",
         "overall_score": report.overall_score,
@@ -99,6 +101,7 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
         mr_message=data.get("mr_message", ""),
     )
     plot_path = data.get("plot_path") or None
+    heatmap_path = data.get("heatmap_path") or None
     chart_path = data.get("chart_path") or None
     return {
         "report": report,
@@ -109,6 +112,8 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
         "gpt_error": data.get("gpt_error"),
         "plot_path": plot_path if plot_path and Path(plot_path).exists() else None,
         "plot_error": data.get("plot_error"),
+        "heatmap_path": heatmap_path if heatmap_path and Path(heatmap_path).exists() else None,
+        "heatmap_error": data.get("heatmap_error"),
         "clip_paths": [p for p in (data.get("clip_paths") or []) if Path(p).exists()],
         "chart_path": chart_path if chart_path and Path(chart_path).exists() else None,
     }

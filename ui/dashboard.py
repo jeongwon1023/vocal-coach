@@ -313,6 +313,76 @@ def _resolve_audio_source(
     return None
 
 
+def _quick_mr_check(audio_path: Path) -> bool:
+    """앞 30초만 샘플링 — MR 포함 가능성."""
+    try:
+        import librosa
+        from mr_detect import detect_mr_content
+
+        y, sr = librosa.load(str(audio_path), sr=16000, mono=True, duration=30.0)
+        return bool(detect_mr_content(y, sr).likely_mr)
+    except Exception:
+        return False
+
+
+def _render_precision_recommendation(
+    opts: dict,
+    *,
+    recorded,
+    uploaded,
+    use_sample: bool,
+    sample: Path,
+    upload_dir: Path,
+) -> None:
+    """MR·믹스 녹음 시 정밀 분석 권장."""
+    if not opts.get("fast_mode", True) or is_analyzing():
+        return
+
+    has_file = (
+        recorded is not None
+        or uploaded is not None
+        or (use_sample and sample.exists())
+    )
+    if not has_file:
+        return
+
+    likely_mr = st.session_state.get("upload_mr_likely")
+    if likely_mr is None and (recorded or uploaded):
+        path = _resolve_audio_source(
+            recorded=recorded,
+            uploaded=uploaded,
+            use_sample=False,
+            sample=sample,
+            upload_dir=upload_dir,
+        )
+        if path and path.exists():
+            likely_mr = _quick_mr_check(path)
+            st.session_state["upload_mr_likely"] = likely_mr
+
+    if likely_mr:
+        st.markdown(
+            """
+            <div class="vc-precision-recommend">
+                <p class="vc-precision-recommend-title">🎧 MR/반주가 감지됐어요</p>
+                <p class="vc-precision-recommend-body">
+                    이 녹음은 <b>정밀 분석</b>을 권장해요 — 보컬 분리 · 노트 히트맵 · jitter/HNR까지 확인됩니다.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            "⚡ 정밀 분석으로 전환",
+            key="btn_switch_precision_mode",
+            use_container_width=True,
+        ):
+            st.session_state["fast_mode"] = False
+            st.session_state.pop("upload_mr_likely", None)
+            st.rerun()
+    elif opts.get("fast_mode"):
+        st.caption("💡 MR·유튜브 녹음이면 ⚙️ 분석 설정에서 **빠른 분석**을 끄면 더 정확해요.")
+
+
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
     from ui.audio_recorder import render_file_upload_fallback, render_live_recorder
 
@@ -328,6 +398,17 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
 
     recorded = render_live_recorder(disabled=disabled, key="analysis_live_recorder")
     uploaded, use_sample = render_file_upload_fallback(disabled=disabled)
+
+    upload_dir = PROJECT_DIR / ".cache" / "uploads"
+    sample = PROJECT_DIR / "sample.mp3"
+    _render_precision_recommendation(
+        opts,
+        recorded=recorded,
+        uploaded=uploaded,
+        use_sample=use_sample,
+        sample=sample,
+        upload_dir=upload_dir,
+    )
 
     has_file = (
         recorded is not None

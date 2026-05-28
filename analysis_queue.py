@@ -164,6 +164,8 @@ def _run_analysis_worker(job_id: str, audio_path: Path, options: dict[str, Any])
             "gpt_error": session.get("gpt_error"),
             "plot_path": str(session.get("plot_path", "")),
             "plot_error": session.get("plot_error"),
+            "heatmap_path": str(session.get("heatmap_path", "")),
+            "heatmap_error": session.get("heatmap_error"),
             "clip_paths": [str(p) for p in session.get("clip_paths", [])],
             "overall_score": session["report"].overall_score,
             "reference_source": session["report"].reference_source,
@@ -253,6 +255,8 @@ def load_session_for_job(job_id: str) -> dict[str, Any] | None:
         "gpt_error": data.get("gpt_error"),
         "plot_path": data.get("plot_path") or "",
         "plot_error": data.get("plot_error"),
+        "heatmap_path": data.get("heatmap_path") or "",
+        "heatmap_error": data.get("heatmap_error"),
         "clip_paths": data.get("clip_paths") or [],
         "chart_path": data.get("chart_path"),
     }

@@ -2181,6 +2181,26 @@ def apply(page: str = "홈") -> None:
             font-size: 0.62rem;
             color: #6e667d !important;
         }
+        .vc-precision-recommend {
+            margin: 0.65rem 0 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+            border: 1px solid rgba(245,158,11,0.35);
+        }
+        .vc-precision-recommend-title {
+            margin: 0;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #92400e !important;
+        }
+        .vc-precision-recommend-body {
+            margin: 0.35rem 0 0;
+            font-size: 0.78rem;
+            color: #78350f !important;
+            line-height: 1.5;
+        }
+        .vc-precision-recommend-body b { color: #b45309 !important; }
         .vc-report-section {
             margin-top: 1.25rem;
         }
