@@ -27,6 +27,12 @@ def render_analysis_settings() -> None:
             "로컬에서 CREPE/Demucs는 requirements-precision.txt 참고."
         ),
     )
+    st.checkbox(
+        "MR 감지 시 정밀 분석 자동",
+        key="auto_precision_on_mr",
+        value=True,
+        help="반주·MR이 섞인 녹음이면 분석 시작 시 자동으로 정밀 모드로 전환합니다.",
+    )
     st.divider()
     styles.sidebar_label("유튜브 가이드")
     render_song_title_help()

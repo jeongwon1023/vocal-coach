@@ -21,6 +21,12 @@ from ui.progress import make_callback, render_stepper
 
 def _analysis_options() -> dict:
     song = (st.session_state.get("song_title") or "").strip()
+    try:
+        from song_hints import apply_song_hints
+
+        apply_song_hints(song or None, st.session_state)
+    except Exception:
+        pass
     fast = bool(st.session_state.get("fast_mode", True))
     user_id = None
     try:
@@ -313,6 +319,44 @@ def _resolve_audio_source(
     return None
 
 
+def _maybe_auto_precision_on_mr(audio_path: Path, opts: dict) -> dict:
+    """MR 감지 + 설정 켜짐이면 정밀 분석으로 전환."""
+    if not opts.get("fast_mode", True):
+        return opts
+    if not st.session_state.get("auto_precision_on_mr", True):
+        return opts
+    likely = st.session_state.get("upload_mr_likely")
+    if likely is None:
+        likely = _quick_mr_check(audio_path)
+        st.session_state["upload_mr_likely"] = likely
+    if likely:
+        st.session_state["fast_mode"] = False
+        opts = dict(opts)
+        opts["fast_mode"] = False
+    return opts
+
+
+def _render_song_hint_banner() -> None:
+    hint = st.session_state.get("_song_hint")
+    if not hint:
+        return
+    genre = hint.get("genre_label") or ""
+    genre_txt = f" · {genre}" if genre else ""
+    st.markdown(
+        f"""
+        <div class="vc-song-hint-banner">
+            <p class="vc-song-hint-title">🎵 {hint.get("artist", "")} — {hint.get("title", "")}{genre_txt}</p>
+            <p class="vc-song-hint-body">인기곡 DB에서 찾았어요 · 유튜브 검색어·가창 스타일이 자동 적용됩니다.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if not st.session_state.get("use_youtube"):
+        if st.button("📺 유튜브 가이드 켜기", key="btn_enable_yt_from_hint", use_container_width=True):
+            st.session_state["use_youtube"] = True
+            st.rerun()
+
+
 def _quick_mr_check(audio_path: Path) -> bool:
     """앞 30초만 샘플링 — MR 포함 가능성."""
     try:
@@ -398,6 +442,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
 
     recorded = render_live_recorder(disabled=disabled, key="analysis_live_recorder")
     uploaded, use_sample = render_file_upload_fallback(disabled=disabled)
+    _render_song_hint_banner()
 
     upload_dir = PROJECT_DIR / ".cache" / "uploads"
     sample = PROJECT_DIR / "sample.mp3"
@@ -465,6 +510,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         except Exception as exc:
             st.warning(f"오디오 정규화 건너뜀: {exc}")
 
+        opts = _maybe_auto_precision_on_mr(audio_path, opts)
         _mark_analysis_started(opts)
         st.session_state["scroll_analyze"] = True
         from ui.loading import mark_loading

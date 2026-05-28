@@ -235,6 +235,23 @@ def test_suggestion_pool() -> None:
     assert len(_pill_key("테스트 질문")) == 10
 
 
+def test_song_hints_lookup() -> None:
+    from song_hints import apply_song_hints, lookup_song_hint
+
+    hint = lookup_song_hint("아이유 밤편지")
+    assert hint is not None
+    assert hint.title == "밤편지"
+    assert hint.style_preset == "ballad"
+
+    session: dict = {"style_preset": "auto"}
+    applied = apply_song_hints("NewJeans Ditto", session)
+    assert applied is not None
+    assert session["style_preset"] == "hiphop"
+    assert session["_song_hint"]["youtube_query"]
+
+    assert lookup_song_hint("없는곡제목xyz") is None
+
+
 if __name__ == "__main__":
     test_ui_imports()
     test_navigation_pages()
@@ -248,4 +265,5 @@ if __name__ == "__main__":
     test_feedback_trainer()
     test_coach_rag()
     test_suggestion_pool()
+    test_song_hints_lookup()
     print("All UI smoke tests passed.")

@@ -126,13 +126,25 @@ def fetch_references(
 
     print(f"[레퍼런스] 곡 검색: {song_title}")
 
+    hint = None
+    try:
+        from song_hints import lookup_song_hint
+
+        hint = lookup_song_hint(song_title)
+    except Exception:
+        pass
+
     if not mr_path.exists():
-        q_mr = f"{song_title} instrumental MR"
+        q_mr = hint.youtube_query if hint else f"{song_title} instrumental MR"
         print(f"  MR 검색: {q_mr}")
         _run_yt_dlp(q_mr, mr_path)
 
     if not guide_path.exists():
-        q_guide = f"{song_title} vocal guide"
+        q_guide = (
+            f"{hint.artist} {hint.title} vocal guide"
+            if hint
+            else f"{song_title} vocal guide"
+        )
         print(f"  가이드 멜로디 검색: {q_guide}")
         ok = _run_yt_dlp(q_guide, guide_path)
         if not ok:

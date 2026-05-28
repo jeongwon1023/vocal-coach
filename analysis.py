@@ -2130,6 +2130,28 @@ def run_full_session(
         result["heatmap_path"] = None
         result["heatmap_error"] = str(exc)
 
+    note_segs = getattr(report, "note_segments", None) or []
+    if not fast_mode and note_segs:
+        _prog(0.94, "노트 연습 클립 추출 중…")
+        try:
+            from note_clip_exporter import export_note_miss_clips
+
+            note_clips = export_note_miss_clips(audio_path, note_segs)
+            result["note_clip_paths"] = [
+                {
+                    "path": str(c.path),
+                    "label": c.label,
+                    "mean_cents": c.mean_cents,
+                    "start_sec": c.start_sec,
+                    "end_sec": c.end_sec,
+                    "hit": c.hit,
+                }
+                for c in note_clips
+            ]
+        except Exception as exc:
+            result["note_clip_paths"] = []
+            result["note_clip_error"] = str(exc)
+
     result["fast_mode"] = fast_mode
     _prog(1.0, "완료")
     return result

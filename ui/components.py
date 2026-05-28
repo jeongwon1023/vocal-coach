@@ -456,6 +456,63 @@ def render_precision_panel(report: Any, full_record: dict[str, Any] | None = Non
             )
 
 
+def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]) -> None:
+    """히트맵 탭 — 틀린 노트 구간 듣기."""
+    note_clips = session.get("note_clip_paths") or []
+    note_segments = full_record.get("note_segments") or []
+    clip_err = session.get("note_clip_error")
+
+    if not note_clips and not note_segments:
+        return
+
+    st.markdown('<p class="vc-section-label">🎯 집중 연습 — 틀린 노트</p>', unsafe_allow_html=True)
+
+    if note_clips:
+        for i, clip in enumerate(note_clips, 1):
+            path = Path(clip.get("path", ""))
+            if not path.exists():
+                continue
+            label = clip.get("label") or path.stem
+            err = float(clip.get("mean_cents") or 0)
+            t0 = float(clip.get("start_sec") or 0)
+            hit = clip.get("hit", False)
+            status = "적중" if hit else f"오차 {err:.0f}¢"
+            st.markdown(
+                f"""
+                <div class="vc-note-drill-row">
+                    <span class="vc-note-drill-badge">#{i}</span>
+                    <div>
+                        <p class="vc-note-drill-title">{html.escape(str(label))} · {t0:.1f}s</p>
+                        <p class="vc-note-drill-meta">{html.escape(status)}</p>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.audio(str(path), format="audio/wav")
+        return
+
+    if clip_err:
+        st.caption(f"노트 클립 생성 실패 ({clip_err})")
+
+    misses = [s for s in note_segments if not s.get("hit", True)]
+    misses.sort(key=lambda s: float(s.get("mean_cents_error", 0)), reverse=True)
+    for seg in misses[:5]:
+        midi = seg.get("midi_median", 0)
+        try:
+            import librosa
+
+            note = librosa.midi_to_note(int(round(midi)), unicode=False)
+        except Exception:
+            note = f"M{midi:.0f}"
+        err = float(seg.get("mean_cents_error", 0))
+        t0 = float(seg.get("start_sec", 0))
+        st.markdown(
+            f'<p class="vc-clip-name">▶ {t0:.1f}s · {html.escape(note)} · 오차 {err:.0f}¢</p>',
+            unsafe_allow_html=True,
+        )
+
+
 def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:
     pills: list[str] = []
 
@@ -565,6 +622,7 @@ def render_session_results(session: dict[str, Any]) -> None:
             st.markdown('<div class="vc-graph-frame">', unsafe_allow_html=True)
             st.image(str(heatmap), use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
+            render_note_drill_panel(session, full_record)
         elif heatmap_err:
             st.caption(f"노트 히트맵 생성 실패 ({heatmap_err})")
         else:

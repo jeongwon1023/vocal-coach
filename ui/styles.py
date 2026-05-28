@@ -2201,6 +2201,58 @@ def apply(page: str = "홈") -> None:
             line-height: 1.5;
         }
         .vc-precision-recommend-body b { color: #b45309 !important; }
+        .vc-song-hint-banner {
+            margin: 0.65rem 0 0.85rem;
+            padding: 0.75rem 0.95rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.08));
+            border: 1px solid rgba(129,140,248,0.35);
+        }
+        .vc-song-hint-title {
+            margin: 0;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #4338ca !important;
+        }
+        .vc-song-hint-body {
+            margin: 0.3rem 0 0;
+            font-size: 0.76rem;
+            color: #6366f1 !important;
+            line-height: 1.45;
+        }
+        .vc-note-drill-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            margin: 0.75rem 0 0.25rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 10px;
+            background: rgba(39,39,42,0.04);
+            border: 1px solid rgba(161,161,170,0.25);
+        }
+        .vc-note-drill-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 999px;
+            background: rgba(99,102,241,0.15);
+            color: #6366f1 !important;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .vc-note-drill-title {
+            margin: 0;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #27272a !important;
+        }
+        .vc-note-drill-meta {
+            margin: 0.15rem 0 0;
+            font-size: 0.74rem;
+            color: #71717a !important;
+        }
         .vc-report-section {
             margin-top: 1.25rem;
         }

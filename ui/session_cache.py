@@ -40,6 +40,8 @@ def save_session_cache(user_id: str, session: dict[str, Any], record_path: str |
         "heatmap_path": str(session.get("heatmap_path") or ""),
         "heatmap_error": session.get("heatmap_error"),
         "clip_paths": [str(p) for p in session.get("clip_paths") or []],
+        "note_clip_paths": session.get("note_clip_paths") or [],
+        "note_clip_error": session.get("note_clip_error"),
         "chart_path": str(session.get("chart_path") or "") if session.get("chart_path") else "",
         "overall_score": report.overall_score,
         "reference_source": report.reference_source,
@@ -115,6 +117,12 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
         "heatmap_path": heatmap_path if heatmap_path and Path(heatmap_path).exists() else None,
         "heatmap_error": data.get("heatmap_error"),
         "clip_paths": [p for p in (data.get("clip_paths") or []) if Path(p).exists()],
+        "note_clip_paths": [
+            c
+            for c in (data.get("note_clip_paths") or [])
+            if Path(c.get("path", "")).exists()
+        ],
+        "note_clip_error": data.get("note_clip_error"),
         "chart_path": chart_path if chart_path and Path(chart_path).exists() else None,
     }
 
