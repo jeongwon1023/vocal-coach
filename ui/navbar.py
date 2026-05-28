@@ -29,7 +29,7 @@ def render_navbar() -> str:
 
     st.markdown('<div class="vc-navbar-marker"></div>', unsafe_allow_html=True)
 
-    c_brand, c_menu = st.columns([5.5, 1], vertical_alignment="center")
+    c_brand, c_auth, c_menu = st.columns([4.2, 1.8, 1], vertical_alignment="center")
 
     with c_brand:
         if st.button(
@@ -40,6 +40,9 @@ def render_navbar() -> str:
             use_container_width=True,
         ):
             go_to("홈")
+
+    with c_auth:
+        auth.render_topbar_auth()
 
     with c_menu:
         with st.popover("☰", use_container_width=True, help="메뉴", key="nav_menu"):

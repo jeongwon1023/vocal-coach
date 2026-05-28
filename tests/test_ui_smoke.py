@@ -105,6 +105,45 @@ def test_coach_chat_helpers() -> None:
     assert "\n\n②" in steps
 
 
+def test_coach_stream_request_id() -> None:
+    from ui.coach_chat import _stream_request_id
+
+    class _State(dict):
+        def get(self, key, default=None):
+            return super().get(key, default)
+
+    import ui.coach_chat as cc
+
+    old = cc.st.session_state
+    cc.st.session_state = _State({"coach_chat_fp": "abc123"})
+    try:
+        assert _stream_request_id([]) == ""
+        assert _stream_request_id([{"role": "assistant", "content": "hi"}]) == ""
+        msgs = [
+            {"role": "assistant", "content": "hello"},
+            {"role": "user", "content": "질문"},
+        ]
+        rid = _stream_request_id(msgs)
+        assert len(rid) == 16
+        assert rid == _stream_request_id(msgs)
+        msgs2 = msgs + [{"role": "assistant", "content": "답"}]
+        assert _stream_request_id(msgs2) == ""
+    finally:
+        cc.st.session_state = old
+
+
+def test_gpt_coach_stream_builders() -> None:
+    from gpt_coach import _build_coach_chat_messages, _build_coach_opening_messages
+
+    payload = {"overall_score": 70, "stage_scores": {}}
+    chat_msgs = _build_coach_chat_messages(payload, [], "테스트 질문")
+    assert chat_msgs[0]["role"] == "system"
+    assert chat_msgs[-1]["content"] == "테스트 질문"
+    opening_msgs = _build_coach_opening_messages(payload)
+    assert len(opening_msgs) == 2
+    assert opening_msgs[-1]["role"] == "user"
+
+
 def test_pitch_hz_ylim_empty() -> None:
     import numpy as np
 
@@ -282,6 +321,8 @@ if __name__ == "__main__":
     test_auth_login_compact_accepts_prefix()
     test_load_session_for_job_missing()
     test_coach_chat_helpers()
+    test_coach_stream_request_id()
+    test_gpt_coach_stream_builders()
     test_analysis_eta()
     test_pitch_hz_ylim_empty()
     test_pitch_hz_ylim_with_data()

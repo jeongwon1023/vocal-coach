@@ -111,6 +111,9 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
             from ui.loading import mark_loading
 
             mark_loading(message="결과를 불러오고 있어요…")
+            from ui.dashboard import clear_results_state
+
+            clear_results_state()
             st.session_state["last_session"] = _load_session_for_record(user_id, path)
             st.session_state["mypage_show_result"] = True
             st.rerun()

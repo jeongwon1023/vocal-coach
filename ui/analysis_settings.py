@@ -79,14 +79,20 @@ def render_analysis_settings() -> None:
         unsafe_allow_html=True,
     )
     styles.sidebar_label("분석 모드")
+
+    def _on_fast_mode_change() -> None:
+        if st.session_state.get("fast_mode", True):
+            st.session_state.pop("force_precision", None)
+
     st.checkbox(
         "빠른 분석 (권장)",
         key="fast_mode",
         value=True,
+        on_change=_on_fast_mode_change,
         help=(
-            "빠른: 16kHz·2분·약 1분. "
-            "정밀(체크 해제): 22kHz·전체·강화 보컬 분리·노트 단위 채점·jitter/HNR (2~3분). "
-            "로컬에서 CREPE/Demucs는 requirements-precision.txt 참고."
+            "빠른: 약 1분. "
+            "정밀(체크 해제): 더 깊은 코칭·노트별 피드백 (2~3분). "
+            "로컬 고급 옵션은 docs/PRECISION-LOCAL.md 참고."
         ),
     )
     st.checkbox(

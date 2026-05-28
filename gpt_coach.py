@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterator
 from typing import Any
 
 COACH_SYSTEM_PROMPT = (
@@ -225,18 +226,13 @@ def generate_suggested_questions_gpt(
         return []
 
 
-def generate_coach_chat_reply(
+def _build_coach_chat_messages(
     analysis_json: dict[str, Any],
     chat_history: list[dict[str, str]],
     user_message: str,
     *,
-    api_key: str | None = None,
-    model: str | None = None,
     rag_block: str | None = None,
-) -> str:
-    """DM 후속 대화."""
-    client, _ = _openai_client(api_key)
-    model_name = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+) -> list[dict[str, str]]:
     context = (
         f"[분석 데이터]\n```json\n{json.dumps(analysis_json, ensure_ascii=False, indent=2)}\n```"
     )
@@ -249,13 +245,102 @@ def generate_coach_chat_reply(
     for turn in chat_history[-12:]:
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": user_message})
-    response = client.chat.completions.create(
+    return messages
+
+
+def _build_coach_opening_messages(
+    analysis_json: dict[str, Any],
+    *,
+    rag_block: str | None = None,
+) -> list[dict[str, str]]:
+    user_content = (
+        COACH_OPENING_USER_PROMPT + "\n\n"
+        f"```json\n{json.dumps(analysis_json, ensure_ascii=False, indent=2)}\n```"
+    )
+    return [
+        {"role": "system", "content": _with_rag(COACH_CHAT_SYSTEM_PROMPT, rag_block)},
+        {"role": "user", "content": user_content},
+    ]
+
+
+def _stream_chat_completion(
+    messages: list[dict[str, str]],
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    temperature: float = 0.74,
+    max_tokens: int = 950,
+) -> Iterator[str]:
+    """OpenAI Chat Completions 스트리밍 — 토큰 단위 yield."""
+    client, _ = _openai_client(api_key)
+    model_name = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    stream = client.chat.completions.create(
         model=model_name,
         messages=messages,
-        temperature=0.74,
-        max_tokens=950,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=True,
     )
-    return response.choices[0].message.content or ""
+    for chunk in stream:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+
+def stream_coach_chat_reply(
+    analysis_json: dict[str, Any],
+    chat_history: list[dict[str, str]],
+    user_message: str,
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    rag_block: str | None = None,
+) -> Iterator[str]:
+    """DM 후속 대화 — 스트리밍."""
+    messages = _build_coach_chat_messages(
+        analysis_json, chat_history, user_message, rag_block=rag_block
+    )
+    yield from _stream_chat_completion(
+        messages, api_key=api_key, model=model, temperature=0.74, max_tokens=950
+    )
+
+
+def stream_coach_opening(
+    analysis_json: dict[str, Any],
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    rag_block: str | None = None,
+) -> Iterator[str]:
+    """분석 직후 DM 첫 메시지 — 스트리밍."""
+    messages = _build_coach_opening_messages(analysis_json, rag_block=rag_block)
+    yield from _stream_chat_completion(
+        messages, api_key=api_key, model=model, temperature=0.76, max_tokens=1600
+    )
+
+
+def generate_coach_chat_reply(
+    analysis_json: dict[str, Any],
+    chat_history: list[dict[str, str]],
+    user_message: str,
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    rag_block: str | None = None,
+) -> str:
+    """DM 후속 대화 (일괄 — 테스트·폴백용)."""
+    return "".join(
+        stream_coach_chat_reply(
+            analysis_json,
+            chat_history,
+            user_message,
+            api_key=api_key,
+            model=model,
+            rag_block=rag_block,
+        )
+    )
 
 
 def load_dotenv_if_present(project_dir) -> None:

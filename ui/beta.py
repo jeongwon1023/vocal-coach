@@ -36,3 +36,16 @@ def render_beta_invite_card() -> None:
         unsafe_allow_html=True,
     )
     st.code(BETA_SHARE_URL, language=None)
+
+
+def render_beta_footer() -> None:
+    """마이 페이지 하단 — 베타 안내."""
+    st.markdown(
+        f"""
+        <p class="vc-beta-footer">
+            Vocal Coach AI · BETA {BETA_VERSION}
+            · <a href="{BETA_SHARE_URL}" target="_blank" rel="noopener">서비스 열기</a>
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )

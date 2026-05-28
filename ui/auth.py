@@ -31,6 +31,8 @@ def init_auth() -> None:
 
     qp = st.query_params
     token = qp.get("token")
+    if isinstance(token, list):
+        token = token[0] if token else None
     if token and isinstance(token, str):
         user = resolve_session(token)
         if user:
@@ -66,6 +68,9 @@ def logout() -> None:
         delete_session(token)
     st.session_state.auth_token = None
     st.session_state.user = None
+    from ui.dashboard import reset_user_session_state
+
+    reset_user_session_state()
     st.rerun()
 
 

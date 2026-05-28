@@ -19,6 +19,13 @@ from ui.coach_chat import render_coach_dm
 from ui.progress import make_callback, render_stepper
 
 
+def _resolve_fast_mode() -> bool:
+    """체크박스(fast_mode) + 정밀 전환 버튼(force_precision) 통합."""
+    if st.session_state.get("force_precision"):
+        return False
+    return bool(st.session_state.get("fast_mode", True))
+
+
 def _analysis_options() -> dict:
     song = (st.session_state.get("song_title") or "").strip()
     try:
@@ -27,7 +34,7 @@ def _analysis_options() -> dict:
         apply_song_hints(song or None, st.session_state)
     except Exception:
         pass
-    fast = bool(st.session_state.get("fast_mode", True))
+    fast = _resolve_fast_mode()
     user_id = None
     try:
         from ui.auth import current_user_id
@@ -147,7 +154,6 @@ def _render_analyzing_panel_header(opts: dict) -> None:
 def _render_analyzing_view(pct: float, message: str, opts: dict) -> None:
     mode = _mode_label(opts)
     eta = _eta_for_progress(pct, opts)
-    st.markdown('<div id="vc-analyzing-anchor"></div>', unsafe_allow_html=True)
     with st.container(key="vc_analyze_panel"):
         _render_analyzing_panel_header(opts)
         render_stepper(pct, message, eta_label=eta, mode_label=mode)
@@ -160,7 +166,6 @@ def _render_analyzing_view_with_placeholder(pct: float, message: str, opts: dict
     """동기 분석 — stepper만 placeholder로 갱신."""
     mode = _mode_label(opts)
     eta = _eta_for_progress(pct, opts)
-    st.markdown('<div id="vc-analyzing-anchor"></div>', unsafe_allow_html=True)
     with st.container(key="vc_analyze_panel"):
         _render_analyzing_panel_header(opts)
         stepper_ph = st.empty()
@@ -214,8 +219,6 @@ def _poll_queue_job(job_id: str, opts: dict) -> str:
 def _analysis_queue_fragment(job_id: str) -> None:
     """큐 폴링 — fragment만 갱신해 전체 화면 깜빡임 방지."""
     opts = _analysis_options()
-    mode = _mode_label(opts)
-    st.markdown('<div id="vc-analyzing-anchor"></div>', unsafe_allow_html=True)
     with st.container(key="vc_analyze_panel"):
         _render_analyzing_panel_header(opts)
         result = _poll_queue_job(job_id, opts)
@@ -332,7 +335,7 @@ def _maybe_auto_precision_on_mr(audio_path: Path, opts: dict) -> dict:
         likely = _quick_mr_check(audio_path)
         st.session_state["upload_mr_likely"] = likely
     if likely:
-        st.session_state["fast_mode"] = False
+        st.session_state["force_precision"] = True
         opts = dict(opts)
         opts["fast_mode"] = False
     return opts
@@ -423,9 +426,10 @@ def _render_precision_recommendation(
         st.markdown(
             """
             <div class="vc-precision-recommend">
-                <p class="vc-precision-recommend-title">🎧 MR/반주가 감지됐어요</p>
+                <p class="vc-precision-recommend-title">🎧 반주가 함께 들려요</p>
                 <p class="vc-precision-recommend-body">
-                    이 녹음은 <b>정밀 분석</b>을 권장해요 — 보컬 분리 · 노트 히트맵 · jitter/HNR까지 확인됩니다.
+                    MR·반주가 섞인 녹음이에요. 목소리만 또렷하게 듣고 피드백 받으려면
+                    <b>정밀 분석</b>을 추천드려요.
                 </p>
             </div>
             """,
@@ -436,11 +440,11 @@ def _render_precision_recommendation(
             key="btn_switch_precision_mode",
             use_container_width=True,
         ):
-            st.session_state["fast_mode"] = False
+            st.session_state["force_precision"] = True
             st.session_state.pop("upload_mr_likely", None)
             st.rerun()
     elif opts.get("fast_mode"):
-        st.caption("💡 MR·유튜브 녹음이면 ⚙️ 분석 설정에서 **빠른 분석**을 끄면 더 정확해요.")
+        st.caption("💡 MR이 섞인 녹음이면 정밀 분석이 더 정확해요.")
 
 
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
@@ -658,13 +662,32 @@ def clear_results_state() -> None:
         "coach_suggested_questions",
         "coach_gpt_enhanced",
         "mypage_show_result",
-        "coach_show_typing",
-        "coach_generating",
         "coach_pending_message",
         "coach_used_suggestions",
         "coach_scroll_tick",
+        "coach_opening_stream",
+        "coach_opening_inflight",
+        "coach_stream_completed_id",
+        "coach_stream_inflight_id",
+        "coach_gpt_suggestions_done",
+        "coach_chat_ready",
+        "force_precision",
+        "upload_mr_likely",
+        "_upload_file_sig",
+        "scroll_result",
+        "scroll_analyze",
+        "scroll_analyze_ticks",
     ):
         st.session_state.pop(key, None)
+
+
+def reset_user_session_state() -> None:
+    """로그아웃 · 새 분석 — 사용자별·분석 UI 상태 초기화."""
+    clear_results_state()
+    clear_analysis_state()
+    from ui.loading import clear_loading
+
+    clear_loading()
 
 
 def render() -> None:

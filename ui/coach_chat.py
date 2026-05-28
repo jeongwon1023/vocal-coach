@@ -11,12 +11,20 @@ import streamlit as st
 
 from coaching_vocab import STAGE_NAMES
 from ui.coach_insights import build_focus_items, build_strength_items
-from ui.text_format import format_readable_paragraphs, format_step_lines
+from ui.text_format import format_readable_paragraphs
 
 
 def _session_fingerprint(session: dict[str, Any]) -> str:
     report = session["report"]
-    blob = f"{report.overall_score}:{len(report.stages)}:{session.get('record_path', '')}"
+    try:
+        from ui.auth import current_user_id
+
+        uid = current_user_id() or ""
+    except Exception:
+        uid = ""
+    record = str(session.get("record_path") or session.get("record_id") or "")
+    song = str(session.get("song_title") or "")
+    blob = f"{uid}:{record}:{song}:{report.overall_score}:{len(report.stages)}"
     return hashlib.md5(blob.encode()).hexdigest()[:12]
 
 
@@ -288,11 +296,125 @@ def _on_pill_click(question: str) -> None:
     st.session_state["coach_pending_message"] = question
 
 
-def _on_send_click() -> None:
-    text = (st.session_state.get("coach_dm_input") or "").strip()
-    if text:
-        st.session_state["coach_pending_message"] = text
-        st.session_state["coach_dm_input"] = ""
+def _stream_request_id(messages: list[dict[str, str]]) -> str:
+    """사용자 메시지 1건당 고유 ID — 중복 API 호출 방지."""
+    if not messages or messages[-1].get("role") != "user":
+        return ""
+    fp = str(st.session_state.get("coach_chat_fp") or "")
+    last_user = messages[-1].get("content") or ""
+    blob = f"{fp}:{len(messages)}:{last_user}"
+    return hashlib.md5(blob.encode()).hexdigest()[:16]
+
+
+def _has_openai_key() -> bool:
+    import os
+
+    return bool(os.environ.get("OPENAI_API_KEY"))
+
+
+def _maybe_fetch_gpt_suggestions(session: dict[str, Any]) -> None:
+    if st.session_state.get("coach_gpt_suggestions_done"):
+        return
+    st.session_state.coach_gpt_suggestions_done = True
+    if not _has_openai_key():
+        return
+    try:
+        from gpt_coach import generate_suggested_questions_gpt
+
+        payload = _analysis_payload(session)
+        gpt_qs = generate_suggested_questions_gpt(payload)
+        if gpt_qs:
+            st.session_state.coach_suggested_questions = gpt_qs[:3]
+    except Exception:
+        pass
+
+
+def _stream_opening_safe(session: dict[str, Any]) -> str:
+    """첫 DM — st.write_stream + 실패 시 규칙 기반 폴백."""
+
+    def _gen():
+        rule = _rule_opening(session)
+        if not _has_openai_key():
+            yield rule
+            return
+        try:
+            from gpt_coach import stream_coach_opening
+
+            payload = _analysis_payload(session)
+            rag_block = _fetch_rag("분석 직후 첫 코칭", session)
+            got = False
+            for chunk in stream_coach_opening(payload, rag_block=rag_block or None):
+                got = True
+                yield chunk
+            if not got:
+                yield rule
+        except Exception:
+            yield rule
+
+    return st.write_stream(_gen)
+
+
+def _stream_reply_safe(session: dict[str, Any]) -> str:
+    """후속 DM — st.write_stream + 실패 시 규칙 기반 폴백."""
+    messages: list[dict[str, str]] = st.session_state.coach_chat_messages
+    user_text = messages[-1]["content"] if messages else ""
+
+    def _gen():
+        fallback = _rule_reply(session, user_text)
+        if not _has_openai_key():
+            yield fallback
+            return
+        try:
+            from gpt_coach import stream_coach_chat_reply
+
+            payload = _analysis_payload(session)
+            rag_block = _fetch_rag(user_text, session)
+            history = [{"role": m["role"], "content": m["content"]} for m in messages[:-1]]
+            got = False
+            for chunk in stream_coach_chat_reply(
+                payload, history, user_text, rag_block=rag_block or None
+            ):
+                got = True
+                yield chunk
+            if not got:
+                yield fallback
+        except Exception:
+            yield fallback
+
+    return st.write_stream(_gen)
+
+
+def _append_rule_reply(session: dict[str, Any]) -> None:
+    """중단·중복 rerun 시 API 재호출 없이 규칙 답변."""
+    messages: list[dict[str, str]] = list(st.session_state.coach_chat_messages or [])
+    if not messages or messages[-1].get("role") != "user":
+        return
+    rid = _stream_request_id(messages)
+    user_text = messages[-1]["content"]
+    messages.append(
+        {"role": "assistant", "content": _normalize_chat_markdown(_rule_reply(session, user_text))}
+    )
+    st.session_state.coach_chat_messages = messages
+    st.session_state["coach_stream_completed_id"] = rid
+    st.session_state.pop("coach_stream_inflight_id", None)
+    if not st.session_state.get("coach_suggested_questions"):
+        st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
+    st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
+
+
+def _append_assistant_reply(session: dict[str, Any], raw_text: str, *, request_id: str) -> None:
+    normalized = _normalize_chat_markdown(raw_text or "")
+    if not normalized:
+        _append_rule_reply(session)
+        return
+    messages: list[dict[str, str]] = list(st.session_state.coach_chat_messages or [])
+    messages.append({"role": "assistant", "content": normalized})
+    st.session_state.coach_chat_messages = messages
+    st.session_state["coach_stream_completed_id"] = request_id
+    st.session_state.pop("coach_stream_inflight_id", None)
+    if not st.session_state.get("coach_suggested_questions"):
+        st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
+    st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
 
 
 def _generate_reply(session: dict[str, Any]) -> str:
@@ -341,39 +463,11 @@ def _init_chat(session: dict[str, Any]) -> None:
     st.session_state.coach_used_suggestions = []
     st.session_state.coach_chat_ready = True
     st.session_state.coach_gpt_enhanced = False
+    st.session_state.coach_gpt_suggestions_done = False
+    st.session_state.pop("coach_stream_completed_id", None)
+    st.session_state.pop("coach_stream_inflight_id", None)
+    st.session_state["coach_opening_stream"] = _has_openai_key()
 
-    try:
-        import os
-
-        if not os.environ.get("OPENAI_API_KEY"):
-            return
-        from gpt_coach import generate_coach_opening, generate_suggested_questions_gpt
-
-        payload = _analysis_payload(session)
-        rag_block = _fetch_rag("분석 직후 첫 코칭", session)
-        gpt_opening = generate_coach_opening(payload, rag_block=rag_block or None)
-        if gpt_opening and gpt_opening.strip() and _opening_is_rich(gpt_opening):
-            st.session_state.coach_chat_messages[0]["content"] = _normalize_chat_markdown(gpt_opening.strip())
-            st.session_state.coach_gpt_enhanced = True
-        gpt_qs = generate_suggested_questions_gpt(payload)
-        if gpt_qs:
-            st.session_state.coach_suggested_questions = gpt_qs[:3]
-    except Exception:
-        pass
-
-
-def _finish_generating(session: dict[str, Any]) -> None:
-    """답변 생성 → 말풍선 추가."""
-    reply = _generate_reply(session)
-    st.session_state.coach_chat_messages.append(
-        {"role": "assistant", "content": _normalize_chat_markdown(reply)}
-    )
-    from ui.loading import clear_loading
-
-    clear_loading()
-    if not st.session_state.get("coach_suggested_questions"):
-        st.session_state.coach_suggested_questions = _rule_suggested_questions(session)[:3]
-    st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
 
 
 def _render_result_hero(session: dict[str, Any]) -> None:
@@ -425,22 +519,107 @@ def _render_score_strip(session: dict[str, Any]) -> None:
     )
 
 
-def _render_dm_thread(messages: list[dict[str, str]], *, show_typing: bool = False) -> None:
-    """Streamlit chat_message — 마크다운 안전 렌더."""
-    for msg in messages:
-        content = _normalize_chat_markdown(msg.get("content", ""))
-        if not content:
-            continue
-        if msg["role"] == "assistant":
-            with st.chat_message("assistant", avatar="🎤"):
-                st.markdown(content)
-        else:
-            with st.chat_message("user", avatar="🙂"):
-                st.markdown(content)
-
-    if show_typing:
+def _render_chat_message(msg: dict[str, str]) -> None:
+    content = _normalize_chat_markdown(msg.get("content", ""))
+    if not content:
+        return
+    if msg["role"] == "assistant":
         with st.chat_message("assistant", avatar="🎤"):
-            st.caption("입력 중…")
+            st.markdown(content)
+    else:
+        with st.chat_message("user", avatar="🙂"):
+            st.markdown(content)
+
+
+def _render_dm_thread(
+    messages: list[dict[str, str]],
+    session: dict[str, Any],
+    *,
+    stream_opening: bool = False,
+    stream_reply_id: str = "",
+) -> None:
+    """Streamlit chat_message — 스트리밍·일반 렌더."""
+    if stream_opening:
+        if st.session_state.get("coach_gpt_enhanced"):
+            st.session_state["coach_opening_stream"] = False
+            for msg in messages:
+                _render_chat_message(msg)
+            return
+        if st.session_state.get("coach_opening_inflight"):
+            with st.chat_message("assistant", avatar="🎤"):
+                st.caption("코칭 메시지 준비 중…")
+            return
+        st.session_state["coach_opening_inflight"] = True
+        try:
+            with st.chat_message("assistant", avatar="🎤"):
+                full_text = _stream_opening_safe(session)
+            messages = list(st.session_state.get("coach_chat_messages") or messages)
+            if full_text and full_text.strip() and _opening_is_rich(full_text):
+                messages[0]["content"] = _normalize_chat_markdown(full_text.strip())
+                st.session_state.coach_gpt_enhanced = True
+            elif messages:
+                messages[0]["content"] = _normalize_chat_markdown(
+                    messages[0].get("content") or _rule_opening(session)
+                )
+            st.session_state.coach_chat_messages = messages
+            st.session_state["coach_opening_stream"] = False
+            _maybe_fetch_gpt_suggestions(session)
+        finally:
+            st.session_state.pop("coach_opening_inflight", None)
+        from ui.chat_scroll import scroll_chat_to_bottom
+
+        scroll_chat_to_bottom()
+        return
+
+    completed_id = str(st.session_state.get("coach_stream_completed_id") or "")
+    need_reply = bool(
+        stream_reply_id
+        and messages
+        and messages[-1].get("role") == "user"
+        and stream_reply_id != completed_id
+    )
+
+    render_upto = len(messages) - 1 if need_reply else len(messages)
+    for msg in messages[:render_upto]:
+        _render_chat_message(msg)
+
+    if not need_reply:
+        return
+
+    _render_chat_message(messages[-1])
+
+    inflight = str(st.session_state.get("coach_stream_inflight_id") or "")
+    live_messages = list(st.session_state.get("coach_chat_messages") or messages)
+    if inflight == stream_reply_id:
+        if live_messages and live_messages[-1].get("role") == "assistant":
+            st.session_state["coach_stream_completed_id"] = stream_reply_id
+            st.session_state.pop("coach_stream_inflight_id", None)
+            _render_chat_message(live_messages[-1])
+        else:
+            with st.chat_message("assistant", avatar="🎤"):
+                st.caption("답변 준비 중…")
+        from ui.chat_scroll import scroll_chat_to_bottom
+
+        scroll_chat_to_bottom()
+        return
+
+    if live_messages and live_messages[-1].get("role") == "assistant":
+        st.session_state["coach_stream_completed_id"] = stream_reply_id
+        return
+
+    st.session_state["coach_stream_inflight_id"] = stream_reply_id
+    try:
+        with st.chat_message("assistant", avatar="🎤"):
+            full_text = _stream_reply_safe(session)
+        _append_assistant_reply(session, full_text, request_id=stream_reply_id)
+    except Exception:
+        st.session_state.pop("coach_stream_inflight_id", None)
+        _append_rule_reply(session)
+        _render_chat_message(st.session_state.coach_chat_messages[-1])
+    finally:
+        from ui.chat_scroll import scroll_chat_to_bottom
+
+        scroll_chat_to_bottom()
 
 
 def _pill_label(q: str) -> str:
@@ -450,13 +629,13 @@ def _pill_label(q: str) -> str:
     return q[:10] + "…"
 
 
-def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing: bool) -> None:
-    """카카오/인스타 스타일 — 추천 pill · 입력+전송 한 줄."""
+def _render_dm_composer(session: dict[str, Any], user_name: str, *, disabled: bool) -> None:
+    """Gemini 스타일 — 추천 pill + 하단 chat_input."""
     suggestions = st.session_state.get("coach_suggested_questions") or []
 
     st.markdown('<div class="vc-dm-composer">', unsafe_allow_html=True)
 
-    if suggestions and not show_typing:
+    if suggestions and not disabled:
         st.markdown('<div class="vc-dm-pill-row">', unsafe_allow_html=True)
         pill_cols = st.columns(min(len(suggestions), 3))
         for i, q in enumerate(suggestions[:3]):
@@ -470,24 +649,14 @@ def _render_dm_composer(session: dict[str, Any], user_name: str, *, show_typing:
                 )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    input_col, send_col = st.columns([6, 1], gap="small", vertical_alignment="bottom")
-    with input_col:
-        st.text_input(
-            "메시지",
-            placeholder=f"{user_name}님, 메시지 입력…",
-            label_visibility="collapsed",
-            disabled=show_typing,
-            key="coach_dm_input",
-        )
-    with send_col:
-        st.button(
-            "➤",
-            type="primary",
-            disabled=show_typing,
-            use_container_width=True,
-            key="coach_dm_send",
-            on_click=_on_send_click,
-        )
+    prompt = st.chat_input(
+        "보컬 코치에게 물어보기",
+        key="coach_chat_input",
+        disabled=disabled,
+    )
+    if prompt and prompt.strip():
+        st.session_state["coach_pending_message"] = prompt.strip()
+        st.rerun(scope="fragment")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -497,7 +666,8 @@ def _render_dm_panel(
     user_name: str,
     messages: list[dict[str, str]],
     *,
-    show_typing: bool,
+    stream_opening: bool = False,
+    stream_reply_id: str = "",
 ) -> None:
     with st.container(key="vc_dm_panel"):
         st.markdown(
@@ -515,35 +685,60 @@ def _render_dm_panel(
             unsafe_allow_html=True,
         )
         with st.container(key="vc_dm_thread"):
-            _render_dm_thread(messages, show_typing=show_typing)
-        _render_dm_composer(session, user_name, show_typing=show_typing)
+            _render_dm_thread(
+                messages,
+                session,
+                stream_opening=stream_opening,
+                stream_reply_id=stream_reply_id,
+            )
+        messages_after = list(st.session_state.get("coach_chat_messages") or messages)
+        still_opening = bool(
+            st.session_state.get("coach_opening_stream")
+            and not st.session_state.get("coach_gpt_enhanced")
+        )
+        reply_after = _stream_request_id(messages_after)
+        completed = str(st.session_state.get("coach_stream_completed_id") or "")
+        still_reply = bool(reply_after and reply_after != completed)
+        _render_dm_composer(
+            session,
+            user_name,
+            disabled=still_opening or still_reply,
+        )
 
 
 @st.fragment
 def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
-    """채팅 fragment — 단일 패널 · pill/전송 1회 렌더."""
+    """채팅 fragment — 스트리밍 응답 · 중복 API 호출 방지."""
     _init_chat(session)
 
     pending = st.session_state.pop("coach_pending_message", None)
     if pending:
         _append_user_message(pending)
         _rotate_suggestion(pending, session)
+        st.session_state.pop("coach_stream_completed_id", None)
+        st.session_state.pop("coach_stream_inflight_id", None)
         st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
-        _render_dm_panel(session, user_name, st.session_state.coach_chat_messages, show_typing=True)
-        from ui.chat_scroll import scroll_chat_to_bottom
 
-        scroll_chat_to_bottom()
-        _finish_generating(session)
-        st.rerun(scope="fragment")
-        return
+    messages = list(st.session_state.get("coach_chat_messages") or [])
+    stream_opening = bool(
+        st.session_state.get("coach_opening_stream") and not st.session_state.get("coach_gpt_enhanced")
+    )
+    reply_id = _stream_request_id(messages)
+    need_reply = bool(
+        reply_id and reply_id != str(st.session_state.get("coach_stream_completed_id") or "")
+    )
 
-    messages = st.session_state.get("coach_chat_messages") or []
-    _render_dm_panel(session, user_name, messages, show_typing=False)
+    _render_dm_panel(
+        session,
+        user_name,
+        messages,
+        stream_opening=stream_opening,
+        stream_reply_id=reply_id if need_reply else "",
+    )
 
-    if int(st.session_state.get("coach_scroll_tick") or 0) > 0:
-        from ui.chat_scroll import scroll_chat_to_bottom
+    from ui.chat_scroll import scroll_chat_to_bottom
 
-        scroll_chat_to_bottom()
+    scroll_chat_to_bottom()
 
 
 def render_coach_dm(session: dict[str, Any]) -> None:
@@ -564,6 +759,10 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     _render_result_hero(session)
     _render_score_strip(session)
 
+    from ui.chat_scroll import install_chat_auto_scroll
+
+    install_chat_auto_scroll()
+
     _coach_chat_fragment(session, user_name)
 
     with st.expander("📊 상세 분석 리포트 · 그래프 · 다운로드", expanded=False):
@@ -577,10 +776,7 @@ def render_coach_dm(session: dict[str, Any]) -> None:
 
         go_to("피드백")
     if st.button("🎤 다른 곡 분석하기", use_container_width=True, key="btn_new_analysis"):
-        from ui.loading import mark_loading
+        from ui.dashboard import reset_user_session_state
 
-        mark_loading(message="화면을 준비하고 있어요…")
-        from ui.dashboard import clear_results_state
-
-        clear_results_state()
+        reset_user_session_state()
         st.rerun()

@@ -1901,7 +1901,7 @@ def apply(page: str = "홈") -> None:
             border: none;
             border-top: 1px solid var(--vc-border);
             border-radius: 0;
-            background: #141417;
+            background: #0f0f12;
             padding: 0.5rem 0.75rem 0.75rem;
             margin-bottom: 0;
         }
@@ -1964,12 +1964,38 @@ def apply(page: str = "홈") -> None:
             font-weight: 700 !important;
             margin-top: 0 !important;
         }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] {
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] textarea {
+            background: #27272a !important;
+            border: 1px solid #3f3f46 !important;
+            color: #fafafa !important;
+            border-radius: 24px !important;
+            min-height: 2.75rem !important;
+            font-size: 0.88rem !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] textarea::placeholder {
+            color: #a1a1aa !important;
+        }
+        .vc-beta-footer {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #71717a !important;
+            margin: 1.5rem 0 0.5rem;
+        }
+        .vc-beta-footer a {
+            color: #6366f1 !important;
+            text-decoration: none;
+        }
         .vc-dm-thread {
             background: #0f0f12;
             padding: 0.85rem 0.65rem 0.75rem;
             min-height: 200px;
-            max-height: 380px;
-            overflow-y: auto;
+            max-height: none;
+            overflow: visible;
             margin-bottom: 0;
         }
         .vc-bubble-row {
@@ -2356,31 +2382,41 @@ def apply(page: str = "홈") -> None:
             max-width: calc(100% - 3rem);
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
-            background: #ffffff !important;
-            color: #1c1528 !important;
-            border: 1px solid #e0dce8 !important;
-            border-radius: 18px !important;
-            border-bottom-left-radius: 4px !important;
-            padding: 0.75rem 0.95rem !important;
+            background: transparent !important;
+            color: #f4f4f5 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0.15rem 0.35rem 0.15rem 0 !important;
             max-width: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
             width: auto !important;
-            font-size: 0.9rem !important;
+            font-size: 0.92rem !important;
             line-height: 1.78 !important;
             word-break: normal !important;
             overflow-wrap: break-word !important;
             white-space: normal !important;
         }
+        .st-key-vc_dm_panel [data-testid="stChatMessage"] [data-testid="stChatMessageContent"],
+        .st-key-vc_dm_panel [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
+        .st-key-vc_dm_panel [data-testid="stChatMessage"] [data-testid="stMarkdown"],
+        .st-key-vc_dm_panel [data-testid="stChatMessage"] .stMarkdown {
+            max-height: none !important;
+            overflow: visible !important;
+            overflow-y: visible !important;
+        }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] {
-            background: linear-gradient(135deg, #565bcf 0%, #8134af 50%, #c13584 100%) !important;
-            color: #ffffff !important;
+            background: #3f3f46 !important;
+            color: #fafafa !important;
+            border: none !important;
             border-radius: 18px !important;
-            border-bottom-right-radius: 4px !important;
+            border-bottom-right-radius: 6px !important;
             padding: 0.7rem 0.95rem !important;
             max-width: 78% !important;
             width: fit-content !important;
             font-size: 0.9rem !important;
             line-height: 1.72 !important;
-            box-shadow: 0 2px 8px rgba(129, 52, 175, 0.35);
+            box-shadow: none !important;
         }
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] p,
         .st-key-vc_dm_panel [data-testid="stMarkdownContainer"] li {
@@ -2421,16 +2457,20 @@ def apply(page: str = "홈") -> None:
             background: #0f0f12;
             padding: 0.75rem 0.4rem 0.65rem;
             min-height: 200px;
-            max-height: 420px;
+            max-height: min(420px, 52vh);
             overflow-y: auto;
             overflow-x: hidden;
             border-bottom: 1px solid var(--vc-border);
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
-        .st-key-vc_dm_thread [data-testid="stVerticalBlock"] {
-            max-height: 380px;
-            overflow-y: auto !important;
-            scroll-behavior: smooth;
+        .st-key-vc_dm_thread [data-testid="stVerticalBlock"],
+        .st-key-vc_dm_thread [data-testid="stVerticalBlockBorderWrapper"],
+        .st-key-vc_dm_thread [data-testid="element-container"],
+        .st-key-vc_dm_thread [data-testid="stChatMessage"] {
+            max-height: none !important;
+            overflow: visible !important;
+            overflow-y: visible !important;
         }
         .vc-detail-panel [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p,
         .vc-detail-panel [data-testid="stExpander"] [data-testid="stMarkdownContainer"] li {
@@ -3547,14 +3587,53 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_thread, .vc-dm-thread, .vc-dm-composer {
             background: #f8f6ff !important;
         }
+        .st-key-vc_dm_panel .vc-dm-composer {
+            background: #f8f6ff !important;
+            border-top: 1px solid rgba(99,102,241,0.12) !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] {
+            background: #f8f6ff !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] textarea {
+            background: #ffffff !important;
+            color: #1c1528 !important;
+            border: 1px solid rgba(99,102,241,0.22) !important;
+            box-shadow: 0 1px 4px rgba(99,102,241,0.06) !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] textarea::placeholder {
+            color: #9ca3af !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] button {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
         .vc-dm-header {
             background: linear-gradient(135deg, #f3f0ff 0%, #ffffff 100%) !important;
             border-bottom: 1px solid rgba(99,102,241,0.12) !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
-            background: #ffffff !important;
+            background: transparent !important;
             color: #1c1528 !important;
-            border: 1px solid #e0dce8 !important;
+            border: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] {
+            background: rgba(99,102,241,0.1) !important;
+            color: #1c1528 !important;
+            border: 1px solid rgba(99,102,241,0.16) !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] p,
+        .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] li {
+            color: #1c1528 !important;
+        }
+        .st-key-vc_dm_panel .st-key-coach_pill_0 button,
+        .st-key-vc_dm_panel .st-key-coach_pill_1 button,
+        .st-key-vc_dm_panel .st-key-coach_pill_2 button {
+            background: #ffffff !important;
+            color: #4f46e5 !important;
+            border: 1px solid rgba(99,102,241,0.22) !important;
         }
         .vc-bubble-typing {
             background: #ffffff !important;
