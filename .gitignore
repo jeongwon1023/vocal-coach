@@ -8,5 +8,6 @@ pitch_result.png
 records/
 clips/
 charts/
+exports/
 .cache/
 analysis_report.json

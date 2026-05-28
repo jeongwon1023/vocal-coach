@@ -2061,6 +2061,17 @@ def run_full_session(
     if save_record:
         saved_path = persist_record(full_record, user_id=user_id)
         result["record_path"] = saved_path
+        try:
+            from progress_chart import generate_growth_chart, generate_history_sparkline
+
+            chart = generate_growth_chart(user_id=user_id)
+            if chart:
+                result["chart_path"] = chart
+            spark = generate_history_sparkline(user_id=user_id)
+            if spark:
+                result["sparkline_path"] = spark
+        except Exception:
+            pass
 
     if compare:
         prev_path = find_previous_record(exclude=saved_path, user_id=user_id)
@@ -2082,7 +2093,8 @@ def run_full_session(
     if growth_chart and save_record and not fast_mode:
         _prog(0.82, "성장 그래프 생성 중…")
         chart = generate_growth_chart(user_id=user_id)
-        result["chart_path"] = chart
+        if chart:
+            result["chart_path"] = chart
 
     if use_gpt:
         _prog(0.85, "GPT 코칭 생성 중…")

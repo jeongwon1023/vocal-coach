@@ -1,9 +1,15 @@
-"""인기곡 힌트 — 유튜브 검색어 · 장르 프리셋 (경량 곡 DB)."""
+"""인기곡 힌트 — JSON DB · 유튜브 검색어 · 장르 프리셋."""
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+
+PROJECT_DIR = Path(__file__).resolve().parent
+DEFAULT_DB_PATH = PROJECT_DIR / "data" / "song_hints.json"
 
 
 @dataclass(frozen=True)
@@ -16,63 +22,59 @@ class SongHint:
     aliases: tuple[str, ...] = ()
 
 
-def _h(
-    title: str,
-    artist: str,
-    query: str,
-    preset: str = "auto",
-    genre: str = "",
-    *aliases: str,
-) -> SongHint:
-    return SongHint(title, artist, query, preset, genre, aliases)
+def _parse_hint(raw: dict) -> SongHint | None:
+    title = (raw.get("title") or "").strip()
+    artist = (raw.get("artist") or "").strip()
+    query = (raw.get("youtube_query") or "").strip()
+    if not title or not artist or not query:
+        return None
+    aliases = tuple(a.strip() for a in (raw.get("aliases") or []) if str(a).strip())
+    return SongHint(
+        title=title,
+        artist=artist,
+        youtube_query=query,
+        style_preset=(raw.get("style_preset") or "auto").strip() or "auto",
+        genre_label=(raw.get("genre_label") or "").strip(),
+        aliases=aliases,
+    )
 
 
-_HINTS: tuple[SongHint, ...] = (
-    # 발라드 · K-Pop
-    _h("밤편지", "아이유", "아이유 밤편지 MR instrumental vocal", "ballad", "발라드"),
-    _h("Good Day", "아이유", "아이유 Good Day MR", "ballad", "발라드", "굿데이"),
-    _h("너의 의미", "아이유", "아이유 너의 의미 MR", "ballad", "발라드"),
-    _h("Celebrity", "아이유", "아이유 Celebrity instrumental", "ballad", "K-Pop", "셀러브리티"),
-    _h("Love poem", "아이유", "아이유 Love poem MR", "ballad", "발라드", "러브 poem", "러브포엠"),
-    _h("사랑을 했다", "iKON", "iKON 사랑을 했다 MR", "hiphop", "힙합"),
-    _h("Ditto", "NewJeans", "NewJeans Ditto instrumental", "hiphop", "K-Pop"),
-    _h("Super Shy", "NewJeans", "NewJeans Super Shy instrumental", "hiphop", "K-Pop"),
-    _h("Hype Boy", "NewJeans", "NewJeans Hype Boy instrumental", "hiphop", "K-Pop"),
-    _h("Attention", "NewJeans", "NewJeans Attention instrumental", "hiphop", "K-Pop"),
-    _h("Spring Day", "BTS", "BTS Spring Day MR", "ballad", "발라드"),
-    _h("봄날", "BTS", "BTS 봄날 MR", "ballad", "발라드"),
-    _h("Dynamite", "BTS", "BTS Dynamite instrumental", "hiphop", "K-Pop"),
-    _h("Butter", "BTS", "BTS Butter instrumental", "hiphop", "K-Pop"),
-    _h("Permission to Dance", "BTS", "BTS Permission to Dance instrumental", "hiphop", "K-Pop"),
-    _h("How You Like That", "BLACKPINK", "BLACKPINK How You Like That instrumental", "hiphop", "K-Pop"),
-    _h("Kill This Love", "BLACKPINK", "BLACKPINK Kill This Love MR", "hiphop", "K-Pop"),
-    _h("Cheer Up", "TWICE", "TWICE Cheer Up instrumental", "hiphop", "K-Pop", "치어업"),
-    _h("Feel Special", "TWICE", "TWICE Feel Special instrumental", "ballad", "K-Pop"),
-    _h("ANTIFRAGILE", "LE SSERAFIM", "LE SSERAFIM ANTIFRAGILE instrumental", "hiphop", "K-Pop"),
-    _h("UNFORGIVEN", "LE SSERAFIM", "LE SSERAFIM UNFORGIVEN instrumental", "hiphop", "K-Pop"),
-    _h("Supernova", "aespa", "aespa Supernova instrumental", "hiphop", "K-Pop", "슈퍼노바"),
-    _h("Drama", "aespa", "aespa Drama instrumental", "hiphop", "K-Pop", "드라마"),
-    _h("Tomboy", "(G)I-DLE", "(G)I-DLE Tomboy instrumental", "hiphop", "K-Pop", "톰보이"),
-    _h("Queencard", "(G)I-DLE", "(G)I-DLE Queencard instrumental", "hiphop", "K-Pop", "퀸카"),
-    _h("God's Menu", "Stray Kids", "Stray Kids God's Menu instrumental", "hiphop", "K-Pop", "神메뉴"),
-    _h("Love Shot", "EXO", "EXO Love Shot MR", "hiphop", "K-Pop", "러브샷"),
-    _h("Eyes, Nose, Lips", "태양", "Taeyang Eyes Nose Lips MR", "ballad", "R&B", "눈코입"),
-    _h("양화대교", "Zion.T", "Zion.T Yanghwa Bridge MR", "hiphop", "힙합", "Yanghwa Bridge"),
-    _h("어떻게 이별을 준비하겠어", "AKMU", "AKMU How can I love the heart MR", "ballad", "발라드"),
-    _h("Gangnam Style", "PSY", "PSY Gangnam Style instrumental", "hiphop", "K-Pop", "강남스타일"),
-    _h("첫눈처럼 너에게 가겠다", "에일리", "Ailee I Will Go To You Like the First Snow MR", "ballad", "발라드", "첫눈"),
-    _h("All I Want for Christmas Is You", "Mariah Carey", "All I Want for Christmas Is You karaoke", "ballad", "Pop"),
-    # Pop · Rock · Western
-    _h("Blinding Lights", "The Weeknd", "Blinding Lights instrumental", "rock", "Pop"),
-    _h("Someone Like You", "Adele", "Someone Like You piano instrumental", "ballad", "발라드"),
-    _h("Shallow", "Lady Gaga", "Shallow instrumental karaoke", "ballad", "발라드"),
-    _h("Bohemian Rhapsody", "Queen", "Bohemian Rhapsody instrumental", "rock", "락"),
-    _h("Hotel California", "Eagles", "Hotel California instrumental", "rock", "락"),
-    _h("Perfect", "Ed Sheeran", "Ed Sheeran Perfect piano instrumental", "ballad", "Pop"),
-    _h("Shape of You", "Ed Sheeran", "Ed Sheeran Shape of You instrumental", "hiphop", "Pop"),
-    _h("Rolling in the Deep", "Adele", "Adele Rolling in the Deep instrumental", "rock", "Pop"),
-    _h("My Heart Will Go On", "Celine Dion", "My Heart Will Go On instrumental karaoke", "ballad", "발라드"),
-)
+@lru_cache(maxsize=4)
+def _load_hints_from_path(path_str: str) -> tuple[SongHint, ...]:
+    path = Path(path_str)
+    if not path.exists():
+        return ()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return ()
+    songs = data.get("songs") if isinstance(data, dict) else data
+    if not isinstance(songs, list):
+        return ()
+    hints: list[SongHint] = []
+    for item in songs:
+        if not isinstance(item, dict):
+            continue
+        hint = _parse_hint(item)
+        if hint:
+            hints.append(hint)
+    return tuple(hints)
+
+
+def load_song_hints(db_path: Path | None = None) -> tuple[SongHint, ...]:
+    """JSON 곡 DB 로드 — 파일 없으면 빈 tuple."""
+    path = db_path or DEFAULT_DB_PATH
+    return _load_hints_from_path(str(path.resolve()))
+
+
+def reload_song_hints() -> tuple[SongHint, ...]:
+    """DB 파일 변경 후 캐시 갱신."""
+    _load_hints_from_path.cache_clear()
+    return load_song_hints()
+
+
+def _hints() -> tuple[SongHint, ...]:
+    return load_song_hints()
 
 
 def _norm(text: str) -> str:
@@ -80,7 +82,7 @@ def _norm(text: str) -> str:
 
 
 def all_song_hints() -> tuple[SongHint, ...]:
-    return _HINTS
+    return _hints()
 
 
 def format_song_label(hint: SongHint) -> str:
@@ -101,12 +103,14 @@ def _matches(hint: SongHint, q: str) -> bool:
 def lookup_song_hint(song_title: str | None) -> SongHint | None:
     if not song_title or not song_title.strip():
         return None
+    hints = _hints()
+    if not hints:
+        return None
     q = _norm(song_title)
-    for hint in _HINTS:
+    for hint in hints:
         if _matches(hint, q):
             return hint
-    # 제목만 입력한 경우 (예: "Ditto")
-    title_only = [h for h in _HINTS if _norm(h.title) == q or q == _norm(h.title)]
+    title_only = [h for h in hints if _norm(h.title) == q or q == _norm(h.title)]
     if len(title_only) == 1:
         return title_only[0]
     return None
@@ -114,11 +118,12 @@ def lookup_song_hint(song_title: str | None) -> SongHint | None:
 
 def search_song_hints(query: str, *, limit: int = 8) -> list[SongHint]:
     """부분 일치 검색 — 자동완성용."""
+    hints = _hints()
     q = _norm(query)
     if not q:
-        return list(_HINTS[:limit])
+        return list(hints[:limit])
     scored: list[tuple[int, SongHint]] = []
-    for hint in _HINTS:
+    for hint in hints:
         hay = _norm(f"{hint.artist} {hint.title} {' '.join(hint.aliases)}")
         if q in hay:
             score = hay.index(q) if q in hay else 99

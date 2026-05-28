@@ -456,6 +456,56 @@ def render_precision_panel(report: Any, full_record: dict[str, Any] | None = Non
             )
 
 
+def _render_pdf_download(session: dict[str, Any]) -> None:
+    user_id = None
+    try:
+        from ui.auth import current_user_id
+
+        user_id = current_user_id()
+    except Exception:
+        pass
+
+    cache_key = session.get("record_path") or str(id(session))
+    pdf_state_key = f"vc_pdf_{cache_key}"
+
+    st.markdown(
+        """
+        <div class="vc-download-card vc-download-action">
+            <span class="vc-download-icon">📄</span>
+            <div>
+                <p class="vc-download-title">PDF 리포트</p>
+                <p class="vc-download-path">점수 · 코칭 · 그래프 · 성장 곡선</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("PDF 리포트 만들기", key=f"btn_pdf_{cache_key}", use_container_width=True):
+        try:
+            from report_pdf import generate_analysis_pdf
+
+            pdf_path = generate_analysis_pdf(session, user_id=user_id)
+            if pdf_path and pdf_path.exists():
+                st.session_state[pdf_state_key] = str(pdf_path)
+            else:
+                st.session_state.pop(pdf_state_key, None)
+                st.warning("PDF를 만들지 못했어요.")
+        except Exception as exc:
+            st.error(f"PDF 생성 실패: {exc}")
+
+    pdf_path = st.session_state.get(pdf_state_key)
+    if pdf_path and Path(pdf_path).exists():
+        st.download_button(
+            "PDF 파일 받기",
+            Path(pdf_path).read_bytes(),
+            file_name=Path(pdf_path).name,
+            mime="application/pdf",
+            use_container_width=True,
+            key=f"dl_pdf_{cache_key}",
+        )
+
+
 def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]) -> None:
     """히트맵 탭 — 노트 선택 · 구간 듣기."""
     note_clips = session.get("note_clip_paths") or []
@@ -640,6 +690,13 @@ def render_session_results(session: dict[str, Any]) -> None:
     _render_insight_pills(report, full_record)
     render_score_feedback(session, full_record)
 
+    sparkline = session.get("sparkline_path")
+    if sparkline and Path(sparkline).exists():
+        st.markdown('<p class="vc-section-label">📈 연습 히스토리</p>', unsafe_allow_html=True)
+        st.markdown('<div class="vc-graph-frame vc-sparkline-frame">', unsafe_allow_html=True)
+        st.image(str(sparkline), use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
     tab_graph, tab_heatmap, tab_coach, tab_gpt, tab_clips = st.tabs(
         ["🎼 음정 그래프", "🎹 노트 히트맵", "📝 코칭 리포트", "🤖 GPT 멘트", "💾 클립 · 다운로드"]
     )
@@ -750,6 +807,7 @@ def render_session_results(session: dict[str, Any]) -> None:
                         unsafe_allow_html=True,
                     )
                     st.audio(str(p), format="audio/wav")
+        _render_pdf_download(session)
         st.markdown(
             """
             <div class="vc-download-card vc-download-action">

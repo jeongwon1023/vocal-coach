@@ -2281,6 +2281,14 @@ def apply(page: str = "홈") -> None:
             outline-offset: 1px;
             z-index: 2;
         }
+        .vc-sparkline-frame {
+            max-height: 140px;
+            padding: 0.35rem 0.5rem !important;
+        }
+        .vc-sparkline-frame img {
+            max-height: 120px;
+            object-fit: contain;
+        }
         .vc-report-section {
             margin-top: 1.25rem;
         }

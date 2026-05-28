@@ -86,7 +86,7 @@ def render_analysis_settings() -> None:
     st.divider()
     styles.sidebar_label("고급")
     st.checkbox("문제 구간 클립", key="export_clips", value=False)
-    st.checkbox("성장 그래프", key="growth_chart", value=False)
+    st.checkbox("성장 그래프", key="growth_chart", value=False, help="정밀 분석 시 상세 성장 곡선 추가 생성. 기록 저장 시 기본 곡선은 자동 갱신됩니다.")
     st.checkbox("백그라운드 분석 큐", key="use_queue", value=default_use_queue())
     st.divider()
     st.markdown(

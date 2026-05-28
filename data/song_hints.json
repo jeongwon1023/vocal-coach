@@ -1,0 +1,370 @@
+{
+  "version": 1,
+  "songs": [
+    {
+      "title": "밤편지",
+      "artist": "아이유",
+      "youtube_query": "아이유 밤편지 MR instrumental vocal",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Good Day",
+      "artist": "아이유",
+      "youtube_query": "아이유 Good Day MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "굿데이"
+      ]
+    },
+    {
+      "title": "너의 의미",
+      "artist": "아이유",
+      "youtube_query": "아이유 너의 의미 MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Celebrity",
+      "artist": "아이유",
+      "youtube_query": "아이유 Celebrity instrumental",
+      "style_preset": "ballad",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "셀러브리티"
+      ]
+    },
+    {
+      "title": "Love poem",
+      "artist": "아이유",
+      "youtube_query": "아이유 Love poem MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "러브 poem",
+        "러브포엠"
+      ]
+    },
+    {
+      "title": "사랑을 했다",
+      "artist": "iKON",
+      "youtube_query": "iKON 사랑을 했다 MR",
+      "style_preset": "hiphop",
+      "genre_label": "힙합",
+      "aliases": []
+    },
+    {
+      "title": "Ditto",
+      "artist": "NewJeans",
+      "youtube_query": "NewJeans Ditto instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Super Shy",
+      "artist": "NewJeans",
+      "youtube_query": "NewJeans Super Shy instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Hype Boy",
+      "artist": "NewJeans",
+      "youtube_query": "NewJeans Hype Boy instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Attention",
+      "artist": "NewJeans",
+      "youtube_query": "NewJeans Attention instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Spring Day",
+      "artist": "BTS",
+      "youtube_query": "BTS Spring Day MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "봄날",
+      "artist": "BTS",
+      "youtube_query": "BTS 봄날 MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Dynamite",
+      "artist": "BTS",
+      "youtube_query": "BTS Dynamite instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Butter",
+      "artist": "BTS",
+      "youtube_query": "BTS Butter instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Permission to Dance",
+      "artist": "BTS",
+      "youtube_query": "BTS Permission to Dance instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "How You Like That",
+      "artist": "BLACKPINK",
+      "youtube_query": "BLACKPINK How You Like That instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Kill This Love",
+      "artist": "BLACKPINK",
+      "youtube_query": "BLACKPINK Kill This Love MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Cheer Up",
+      "artist": "TWICE",
+      "youtube_query": "TWICE Cheer Up instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "치어업"
+      ]
+    },
+    {
+      "title": "Feel Special",
+      "artist": "TWICE",
+      "youtube_query": "TWICE Feel Special instrumental",
+      "style_preset": "ballad",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "ANTIFRAGILE",
+      "artist": "LE SSERAFIM",
+      "youtube_query": "LE SSERAFIM ANTIFRAGILE instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "UNFORGIVEN",
+      "artist": "LE SSERAFIM",
+      "youtube_query": "LE SSERAFIM UNFORGIVEN instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": []
+    },
+    {
+      "title": "Supernova",
+      "artist": "aespa",
+      "youtube_query": "aespa Supernova instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "슈퍼노바"
+      ]
+    },
+    {
+      "title": "Drama",
+      "artist": "aespa",
+      "youtube_query": "aespa Drama instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "드라마"
+      ]
+    },
+    {
+      "title": "Tomboy",
+      "artist": "(G)I-DLE",
+      "youtube_query": "(G)I-DLE Tomboy instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "톰보이"
+      ]
+    },
+    {
+      "title": "Queencard",
+      "artist": "(G)I-DLE",
+      "youtube_query": "(G)I-DLE Queencard instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "퀸카"
+      ]
+    },
+    {
+      "title": "God's Menu",
+      "artist": "Stray Kids",
+      "youtube_query": "Stray Kids God's Menu instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "神메뉴"
+      ]
+    },
+    {
+      "title": "Love Shot",
+      "artist": "EXO",
+      "youtube_query": "EXO Love Shot MR",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "러브샷"
+      ]
+    },
+    {
+      "title": "Eyes, Nose, Lips",
+      "artist": "태양",
+      "youtube_query": "Taeyang Eyes Nose Lips MR",
+      "style_preset": "ballad",
+      "genre_label": "R&B",
+      "aliases": [
+        "눈코입"
+      ]
+    },
+    {
+      "title": "양화대교",
+      "artist": "Zion.T",
+      "youtube_query": "Zion.T Yanghwa Bridge MR",
+      "style_preset": "hiphop",
+      "genre_label": "힙합",
+      "aliases": [
+        "Yanghwa Bridge"
+      ]
+    },
+    {
+      "title": "어떻게 이별을 준비하겠어",
+      "artist": "AKMU",
+      "youtube_query": "AKMU How can I love the heart MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Gangnam Style",
+      "artist": "PSY",
+      "youtube_query": "PSY Gangnam Style instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "K-Pop",
+      "aliases": [
+        "강남스타일"
+      ]
+    },
+    {
+      "title": "첫눈처럼 너에게 가겠다",
+      "artist": "에일리",
+      "youtube_query": "Ailee I Will Go To You Like the First Snow MR",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": [
+        "첫눈"
+      ]
+    },
+    {
+      "title": "All I Want for Christmas Is You",
+      "artist": "Mariah Carey",
+      "youtube_query": "All I Want for Christmas Is You karaoke",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Blinding Lights",
+      "artist": "The Weeknd",
+      "youtube_query": "Blinding Lights instrumental",
+      "style_preset": "rock",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Someone Like You",
+      "artist": "Adele",
+      "youtube_query": "Someone Like You piano instrumental",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Shallow",
+      "artist": "Lady Gaga",
+      "youtube_query": "Shallow instrumental karaoke",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    },
+    {
+      "title": "Bohemian Rhapsody",
+      "artist": "Queen",
+      "youtube_query": "Bohemian Rhapsody instrumental",
+      "style_preset": "rock",
+      "genre_label": "락",
+      "aliases": []
+    },
+    {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "youtube_query": "Hotel California instrumental",
+      "style_preset": "rock",
+      "genre_label": "락",
+      "aliases": []
+    },
+    {
+      "title": "Perfect",
+      "artist": "Ed Sheeran",
+      "youtube_query": "Ed Sheeran Perfect piano instrumental",
+      "style_preset": "ballad",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Shape of You",
+      "artist": "Ed Sheeran",
+      "youtube_query": "Ed Sheeran Shape of You instrumental",
+      "style_preset": "hiphop",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "Rolling in the Deep",
+      "artist": "Adele",
+      "youtube_query": "Adele Rolling in the Deep instrumental",
+      "style_preset": "rock",
+      "genre_label": "Pop",
+      "aliases": []
+    },
+    {
+      "title": "My Heart Will Go On",
+      "artist": "Celine Dion",
+      "youtube_query": "My Heart Will Go On instrumental karaoke",
+      "style_preset": "ballad",
+      "genre_label": "발라드",
+      "aliases": []
+    }
+  ]
+}

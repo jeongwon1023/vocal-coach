@@ -12,7 +12,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-from progress_chart import generate_growth_chart
+from progress_chart import generate_growth_chart, generate_history_sparkline
 from progress_tracker import list_records, load_record
 from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
@@ -152,6 +152,12 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             _render_history_banner(r, overall, song, idx, p)
 
         if len(records_paths) > 1:
+            st.markdown("##### 📈 연습 히스토리")
+            spark = generate_history_sparkline(user_id=user_id)
+            if spark and spark.exists():
+                st.markdown('<div class="vc-graph-frame vc-sparkline-frame">', unsafe_allow_html=True)
+                st.image(str(spark), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("##### 📈 성장 곡선")
             chart_path = generate_growth_chart(user_id=user_id)
             if chart_path and chart_path.exists():

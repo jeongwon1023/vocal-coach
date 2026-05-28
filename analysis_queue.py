@@ -170,6 +170,8 @@ def _run_analysis_worker(job_id: str, audio_path: Path, options: dict[str, Any])
             "note_clip_paths": session.get("note_clip_paths") or [],
             "note_clip_error": session.get("note_clip_error"),
             "audio_path": str(session.get("audio_path") or ""),
+            "chart_path": str(session.get("chart_path") or ""),
+            "sparkline_path": str(session.get("sparkline_path") or ""),
             "overall_score": session["report"].overall_score,
             "reference_source": session["report"].reference_source,
             "mr_likely": session["report"].mr_likely,
@@ -265,6 +267,7 @@ def load_session_for_job(job_id: str) -> dict[str, Any] | None:
         "note_clip_error": data.get("note_clip_error"),
         "audio_path": data.get("audio_path") or "",
         "chart_path": data.get("chart_path"),
+        "sparkline_path": data.get("sparkline_path"),
     }
 
 
