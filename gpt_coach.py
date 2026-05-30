@@ -394,7 +394,13 @@ def load_dotenv_if_present(project_dir) -> None:
     try:
         import streamlit as st
 
-        for key in ("OPENAI_API_KEY", "OPENAI_MODEL", "SUPABASE_URL", "SUPABASE_KEY"):
+        for key in (
+            "OPENAI_API_KEY",
+            "OPENAI_MODEL",
+            "SUPABASE_URL",
+            "SUPABASE_KEY",
+            "STREAMLIT_URL",
+        ):
             if key in st.secrets and key not in os.environ:
                 os.environ[key] = str(st.secrets[key])
     except Exception:

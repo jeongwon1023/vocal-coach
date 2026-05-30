@@ -23,14 +23,13 @@ from ui.utils import render_safe_html
 
 try:
     from gotrue._sync.storage import SyncSupportedStorage
-    from supabase import Client, create_client
-    from supabase.lib.client_options import SyncClientOptions as ClientOptions
 
     _SUPABASE_IMPORT_OK = True
 except ImportError:
     _SUPABASE_IMPORT_OK = False
-    Client = Any  # type: ignore[misc, assignment]
     SyncSupportedStorage = object  # type: ignore[misc, assignment]
+
+from ui.supabase_client import create_supabase_client, is_supabase_key_format
 
 
 class _StreamlitAuthStorage(SyncSupportedStorage):
@@ -66,10 +65,27 @@ def _secret_or_env(name: str) -> str | None:
 
 
 def supabase_configured() -> bool:
-    return bool(_SUPABASE_IMPORT_OK and _secret_or_env("SUPABASE_URL") and _secret_or_env("SUPABASE_KEY"))
+    url = _secret_or_env("SUPABASE_URL")
+    key = _secret_or_env("SUPABASE_KEY")
+    return bool(_SUPABASE_IMPORT_OK and url and key and is_supabase_key_format(key or ""))
 
 
-def get_supabase_client() -> Client | None:
+def get_auth_config_status() -> dict[str, Any]:
+    """디버그용 — Supabase/카카오 등록 상태 (키 값은 노출하지 않음)."""
+    url = _secret_or_env("SUPABASE_URL")
+    key = _secret_or_env("SUPABASE_KEY")
+    return {
+        "supabase_package": _SUPABASE_IMPORT_OK,
+        "supabase_url_set": bool(url),
+        "supabase_key_set": bool(key),
+        "supabase_key_valid_format": bool(key and is_supabase_key_format(key)),
+        "supabase_ready": supabase_configured(),
+        "legacy_kakao_env": kakao_configured(),
+        "redirect_url": streamlit_url(),
+    }
+
+
+def get_supabase_client() -> Any | None:
     """st.secrets 기반 Supabase 클라이언트 (세션 스토리지 = session_state)."""
     if not supabase_configured():
         return None
@@ -77,8 +93,10 @@ def get_supabase_client() -> Client | None:
     key = _secret_or_env("SUPABASE_KEY")
     if not url or not key:
         return None
-    options = ClientOptions(storage=_StreamlitAuthStorage())
-    return create_client(url, key, options)
+    try:
+        return create_supabase_client(url, key, storage=_StreamlitAuthStorage())
+    except Exception:
+        return None
 
 
 def _oauth_unconfigured_hint(provider: str) -> str:
@@ -230,7 +248,9 @@ def _render_supabase_kakao_styles() -> None:
     render_safe_html(
         """
         <style>
-        div[data-testid="stDialog"] .st-key-supabase_kakao_login button {
+        .st-key-supabase_kakao_login button,
+        .st-key-page_supabase_kakao button,
+        .st-key-landing_kakao button {
             width: 100% !important;
             background: #FEE500 !important;
             color: #191919 !important;
@@ -241,7 +261,9 @@ def _render_supabase_kakao_styles() -> None:
             min-height: 48px !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
         }
-        div[data-testid="stDialog"] .st-key-supabase_kakao_login button:hover {
+        .st-key-supabase_kakao_login button:hover,
+        .st-key-page_supabase_kakao button:hover,
+        .st-key-landing_kakao button:hover {
             background: #f5dc00 !important;
             color: #191919 !important;
         }
@@ -256,6 +278,11 @@ def _render_supabase_kakao_styles() -> None:
         <p class="vc-login-dialog-lead">내 보컬 분석 리포트를 저장하려면 로그인해 주세요.</p>
         """
     )
+
+
+def _render_kakao_login_button(*, key: str) -> None:
+    if st.button("💬 카카오로 계속하기", key=key, use_container_width=True):
+        _start_kakao_oauth()
 
 
 def _start_kakao_oauth() -> None:
@@ -284,8 +311,7 @@ def _start_kakao_oauth() -> None:
 
 def _render_supabase_login_dialog(*, key_prefix: str) -> None:
     _render_supabase_kakao_styles()
-    if st.button("💬 카카오로 계속하기", key="supabase_kakao_login", use_container_width=True):
-        _start_kakao_oauth()
+    _render_kakao_login_button(key="supabase_kakao_login")
 
     st.caption("또는")
     if st.button("✦ 체험 계정으로 시작", key=f"{key_prefix}_demo", use_container_width=True):
@@ -338,8 +364,7 @@ def render_login_page() -> None:
 
     if supabase_configured():
         _render_supabase_kakao_styles()
-        if st.button("💬 카카오로 계속하기", key="page_supabase_kakao", use_container_width=True):
-            _start_kakao_oauth()
+        _render_kakao_login_button(key="page_supabase_kakao")
         if st.button("✦ 체험 계정으로 시작", key="page_demo", use_container_width=True, type="primary"):
             start_demo()
         return
@@ -369,18 +394,26 @@ def require_login() -> bool:
 
 
 def render_landing_auth_banner() -> None:
-    """홈 랜딩 — 체험 CTA (소셜 로그인은 상단 팝오버)."""
+    """홈 랜딩 — 카카오 로그인 + 체험 CTA."""
     render_safe_html(
         """
         <div class="vc-landing-trial-banner">
             <div class="vc-landing-trial-copy">
                 <span class="vc-landing-trial-tag">무료 체험</span>
                 <p class="vc-landing-trial-title">가입 없이 바로 분석해 보세요</p>
-                <p class="vc-landing-trial-sub">기록 저장은 상단 <b>로그인 / 회원가입</b> · 카카오 · Google</p>
+                <p class="vc-landing-trial-sub">기록 저장은 <b>카카오 로그인</b> 또는 상단 <b>로그인</b> 메뉴</p>
             </div>
         </div>
         """
     )
+
+    if supabase_configured():
+        _render_supabase_kakao_styles()
+        _render_kakao_login_button(key="landing_kakao")
+    else:
+        status = get_auth_config_status()
+        if not status["supabase_url_set"] or not status["supabase_key_set"]:
+            st.caption("카카오 로그인: Supabase Secrets 미등록 — `.streamlit/secrets.toml` 또는 Cloud Secrets 확인")
 
     from ui.auth_ui import render_trial_button
 
@@ -410,7 +443,8 @@ def check_user_session() -> None:
                 _apply_supabase_session(response.session)
             st.query_params.clear()
             st.rerun()
-        except Exception:
+        except Exception as exc:
+            st.session_state["_auth_last_error"] = str(exc)
             st.query_params.clear()
             return
 

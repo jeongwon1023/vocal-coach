@@ -20,12 +20,13 @@ def _supabase_configured() -> bool:
 
 def _get_client():
     try:
-        from supabase import create_client
+        from gotrue._sync.storage import SyncMemoryStorage
+        from ui.supabase_client import create_supabase_client
     except ImportError as exc:
         raise RuntimeError("pip install supabase") from exc
     url = os.environ["SUPABASE_URL"]
     key = os.environ["SUPABASE_KEY"]
-    return create_client(url, key)
+    return create_supabase_client(url, key, storage=SyncMemoryStorage())
 
 
 def mirror_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:

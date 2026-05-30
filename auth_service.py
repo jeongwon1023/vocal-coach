@@ -49,7 +49,30 @@ def auth_base_url() -> str:
 
 
 def streamlit_url() -> str:
-    return os.environ.get("STREAMLIT_URL", "http://localhost:8501").rstrip("/")
+    """OAuth redirect_to — Cloud/로컬 URL."""
+    try:
+        import streamlit as st
+
+        if "STREAMLIT_URL" in st.secrets:
+            value = str(st.secrets["STREAMLIT_URL"]).strip().rstrip("/")
+            if value:
+                return value
+    except Exception:
+        pass
+
+    value = os.environ.get("STREAMLIT_URL", "").strip().rstrip("/")
+    if value:
+        return value
+
+    try:
+        from ui.runtime_env import is_streamlit_cloud
+
+        if is_streamlit_cloud():
+            return "https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app"
+    except Exception:
+        pass
+
+    return "http://localhost:8501"
 
 
 def google_configured() -> bool:
