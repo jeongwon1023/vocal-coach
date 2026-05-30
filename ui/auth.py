@@ -1,6 +1,10 @@
-"""로그인 · 회원가입 UI (Google · Kakao · 체험)."""
+"""로그인 · 회원가입 UI (Supabase Kakao · Google · 체험)."""
 
 from __future__ import annotations
+
+import html
+import os
+from typing import Any
 
 import streamlit as st
 
@@ -11,24 +15,114 @@ from auth_service import (
     delete_session,
     google_configured,
     kakao_configured,
-    resolve_session
+    resolve_session,
+    streamlit_url,
 )
 from ui.runtime_env import is_streamlit_cloud
 from ui.utils import render_safe_html
+
+try:
+    from gotrue._sync.storage import SyncSupportedStorage
+    from supabase import Client, create_client
+    from supabase.lib.client_options import SyncClientOptions as ClientOptions
+
+    _SUPABASE_IMPORT_OK = True
+except ImportError:
+    _SUPABASE_IMPORT_OK = False
+    Client = Any  # type: ignore[misc, assignment]
+    SyncSupportedStorage = object  # type: ignore[misc, assignment]
+
+
+class _StreamlitAuthStorage(SyncSupportedStorage):
+    """PKCE code_verifier · Supabase 세션을 st.session_state에 유지."""
+
+    _KEY = "supabase_auth_storage"
+
+    def _store(self) -> dict[str, str]:
+        if self._KEY not in st.session_state:
+            st.session_state[self._KEY] = {}
+        return st.session_state[self._KEY]
+
+    def get_item(self, key: str) -> str | None:
+        return self._store().get(key)
+
+    def set_item(self, key: str, value: str) -> None:
+        self._store()[key] = value
+
+    def remove_item(self, key: str) -> None:
+        self._store().pop(key, None)
+
+
+def _secret_or_env(name: str) -> str | None:
+    try:
+        if name in st.secrets:
+            value = str(st.secrets[name]).strip()
+            if value:
+                return value
+    except Exception:
+        pass
+    value = os.environ.get(name, "").strip()
+    return value or None
+
+
+def supabase_configured() -> bool:
+    return bool(_SUPABASE_IMPORT_OK and _secret_or_env("SUPABASE_URL") and _secret_or_env("SUPABASE_KEY"))
+
+
+def get_supabase_client() -> Client | None:
+    """st.secrets 기반 Supabase 클라이언트 (세션 스토리지 = session_state)."""
+    if not supabase_configured():
+        return None
+    url = _secret_or_env("SUPABASE_URL")
+    key = _secret_or_env("SUPABASE_KEY")
+    if not url or not key:
+        return None
+    options = ClientOptions(storage=_StreamlitAuthStorage())
+    return create_client(url, key, options)
 
 
 def _oauth_unconfigured_hint(provider: str) -> str:
     if is_streamlit_cloud():
         return f"{provider}: 베타 — **체험 계정**으로 이용해 주세요"
-    return f"{provider}: OAuth 미설정 (로컬 .env 참고)"
+    return f"{provider}: OAuth 미설정 (로컬 .env / secrets.toml 참고)"
+
+
+def _user_from_supabase_session(session: Any) -> dict[str, Any]:
+    user = session.user
+    meta = user.user_metadata or {}
+    app_meta = user.app_metadata or {}
+    provider = app_meta.get("provider") or "kakao"
+    name = (
+        meta.get("name")
+        or meta.get("full_name")
+        or meta.get("nickname")
+        or meta.get("preferred_username")
+        or user.email
+        or "학습자"
+    )
+    return {
+        "id": user.id,
+        "name": name,
+        "email": user.email,
+        "provider": provider,
+        "avatar_url": meta.get("avatar_url") or meta.get("picture"),
+    }
+
+
+def _apply_supabase_session(session: Any) -> None:
+    st.session_state.user = _user_from_supabase_session(session)
+    st.session_state.auth_token = session.access_token
+    st.session_state.supabase_refresh_token = session.refresh_token
 
 
 def init_auth() -> None:
-    """URL ?token= 또는 세션에서 사용자 복원."""
+    """URL ?token= / Supabase OAuth / 세션에서 사용자 복원."""
     if "auth_token" not in st.session_state:
         st.session_state.auth_token = None
     if "user" not in st.session_state:
         st.session_state.user = None
+
+    check_user_session()
 
     qp = st.query_params
     token = qp.get("token")
@@ -64,8 +158,18 @@ def current_user_id() -> str | None:
 
 
 def logout() -> None:
+    if supabase_configured():
+        client = get_supabase_client()
+        if client:
+            try:
+                client.auth.sign_out()
+            except Exception:
+                pass
+        st.session_state.pop("supabase_auth_storage", None)
+        st.session_state.pop("supabase_refresh_token", None)
+
     token = st.session_state.get("auth_token")
-    if token:
+    if token and not supabase_configured():
         delete_session(token)
     st.session_state.auth_token = None
     st.session_state.user = None
@@ -122,9 +226,79 @@ def render_login_compact(*, key_prefix: str = "auth_pop") -> None:
     render_auth_buttons(key_prefix=key_prefix, compact=True)
 
 
-@st.dialog("로그인", width="small")
+def _render_supabase_kakao_styles() -> None:
+    render_safe_html(
+        """
+        <style>
+        div[data-testid="stDialog"] .st-key-supabase_kakao_login button {
+            width: 100% !important;
+            background: #FEE500 !important;
+            color: #191919 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 700 !important;
+            font-size: 1rem !important;
+            min-height: 48px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+        }
+        div[data-testid="stDialog"] .st-key-supabase_kakao_login button:hover {
+            background: #f5dc00 !important;
+            color: #191919 !important;
+        }
+        .vc-login-dialog-lead {
+            margin: 0 0 1rem;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #4b5563;
+            text-align: center;
+        }
+        </style>
+        <p class="vc-login-dialog-lead">내 보컬 분석 리포트를 저장하려면 로그인해 주세요.</p>
+        """
+    )
+
+
+def _start_kakao_oauth() -> None:
+    client = get_supabase_client()
+    if not client:
+        st.error("Supabase 설정(SUPABASE_URL, SUPABASE_KEY)이 없습니다.")
+        return
+    try:
+        response = client.auth.sign_in_with_oauth(
+            {
+                "provider": "kakao",
+                "options": {"redirect_to": streamlit_url()},
+            }
+        )
+    except Exception as exc:
+        st.error(f"카카오 로그인을 시작하지 못했습니다: {exc}")
+        return
+
+    url = response.url
+    safe_url = html.escape(url, quote=True)
+    render_safe_html(f'<meta http-equiv="refresh" content="0;url={safe_url}">')
+    st.link_button("💬 카카오 로그인 페이지로 이동", url, use_container_width=True)
+    st.caption("자동 이동이 안 되면 위 버튼을 눌러 주세요.")
+    st.stop()
+
+
+def _render_supabase_login_dialog(*, key_prefix: str) -> None:
+    _render_supabase_kakao_styles()
+    if st.button("💬 카카오로 계속하기", key="supabase_kakao_login", use_container_width=True):
+        _start_kakao_oauth()
+
+    st.caption("또는")
+    if st.button("✦ 체험 계정으로 시작", key=f"{key_prefix}_demo", use_container_width=True):
+        start_demo()
+
+
+@st.dialog("3초 만에 시작하기", width="small")
 def _show_login_dialog() -> None:
     prefix = st.session_state.get("_login_dialog_prefix", "dialog_auth")
+    if supabase_configured():
+        _render_supabase_login_dialog(key_prefix=prefix)
+        return
+
     from ui.auth_ui import render_login_card
 
     render_login_card(key_prefix=prefix, compact=True)
@@ -160,6 +334,14 @@ def render_login_page() -> None:
     """로그인 전용 화면 — 모달 또는 카드."""
     if st.button("🔐 로그인 / 체험 시작", type="primary", use_container_width=True, key="page_login_open"):
         open_login_dialog(key_prefix="page_login_dialog")
+        return
+
+    if supabase_configured():
+        _render_supabase_kakao_styles()
+        if st.button("💬 카카오로 계속하기", key="page_supabase_kakao", use_container_width=True):
+            _start_kakao_oauth()
+        if st.button("✦ 체험 계정으로 시작", key="page_demo", use_container_width=True, type="primary"):
+            start_demo()
         return
 
     from ui.auth_ui import render_login_card
@@ -203,3 +385,39 @@ def render_landing_auth_banner() -> None:
     from ui.auth_ui import render_trial_button
 
     render_trial_button(key_prefix="landing_auth")
+
+
+def check_user_session() -> None:
+    """Supabase OAuth 콜백(?code=) 처리 및 get_session() → st.session_state['user']."""
+    if not supabase_configured():
+        return
+
+    client = get_supabase_client()
+    if not client:
+        return
+
+    qp = st.query_params
+    code = qp.get("code")
+    if isinstance(code, list):
+        code = code[0] if code else None
+
+    if code and isinstance(code, str):
+        try:
+            response = client.auth.exchange_code_for_session(
+                {"auth_code": code, "redirect_to": streamlit_url()}
+            )
+            if response.session:
+                _apply_supabase_session(response.session)
+            st.query_params.clear()
+            st.rerun()
+        except Exception:
+            st.query_params.clear()
+            return
+
+    try:
+        session = client.auth.get_session()
+    except Exception:
+        return
+
+    if session and session.user and not st.session_state.get("user"):
+        _apply_supabase_session(session)
