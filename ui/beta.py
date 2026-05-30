@@ -15,8 +15,7 @@ def render_beta_banner() -> None:
             <span class="vc-beta-tag">BETA {BETA_VERSION}</span>
             <span class="vc-beta-text">베타 테스트 중 · 피드백은 ☰ 메뉴</span>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -32,8 +31,7 @@ def render_beta_invite_card() -> None:
             </p>
             <p class="vc-beta-invite-url">{BETA_SHARE_URL}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
     st.code(BETA_SHARE_URL, language=None)
 
@@ -46,6 +44,5 @@ def render_beta_footer() -> None:
             Vocal Coach AI · BETA {BETA_VERSION}
             · <a href="{BETA_SHARE_URL}" target="_blank" rel="noopener">서비스 열기</a>
         </p>
-        """,
-        unsafe_allow_html=True,
+        """
     )

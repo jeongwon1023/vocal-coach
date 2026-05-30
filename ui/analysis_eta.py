@@ -10,7 +10,7 @@ def default_total_seconds(
     fast_mode: bool,
     use_gpt: bool = False,
     use_youtube: bool = False,
-    mr_likely: bool = False,
+    mr_likely: bool = False
 ) -> int:
     base = 55 if fast_mode else 150
     if use_youtube:
@@ -42,14 +42,14 @@ def remaining_seconds(
     started_at: float | None,
     use_gpt: bool = False,
     use_youtube: bool = False,
-    mr_likely: bool = False,
+    mr_likely: bool = False
 ) -> int:
     """pct: 0~1. 경과 시간 기반 남은 시간 추정."""
     total_default = default_total_seconds(
         fast_mode=fast_mode,
         use_gpt=use_gpt,
         use_youtube=use_youtube,
-        mr_likely=mr_likely,
+        mr_likely=mr_likely
     )
     pct = min(max(pct, 0.0), 1.0)
 

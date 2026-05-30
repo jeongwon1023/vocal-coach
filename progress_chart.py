@@ -35,6 +35,43 @@ def load_all_records_chronological(user_id: str | None = None) -> list[dict]:
     return records
 
 
+def compute_practice_streak(records: list[dict]) -> int:
+    """오늘부터 거슬러 연속 연습일 수."""
+    from datetime import date, datetime, timedelta
+
+    days: set[date] = set()
+    for r in records:
+        ts = r.get("recorded_at", "")
+        try:
+            days.add(datetime.fromisoformat(ts).date())
+        except Exception:
+            continue
+    if not days:
+        return 0
+    streak = 0
+    d = date.today()
+    while d in days:
+        streak += 1
+        d -= timedelta(days=1)
+    return streak
+
+
+def recent_overall_scores(records: list[dict], *, limit: int = 5) -> list[tuple[str, float]]:
+    """최근 N회 (라벨, 종합점수) — 시간순."""
+    tail = records[-limit:]
+    out: list[tuple[str, float]] = []
+    for r in tail:
+        ts = r.get("recorded_at", "")
+        try:
+            from datetime import datetime
+
+            label = datetime.fromisoformat(ts).strftime("%m/%d")
+        except Exception:
+            label = ts[:10] if ts else "?"
+        out.append((label, float(r.get("overall_score") or 0)))
+    return out
+
+
 def generate_growth_chart(
     output_path: Path | None = None,
     *,

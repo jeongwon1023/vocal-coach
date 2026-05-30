@@ -11,7 +11,7 @@ from auth_service import (
     delete_session,
     google_configured,
     kakao_configured,
-    resolve_session,
+    resolve_session
 )
 from ui.runtime_env import is_streamlit_cloud
 
@@ -75,16 +75,16 @@ def logout() -> None:
 
 
 def render_topbar_auth() -> None:
-    """우측 상단 — 로그인 팝오버 또는 사용자 메뉴 (데스크톱)."""
+    """우측 상단 — 로그인 모달 또는 사용자 메뉴."""
     user = current_user()
     if user:
         name = user.get("name", "학습자")
-        with st.popover(f"👤 {name}", use_container_width=True, key="top_auth_user"):
+        with st.popover(f"👤 {name}", use_container_width=False, key="top_auth_user"):
             _render_user_popover_body(user)
         return
 
-    with st.popover("로그인", use_container_width=True, key="top_auth_popover"):
-        render_login_compact(key_prefix="top_auth")
+    if st.button("로그인", key="top_auth_login_btn", use_container_width=False, type="secondary"):
+        open_login_dialog(key_prefix="top_auth_dialog")
 
 
 def render_menu_auth(*, key_prefix: str = "nav_menu") -> None:
@@ -95,7 +95,8 @@ def render_menu_auth(*, key_prefix: str = "nav_menu") -> None:
         return
 
     st.caption("3초 만에 시작 · 기록 저장")
-    render_login_compact(key_prefix=key_prefix)
+    if st.button("로그인 / 시작하기", key=f"{key_prefix}_login_btn", use_container_width=True):
+        open_login_dialog(key_prefix=f"{key_prefix}_dialog")
 
 
 def _render_user_popover_body(user: dict, *, logout_key: str = "btn_logout_top") -> None:
@@ -113,11 +114,26 @@ def _render_user_popover_body(user: dict, *, logout_key: str = "btn_logout_top")
 
 
 def render_login_compact(*, key_prefix: str = "auth_pop") -> None:
-    """상단 팝오버용 — 카카오 · Google · 체험."""
+    """다이얼로그/팝오버용 — 카카오 · Google · 체험."""
     from ui.auth_ui import render_auth_buttons
 
     st.caption("3초 만에 시작 · 기록 저장")
     render_auth_buttons(key_prefix=key_prefix, compact=True)
+
+
+@st.dialog("로그인", width="small")
+def _show_login_dialog() -> None:
+    prefix = st.session_state.get("_login_dialog_prefix", "dialog_auth")
+    from ui.auth_ui import render_login_card
+
+    render_login_card(key_prefix=prefix, compact=True)
+    st.caption("카카오 · Google · 체험 계정 중 선택하세요.")
+
+
+def open_login_dialog(*, key_prefix: str = "dialog_auth") -> None:
+    """화면 이동 없이 로그인 모달."""
+    st.session_state["_login_dialog_prefix"] = key_prefix
+    _show_login_dialog()
 
 
 def render_sidebar_user() -> None:
@@ -140,7 +156,11 @@ def _start_demo() -> None:
 
 
 def render_login_page() -> None:
-    """로그인 전용 화면 — 카카오·인스타 스타일 카드."""
+    """로그인 전용 화면 — 모달 또는 카드."""
+    if st.button("🔐 로그인 / 체험 시작", type="primary", use_container_width=True, key="page_login_open"):
+        open_login_dialog(key_prefix="page_login_dialog")
+        return
+
     from ui.auth_ui import render_login_card
 
     render_login_card(key_prefix="page_login")
@@ -176,8 +196,7 @@ def render_landing_auth_banner() -> None:
                 <p class="vc-landing-trial-sub">기록 저장은 상단 <b>로그인 / 회원가입</b> · 카카오 · Google</p>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     from ui.auth_ui import render_trial_button

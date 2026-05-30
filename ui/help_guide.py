@@ -25,8 +25,7 @@ def render_song_title_help() -> None:
             </ol>
             <p class="vc-guide-note">💡 가이드 없이도 분석 가능 · 커버·원곡 비교할 때만 켜세요</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 

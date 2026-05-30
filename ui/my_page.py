@@ -12,13 +12,20 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-from progress_chart import generate_growth_chart, generate_history_sparkline
+from progress_chart import (
+    compute_practice_streak,
+    generate_growth_chart,
+    generate_history_sparkline,
+    load_all_records_chronological,
+    recent_overall_scores
+)
 from progress_tracker import list_records, load_record
 from weekly_summary import compute_weekly_summary
 from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
 from ui.navigation import go_to
 from ui.session_reset import clear_results_state
+from ui.utils import render_safe_html
 
 
 def _format_date(record: dict) -> str:
@@ -86,8 +93,7 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
     rhythm = float(scores.get(2) or scores.get("2") or 0)
     breath = float(scores.get(3) or scores.get("3") or 0)
 
-    st.markdown(
-        f"""
+    render_safe_html(f"""
         <div class="vc-history-banner" style="--banner-accent:{color}">
             <div class="vc-history-banner-left">
                 <span class="vc-history-date">{html.escape(date_short)}</span>
@@ -99,13 +105,12 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
                 <span class="vc-history-score-label">점</span>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
     if st.button(
         f"결과 보기 · {date_short}",
         key=f"mypage_open_{idx}",
-        use_container_width=True,
+        use_container_width=True
     ):
         user_id = current_user_id()
         if user_id:
@@ -169,9 +174,85 @@ def _render_weekly_summary_card(user_id: str) -> None:
             <p class="vc-weekly-song">🎵 많이 연습한 곡 · {html.escape(str(top_song))}</p>
             <p class="vc-weekly-msg">{html.escape(message)}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
+
+
+def _render_growth_trend_chart(user_id: str) -> None:
+    """최근 5회 종합 점수 — Plotly 트렌드 + 예상 성장 가이드."""
+    records = load_all_records_chronological(user_id)
+    if not records:
+        return
+
+    streak = compute_practice_streak(records)
+    points = recent_overall_scores(records, limit=5)
+    labels = [p[0] for p in points]
+    scores = [p[1] for p in points]
+
+    st.markdown("##### 📈 나의 보컬 히스토리")
+    if streak >= 2:
+        st.markdown(
+            f'<p class="vc-streak-badge">🔥 연속 <b>{streak}일</b> 연습 달성!</p>'
+        )
+    elif len(records) == 1:
+        st.caption("내일도 녹음하면 성장 그래프가 이어져요.")
+
+    try:
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=labels,
+                y=scores,
+                mode="lines+markers",
+                name="종합 점수",
+                line=dict(color="#6366f1", width=3),
+                marker=dict(size=10, color="#6366f1")
+            )
+        )
+        if len(scores) == 1:
+            projected = [scores[0], min(100.0, scores[0] + 6.0)]
+            fig.add_trace(
+                go.Scatter(
+                    x=[labels[0], "다음"],
+                    y=projected,
+                    mode="lines",
+                    name="예상 성장",
+                    line=dict(color="#a5b4fc", width=2, dash="dot")
+                )
+            )
+        elif len(scores) >= 2:
+            import numpy as np
+
+            x_idx = list(range(len(scores)))
+            coef = np.polyfit(x_idx, scores, 1)
+            trend = np.poly1d(coef)
+            fig.add_trace(
+                go.Scatter(
+                    x=labels,
+                    y=[float(trend(i)) for i in x_idx],
+                    mode="lines",
+                    name="추세",
+                    line=dict(color="#a5b4fc", width=2, dash="dot")
+                )
+            )
+
+        fig.update_layout(
+            height=280,
+            margin=dict(l=8, r=8, t=28, b=8),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(range=[0, 105], title="", gridcolor="rgba(99,102,241,0.12)"),
+            xaxis=dict(title=""),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+            title=dict(text=f"최근 {len(scores)}회 · 최고 {max(scores):.0f}점", x=0, font=dict(size=13))
+        )
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    except Exception:
+        import pandas as pd
+
+        st.line_chart(pd.DataFrame({"점수": scores}, index=labels))
 
 
 def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
@@ -197,11 +278,13 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['best']:.0f}</span><span class="vc-mypage-stat-lbl">최고 점수</span></div>
             <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['avg']:.0f}</span><span class="vc-mypage-stat-lbl">평균</span></div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     _render_weekly_summary_card(user_id)
+
+    if records_paths:
+        _render_growth_trend_chart(user_id)
 
     try:
         from ui.beta import render_beta_invite_card
@@ -227,15 +310,15 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             st.markdown("##### 📈 연습 히스토리")
             spark = generate_history_sparkline(user_id=user_id)
             if spark and spark.exists():
-                st.markdown('<div class="vc-graph-frame vc-sparkline-frame">', unsafe_allow_html=True)
+                st.markdown('<div class="vc-graph-frame vc-sparkline-frame">')
                 st.image(str(spark), use_container_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("##### 📈 성장 곡선")
+                render_safe_html("</div>")
+            render_safe_html("##### 📈 성장 곡선")
             chart_path = generate_growth_chart(user_id=user_id)
             if chart_path and chart_path.exists():
-                st.markdown('<div class="vc-graph-frame">', unsafe_allow_html=True)
+                st.markdown('<div class="vc-graph-frame">')
                 st.image(str(chart_path), use_container_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                render_safe_html("</div>")
     else:
         st.markdown(
             """
@@ -243,8 +326,7 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
                 <p class="vc-empty-title">아직 분석 기록이 없어요</p>
                 <p class="vc-empty-desc">아래에서 녹음을 올리고 첫 분석을 시작해 보세요.</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
     st.divider()
@@ -301,6 +383,11 @@ def render() -> None:
     from ui.beta import render_beta_footer
 
     render_beta_footer()
+
+    if not dashboard.is_analyzing() and not st.session_state.get("mypage_show_result"):
+        from ui.b2c_theme import render_floating_cta
+
+        render_floating_cta(variant="mypage")
 
     if st.button("💬 서비스 피드백 남기기", use_container_width=True, key="mypage_feedback"):
         go_to("피드백")

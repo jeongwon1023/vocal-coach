@@ -17,8 +17,7 @@ def render_feedback_page() -> None:
             <h2 class="vc-page-title">💬 베타 피드백</h2>
             <p class="vc-page-desc">써 보시고 느낀 점을 알려 주세요. Vocal Coach AI를 함께 만들어 가요.</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     stats = feedback_stats()
@@ -28,8 +27,7 @@ def render_feedback_page() -> None:
             <span class="vc-feedback-stat">📝 베타 {stats.get('beta', 0)}건</span>
             <span class="vc-feedback-stat">✓ 점수 동의 {stats.get('agree', 0)} · △ 불일치 {stats.get('disagree', 0)}</span>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     with st.expander("📊 점수 보정 상태 (커뮤니티 피드백)", expanded=False):
@@ -68,19 +66,19 @@ def render_feedback_page() -> None:
     category = st.selectbox(
         "어떤 종류인가요?",
         options=["버그 / 오류", "분석 품질", "디자인 · UX", "기능 제안", "기타"],
-        key="feedback_category",
+        key="feedback_category"
     )
     rating = st.slider("전체 만족도 (1~5)", min_value=1, max_value=5, value=4, key="feedback_rating")
     message = st.text_area(
         "자유롭게 적어 주세요",
         placeholder="예: 모바일에서 분석 버튼이 잘 안 눌려요 / DM 코치가 좋았어요 / 이런 기능 있으면 좋겠어요",
         height=140,
-        key="feedback_message",
+        key="feedback_message"
     )
     contact = st.text_input(
         "연락처 (선택 · 답변 받고 싶을 때)",
         placeholder="이메일 또는 카카오 ID",
-        key="feedback_contact",
+        key="feedback_contact"
     )
 
     if not is_logged_in():
@@ -97,7 +95,7 @@ def render_feedback_page() -> None:
                 user_id=current_user_id(),
                 user_name=user.get("name") if user else None,
                 page=current_page(),
-                contact=contact.strip() or None,
+                contact=contact.strip() or None
             )
             st.session_state["feedback_sent"] = True
             st.rerun()
@@ -129,6 +127,5 @@ def _render_recent(items: list[dict]) -> None:
                 <p class="vc-feedback-card-meta">{cat} · {stars}</p>
                 <p class="vc-feedback-card-msg">{msg}{"…" if len(item.get("message") or "") > 120 else ""}</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 from pathlib import Path
 
 import librosa
@@ -13,6 +14,18 @@ from matplotlib.patches import Rectangle
 from ui.runtime_env import configure_matplotlib
 
 configure_matplotlib()
+
+
+def _release_matplotlib_figure(fig) -> None:
+    try:
+        fig.clf()
+    except Exception:
+        pass
+    try:
+        plt.close(fig)
+    except Exception:
+        pass
+    gc.collect()
 
 
 def _segments_to_dicts(segments) -> list[dict]:
@@ -138,10 +151,9 @@ def plot_note_heatmap(
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path, dpi=dpi, facecolor=fig.get_facecolor())
-    if plt.get_backend().lower() == "agg":
-        plt.close(fig)
-    else:
+    if plt.get_backend().lower() != "agg":
         plt.show()
+    _release_matplotlib_figure(fig)
 
 
 def plot_note_heatmap_from_report(report, save_path: Path | None = None, *, dpi: int = 120) -> None:

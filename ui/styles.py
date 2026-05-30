@@ -4,9 +4,38 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ui.b2c_theme import css_extension, inject_page_marker
+from ui.utils import render_safe_html
+
 
 def apply(page: str = "홈") -> None:
+    inject_page_marker(page)
     sidebar_css = """
+        /* ── 방탄 좌우 여백 (Streamlit wide 레이아웃 강제) ── */
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-left: 5vw !important;
+            padding-right: 5vw !important;
+            padding-top: 80px !important;
+            padding-bottom: 80px !important;
+            max-width: 768px !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .block-container {
+            max-width: 768px !important;
+            padding-left: 5vw !important;
+            padding-right: 5vw !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .stMarkdown, .stContainer, div[data-testid="stVerticalBlock"] {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-wrap: break-word !important;
+        }
         [data-testid="stSidebar"],
         [data-testid="stSidebarCollapsedControl"],
         [data-testid="collapsedControl"],
@@ -25,22 +54,28 @@ def apply(page: str = "홈") -> None:
             width: 100% !important;
             max-width: 100% !important;
         }
-        .block-container {
-            max-width: 960px !important;
-            padding-left: 1.5rem !important;
-            padding-right: 1.5rem !important;
+        .vc-layout-bound,
+        .vc-detail-panel,
+        .vc-result-shell,
+        .st-key-vc_dm_panel,
+        .coach-card,
+        [data-testid="stTabs"],
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
         @media (max-width: 768px) {
+            div[data-testid="stAppViewBlockContainer"],
             .block-container {
                 max-width: 100% !important;
-                padding-left: 0.75rem !important;
-                padding-right: 0.75rem !important;
+                padding-left: 24px !important;
+                padding-right: 24px !important;
             }
         }
     """
 
-    st.markdown(
-        """
+    render_safe_html("""
         <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -86,10 +121,25 @@ def apply(page: str = "홈") -> None:
 
         .stApp {
             min-height: 100vh;
-            background: var(--vc-gradient-mesh) !important;
-            background-color: var(--vc-bg) !important;
-            background-attachment: fixed !important;
+            background: #f8f9fa !important;
+            background-color: #f8f9fa !important;
             color: var(--vc-text);
+        }
+
+        body {
+            overflow-x: hidden !important;
+        }
+
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-top: calc(var(--vc-header-h, 64px) + 16px) !important;
+            padding-bottom: 5rem !important;
+        }
+
+        .block-container {
+            padding-top: 0.5rem !important;
+        }
+        .vc-mobile-header-bar {
+            display: none;
         }
 
         #MainMenu, footer, [data-testid="stToolbar"], .stAppDeployButton {
@@ -99,11 +149,6 @@ def apply(page: str = "홈") -> None:
 
         header[data-testid="stHeader"] {
             background: transparent !important;
-        }
-
-        .block-container {
-            padding-top: 0.5rem !important;
-            max-width: 1100px !important;
         }
 
         /* ── Header bar — 클릭 방해 없음 ── */
@@ -410,6 +455,560 @@ def apply(page: str = "홈") -> None:
             box-shadow: 0 8px 32px rgba(99,102,241,0.12);
             overflow: hidden;
             animation: vc-fade-in 0.5s ease-out;
+        }
+        /* B2C Landing — Hero / Trust / Feature banners */
+        .vc-landing-hero {
+            position: relative;
+            padding: 2.5rem 1.75rem 2rem;
+            margin: 0 0 1rem;
+            border-radius: var(--vc-radius-lg);
+            background: linear-gradient(145deg, #6A0DAD 0%, #7c3aed 38%, #8b5cf6 72%, #a78bfa 100%);
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 12px 40px rgba(106, 13, 173, 0.28);
+            overflow: hidden;
+            color: #fff !important;
+        }
+        .vc-landing-hero-glow {
+            position: absolute;
+            inset: -20% -10% auto auto;
+            width: 55%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(255,255,255,0.22), transparent 65%);
+            pointer-events: none;
+        }
+        .vc-landing-hero-inner { position: relative; z-index: 1; }
+        .vc-landing-hero-title {
+            font-size: clamp(2rem, 6.5vw, 3.2rem);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            color: #fff !important;
+            margin: 0.75rem 0 1rem;
+        }
+        .vc-landing-hero-lead {
+            font-size: clamp(0.95rem, 2.5vw, 1.08rem);
+            color: rgba(255,255,255,0.92) !important;
+            line-height: 1.65;
+            max-width: 560px;
+            margin: 0;
+        }
+        .vc-landing-hero-lead b { color: #fde68a !important; }
+        .vc-landing-hero .vc-hero-pill {
+            background: rgba(255,255,255,0.16);
+            color: #fff !important;
+            border-color: rgba(255,255,255,0.28);
+        }
+        .vc-trust-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1rem 1.25rem;
+            margin: 0.75rem 0 1.25rem;
+            border-radius: var(--vc-radius);
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+        }
+        .vc-trust-banner-icon { font-size: 1.6rem; flex-shrink: 0; }
+        .vc-trust-banner-text {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            color: #374151 !important;
+        }
+        .vc-trust-banner-text strong { color: #6A0DAD !important; font-weight: 800; }
+        .vc-feature-banner {
+            margin: 1.5rem 0 1rem;
+            padding: 0.25rem 0;
+        }
+        .vc-radar-frame.vc-radar-light {
+            background: #f8f6ff !important;
+            border: 1px solid var(--vc-border);
+            border-radius: 14px;
+            padding: 0.25rem 0.5rem 0;
+            overflow: visible !important;
+        }
+        .vc-detail-panel [data-testid="stPlotlyChart"] {
+            background: #f8f6ff !important;
+            border: 1px solid var(--vc-border) !important;
+            border-radius: 14px !important;
+            padding: 0.35rem 0.5rem 0.15rem !important;
+            margin: 0.35rem 0 0.75rem !important;
+            overflow: hidden !important;
+        }
+        .vc-focus-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            margin: 0.65rem 0 0.85rem;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%);
+            border: 1px solid #fcd34d;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
+        }
+        .vc-focus-icon {
+            font-size: 1.35rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .vc-focus-label {
+            margin: 0 0 0.2rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            color: #b45309 !important;
+            text-transform: uppercase;
+        }
+        .vc-focus-text {
+            margin: 0;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #78350f !important;
+            line-height: 1.55;
+        }
+        .vc-detail-panel [data-testid="stTabs"] {
+            margin-top: 0.25rem;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            background: transparent !important;
+            border-radius: 0 !important;
+            padding: 0.15rem 0 0.5rem !important;
+            gap: 0.5rem !important;
+            border: none !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
+            display: none;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab"] {
+            border-radius: 20px !important;
+            padding: 10px 18px !important;
+            font-weight: 700 !important;
+            font-size: 0.82rem !important;
+            color: #6e667d !important;
+            background: #eceff3 !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            border: none !important;
+            margin-right: 0 !important;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [aria-selected="true"] {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(99,102,241,0.28) !important;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab-panel"] {
+            padding: 1rem 1.35rem 1.25rem !important;
+        }
+        .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab-panel"] [data-testid="stVerticalBlock"] {
+            padding-left: 0.1rem !important;
+            padding-right: 0.1rem !important;
+        }
+        .vc-detail-panel {
+            padding: 0.85rem 0.65rem 0.65rem !important;
+        }
+        /* 코칭 탭 — 가독성·색상 계층 */
+        .vc-coach-rich {
+            margin: 0.35rem 0 0.85rem;
+        }
+        .vc-coach-sec {
+            margin: 0.65rem 0;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            background: #faf9fd;
+            border: 1px solid rgba(99,102,241,0.1);
+        }
+        .vc-coach-sec-good {
+            background: linear-gradient(135deg, rgba(34,197,94,0.08), #f0fdf4 55%) !important;
+            border-color: rgba(34,197,94,0.22) !important;
+        }
+        .vc-coach-sec-focus {
+            background: linear-gradient(135deg, rgba(245,158,11,0.1), #fffbeb 55%) !important;
+            border-color: rgba(245,158,11,0.28) !important;
+        }
+        .vc-coach-sec-routine {
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), #f5f3ff 55%) !important;
+            border-color: rgba(99,102,241,0.18) !important;
+        }
+        .vc-coach-sec-stats {
+            background: linear-gradient(135deg, rgba(59,130,246,0.07), #eff6ff 55%) !important;
+            border-color: rgba(59,130,246,0.18) !important;
+        }
+        .vc-coach-sec-title {
+            margin: 0 0 0.45rem !important;
+            font-size: 1rem !important;
+            font-weight: 800 !important;
+            color: #1c1528 !important;
+            line-height: 1.45 !important;
+        }
+        .vc-coach-headline {
+            margin: 0.35rem 0 0.25rem !important;
+            font-size: 0.95rem !important;
+            font-weight: 800 !important;
+            color: #4338ca !important;
+            line-height: 1.5 !important;
+        }
+        .vc-coach-line {
+            margin: 0.35rem 0 !important;
+            font-size: 0.9rem !important;
+            color: #3f3f46 !important;
+            line-height: 1.65 !important;
+        }
+        .vc-coach-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+            margin: 0.5rem 0 0 !important;
+            font-size: 0.9rem !important;
+            line-height: 1.6 !important;
+            color: #374151 !important;
+        }
+        .vc-coach-step-n {
+            flex-shrink: 0;
+            font-weight: 800;
+            color: #6366f1 !important;
+            min-width: 2rem;
+        }
+        .vc-coach-strong {
+            color: #4338ca !important;
+            font-weight: 800 !important;
+        }
+        .vc-coach-bullet {
+            margin: 0.3rem 0 0.3rem 0.65rem !important;
+            padding-left: 0.5rem;
+            border-left: 3px solid rgba(99,102,241,0.35);
+            font-size: 0.88rem !important;
+            color: #52525b !important;
+            line-height: 1.6 !important;
+        }
+        /* 3분할 진단 카드 */
+        .vc-triptych-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 0 0 1rem;
+        }
+        .vc-triptych-card {
+            padding: 20px !important;
+            border-radius: 14px;
+            border: 1px solid rgba(99,102,241,0.12);
+            box-sizing: border-box !important;
+        }
+        .vc-triptych-good {
+            background: linear-gradient(135deg, rgba(34,197,94,0.1), #f0fdf4 60%) !important;
+            border-color: rgba(34,197,94,0.22) !important;
+        }
+        .vc-triptych-weak {
+            background: linear-gradient(135deg, rgba(180,83,9,0.1), #fffbeb 60%) !important;
+            border-color: rgba(180,83,9,0.25) !important;
+        }
+        .vc-triptych-action {
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), #f5f3ff 60%) !important;
+            border-color: rgba(99,102,241,0.2) !important;
+        }
+        .vc-triptych-label {
+            margin: 0 0 0.35rem;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #4338ca !important;
+        }
+        .vc-triptych-good .vc-triptych-label { color: #15803d !important; }
+        .vc-triptych-weak .vc-triptych-label { color: #b45309 !important; }
+        .vc-triptych-head {
+            margin: 0 0 0.3rem;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+            line-height: 1.45;
+        }
+        .vc-triptych-body {
+            margin: 0;
+            font-size: 0.88rem;
+            color: #52525b !important;
+            line-height: 1.55;
+        }
+        .vc-triptych-actions {
+            margin: 0.35rem 0 0;
+            padding-left: 1.1rem;
+            color: #374151 !important;
+            list-style: disc;
+        }
+        .vc-triptych-action-item {
+            margin: 0.45rem 0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            line-height: 1.55;
+        }
+        .coach-card [data-testid="stMarkdownContainer"] ul,
+        .coach-card [data-testid="stMarkdownContainer"] ol {
+            margin: 0.5rem 0 0.25rem !important;
+            padding-left: 1.25rem !important;
+        }
+        .coach-card [data-testid="stMarkdownContainer"] li {
+            margin: 0.45rem 0 !important;
+            line-height: 1.65 !important;
+        }
+        .coach-card [data-testid="stMarkdownContainer"] li p {
+            margin: 0 !important;
+        }
+        .vc-sticky-chart-bar {
+            position: sticky;
+            top: calc(var(--vc-header-h, 64px) + 4px);
+            z-index: 90;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin: 0 0 0.85rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(99,102,241,0.16);
+            box-shadow: 0 2px 10px rgba(99,102,241,0.08);
+        }
+        .vc-sticky-chip {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #374151 !important;
+            white-space: nowrap;
+        }
+        .vc-sticky-chip b { color: #4338ca !important; }
+        .vc-sticky-warn { color: #b45309 !important; }
+        .vc-practice-intro {
+            margin: 0 0 0.75rem;
+            font-size: 0.9rem;
+            color: #52525b !important;
+            line-height: 1.55;
+        }
+        .vc-focus-label { color: #b45309 !important; }
+        /* 연습장 coach-card */
+        .coach-card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid #f1f3f5;
+            line-height: 1.6;
+        }
+        .coach-card-title {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+            line-height: 1.45;
+        }
+        .coach-card-checklist {
+            margin: 0.5rem 0 0;
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: #374151 !important;
+        }
+        .vc-audio-player-label {
+            margin: 0.65rem 0 0.35rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #4338ca !important;
+        }
+        .vc-audio-player-wrap [data-testid="stAudio"],
+        .vc-audio-player-wrap [data-testid="stAudio"] > div {
+            margin-top: 16px !important;
+            margin-bottom: 16px !important;
+        }
+        .vc-detail-panel [data-baseweb="checkbox"],
+        .coach-card [data-baseweb="checkbox"] {
+            transform: scale(1.12);
+            transform-origin: left center;
+        }
+        .vc-detail-panel label[data-baseweb="checkbox"] > span:first-child,
+        .coach-card label[data-baseweb="checkbox"] > span:first-child {
+            border-radius: 4px !important;
+            border-color: #c7d2fe !important;
+        }
+        .vc-detail-panel label[data-baseweb="checkbox"] input:checked + div,
+        .coach-card label[data-baseweb="checkbox"] input:checked + div,
+        .vc-detail-panel [data-baseweb="checkbox"] svg {
+            color: #6366f1 !important;
+            background: #6366f1 !important;
+            border-color: #6366f1 !important;
+        }
+        .coach-card-checklist li {
+            margin: 0.45rem 0 !important;
+            line-height: 1.65 !important;
+        }
+        .vc-triptych-listen {
+            margin: 0.45rem 0 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #b45309 !important;
+            line-height: 1.5;
+        }
+        .vc-streak-badge {
+            margin: 0 0 0.65rem;
+            padding: 0.55rem 0.85rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fef3c7, #fff7ed);
+            border: 1px solid #fcd34d;
+            font-size: 0.9rem;
+            color: #92400e !important;
+        }
+        .vc-share-wrap {
+            margin: 0.5rem 0 0.75rem;
+            width: 100%;
+        }
+        .vc-share-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 1rem 1.15rem;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-sizing: border-box;
+        }
+        .vc-share-banner:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 28px rgba(168, 85, 247, 0.4);
+        }
+        .vc-share-banner:active {
+            transform: scale(0.99);
+        }
+        .vc-share-banner-icon {
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+        .vc-share-banner-text {
+            letter-spacing: -0.01em;
+        }
+        .vc-share-btn {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28);
+        }
+        .vc-share-btn:active {
+            transform: scale(0.98);
+        }
+        .vc-share-toast {
+            margin: 0.55rem 0 0;
+            padding: 0.55rem 0.75rem;
+            border-radius: 10px;
+            background: #ecfdf5;
+            border: 1px solid #86efac;
+            color: #166534 !important;
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .vc-share-toast-show {
+            opacity: 1 !important;
+        }
+        .vc-crop-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            margin: 0 0 0.85rem;
+            padding: 0.95rem 1.05rem;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 55%, #faf5ff 100%);
+            border: none;
+            box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
+        }
+        .vc-crop-icon {
+            font-size: 1.35rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .vc-crop-title {
+            margin: 0 0 0.25rem;
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #4338ca !important;
+            line-height: 1.45;
+        }
+        .vc-crop-body {
+            margin: 0;
+            font-size: 0.84rem;
+            color: #52525b !important;
+            line-height: 1.55;
+        }
+        .vc-radar-insight {
+            margin: 0.5rem 0 0.75rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.08);
+            color: #4338ca !important;
+            font-size: 0.92rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+        .vc-glance-head {
+            margin: 0 0 0.85rem;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.06));
+            border: 1px solid rgba(99,102,241,0.14);
+        }
+        .vc-glance-kicker {
+            margin: 0 0 0.25rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #6366f1 !important;
+            text-transform: uppercase;
+        }
+        .vc-glance-title {
+            margin: 0 0 0.35rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+            line-height: 1.4;
+        }
+        .vc-glance-insight {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #4338ca !important;
+            line-height: 1.55;
+        }
+        /* components.html(height=0) 빈 박스 제거 */
+        [data-testid="stHtml"],
+        [data-testid="stHtml"] > div {
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+        [data-testid="stHtml"] iframe {
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            border: none !important;
+            display: block !important;
         }
         @keyframes vc-fade-in {
             from { opacity: 0; transform: translateY(8px); }
@@ -1736,6 +2335,22 @@ def apply(page: str = "홈") -> None:
             font-size: 1.15rem;
             font-weight: 800;
             color: #fafafa !important;
+            line-height: 1.45;
+        }
+        .vc-vocal-mbti-badge {
+            display: inline-block;
+            margin: 0 0 0.65rem;
+            padding: 12px 20px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(168, 85, 247, 0.12));
+            color: #4338ca;
+            font-size: 0.95rem;
+            font-weight: 800;
+            line-height: 1.5;
+            max-width: 100%;
+            box-sizing: border-box;
+            word-break: keep-all;
+            overflow-wrap: break-word;
         }
         .vc-result-hero-strength {
             margin: 0.35rem 0 0;
@@ -1902,7 +2517,7 @@ def apply(page: str = "홈") -> None:
             border-top: 1px solid var(--vc-border);
             border-radius: 0;
             background: #0f0f12;
-            padding: 0.5rem 0.75rem 0.75rem;
+            padding: 0.65rem 0.75rem 1rem;
             margin-bottom: 0;
         }
         .st-key-vc_dm_panel .st-key-coach_pill_0,
@@ -1919,26 +2534,32 @@ def apply(page: str = "홈") -> None:
         .vc-dm-pill-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.35rem;
-            margin-bottom: 0.45rem;
+            gap: 0.5rem;
+            margin-bottom: 0.65rem;
+            padding: 0 2px;
         }
-        .st-key-coach_pill_0 button,
-        .st-key-coach_pill_1 button,
-        .st-key-coach_pill_2 button {
-            background: rgba(99,102,241,0.14) !important;
-            color: #b8b0e8 !important;
-            border: 1px solid rgba(129,140,248,0.28) !important;
+        [class*="st-key-coach_pill_"] button {
+            background: #ffffff !important;
+            color: #4f46e5 !important;
+            border: 1px solid #e0e7ff !important;
             border-radius: 999px !important;
-            font-size: 0.58rem !important;
+            font-size: 0.78rem !important;
             font-weight: 600 !important;
-            padding: 0.22rem 0.45rem !important;
-            min-height: 1.55rem !important;
+            padding: 0.45rem 0.85rem !important;
+            min-height: 2rem !important;
             height: auto !important;
-            line-height: 1.25 !important;
+            line-height: 1.35 !important;
             white-space: nowrap !important;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+            box-shadow: 0 1px 2px rgba(99, 102, 241, 0.06) !important;
+        }
+        [class*="st-key-coach_pill_"] button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+            border-color: #c7d2fe !important;
         }
         .vc-dm-composer [data-testid="stForm"] {
             border: none !important;
@@ -1976,6 +2597,11 @@ def apply(page: str = "홈") -> None:
             border-radius: 24px !important;
             min-height: 2.75rem !important;
             font-size: 0.88rem !important;
+            padding: 0.65rem 1rem 0.65rem 16px !important;
+        }
+        .st-key-vc_dm_panel [data-testid="stChatInput"] div[data-baseweb="input"],
+        .st-key-vc_dm_panel [data-testid="stChatInput"] [data-baseweb="input"] {
+            padding-left: 4px !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatInput"] textarea::placeholder {
             color: #a1a1aa !important;
@@ -2394,20 +3020,22 @@ def apply(page: str = "홈") -> None:
             max-width: calc(100% - 3rem);
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
-            background: transparent !important;
-            color: #f4f4f5 !important;
+            background: #f3f0ff !important;
+            color: #1c1528 !important;
             border: none !important;
-            border-radius: 0 !important;
-            padding: 0.15rem 0.35rem 0.15rem 0 !important;
-            max-width: 100% !important;
+            border-radius: 16px !important;
+            border-top-left-radius: 4px !important;
+            padding: 0.85rem 1rem !important;
+            max-width: 92% !important;
             max-height: none !important;
             overflow: visible !important;
             width: auto !important;
             font-size: 0.92rem !important;
-            line-height: 1.78 !important;
+            line-height: 1.72 !important;
             word-break: normal !important;
             overflow-wrap: break-word !important;
             white-space: normal !important;
+            box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08) !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"] [data-testid="stChatMessageContent"],
         .st-key-vc_dm_panel [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"],
@@ -2688,7 +3316,10 @@ def apply(page: str = "홈") -> None:
             border: 1px solid var(--vc-border);
             border-radius: 14px;
             padding: 0.35rem;
-            overflow: hidden;
+            overflow: visible;
+        }
+        .vc-radar-frame.vc-radar-light {
+            background: #f8f6ff !important;
         }
         .vc-graph-legend {
             display: flex;
@@ -3187,32 +3818,66 @@ def apply(page: str = "홈") -> None:
         }
 
         @media (max-width: 768px) {
-            .block-container { padding-left: 0.65rem !important; padding-right: 0.65rem !important; }
+            div[data-testid="stAppViewBlockContainer"],
+            .block-container {
+                padding-left: 5vw !important;
+                padding-right: 5vw !important;
+            }
+            .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                align-items: center !important;
+                padding: 0.35rem 5vw !important;
+                min-height: 52px !important;
+                max-height: 56px !important;
+                gap: 0.35rem !important;
+            }
+            .vc-navbar-marker + [data-testid="stHorizontalBlock"] [data-testid="column"] {
+                flex: 0 1 auto !important;
+                min-width: 0 !important;
+                width: auto !important;
+            }
+            .st-key-nav_brand_home button {
+                font-size: 0.78rem !important;
+                min-height: 2.15rem !important;
+                padding: 0.3rem 0.55rem !important;
+                white-space: nowrap !important;
+            }
+            .st-key-nav_menu > div > button {
+                min-width: 2.15rem !important;
+                min-height: 2.15rem !important;
+                padding: 0.25rem 0.45rem !important;
+            }
+            .st-key-top_auth_user > div > button,
+            .st-key-top_auth_login_btn > div > button {
+                font-size: 0.74rem !important;
+                min-height: 2.15rem !important;
+                padding: 0.3rem 0.5rem !important;
+                max-width: 42vw;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .vc-result-hero-title {
+                font-size: 1.5rem !important;
+                color: #1e293b !important;
+            }
+            .vc-result-hero-inner { flex-direction: column; text-align: center; }
+            .vc-result-hero-score { width: 100%; }
+            .vc-vocal-mbti-badge {
+                display: block;
+                text-align: center;
+                font-size: 0.88rem;
+            }
             .vc-header-shell { padding: 0.65rem 0.75rem 0.2rem; margin: -0.5rem -0.5rem 0; }
             .vc-header-name { font-size: 0.78rem; }
             .vc-header-tag { display: none; }
             .vc-header-logo { width: 34px; height: 34px; font-size: 1rem; }
-            .vc-navbar-marker + [data-testid="stHorizontalBlock"] {
-                padding: 0.45rem 0.55rem !important;
-                border-radius: 16px !important;
-            }
-            .st-key-nav_brand_home button { font-size: 0.82rem !important; min-height: 2.5rem !important; }
-            .st-key-nav_menu > div > button { min-width: 2.5rem !important; }
             .vc-mypage-stats { grid-template-columns: repeat(2, 1fr) !important; }
             .vc-weekly-grid { grid-template-columns: repeat(2, 1fr) !important; }
-            .st-key-top_auth_popover,
-            .st-key-top_auth_user { max-width: 100%; }
-            .st-key-top_auth_popover > div > button,
-            .st-key-top_auth_user > div > button {
-                font-size: 0.72rem !important;
-                padding: 0.45rem 0.55rem !important;
-                min-height: 2.5rem !important;
-            }
             [data-testid="column"] { min-width: 0 !important; }
             .vc-score-strip { justify-content: center; }
             .vc-score-chip { min-width: 56px; font-size: 0.95rem; }
-            .vc-result-hero-inner { flex-direction: column; text-align: center; }
-            .vc-result-hero-score { width: 100%; }
             [data-testid="stFileUploader"] section { padding: 0.5rem !important; }
             [data-testid="stChatInput"] {
                 padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)) !important;
@@ -3362,6 +4027,15 @@ def apply(page: str = "홈") -> None:
             background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(237,233,254,0.9) 100%) !important;
             border-color: rgba(99,102,241,0.24) !important;
         }
+        .vc-result-hero-title {
+            color: #1e293b !important;
+        }
+        .vc-result-hero-focus {
+            color: #475569 !important;
+        }
+        .vc-vocal-mbti-badge {
+            color: #4338ca !important;
+        }
         .vc-beta-text { color: #52525b !important; }
 
         /* ── Light mode — analysis · results · my page ── */
@@ -3488,6 +4162,11 @@ def apply(page: str = "홈") -> None:
         .vc-detail-panel {
             background: rgba(255,255,255,0.95) !important;
             border-color: rgba(99,102,241,0.16) !important;
+            padding: 0.85rem 0.75rem 0.75rem !important;
+        }
+        body.vc-show-result .vc-detail-panel [data-testid="stTabs"] [data-baseweb="tab-panel"] {
+            padding-left: 1.25rem !important;
+            padding-right: 1.25rem !important;
         }
         .vc-score-ring {
             background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), #e0dce8 0) !important;
@@ -3533,13 +4212,14 @@ def apply(page: str = "홈") -> None:
         }
         .vc-feedback-card-msg,
         .vc-feedback-card-meta { color: #52525b !important; }
+        [data-testid="stChatInput"] textarea {
+            padding-left: 16px !important;
+        }
         .vc-chat-mode-pill { color: #4338ca !important; }
-        .st-key-coach_pill_0 button,
-        .st-key-coach_pill_1 button,
-        .st-key-coach_pill_2 button {
+        [class*="st-key-coach_pill_"] button {
             color: #4338ca !important;
-            background: rgba(99,102,241,0.1) !important;
-            border-color: rgba(99,102,241,0.22) !important;
+            background: #ffffff !important;
+            border-color: #e0e7ff !important;
         }
         .vc-dm-composer [data-testid="stTextInput"] input {
             background: #ffffff !important;
@@ -3602,6 +4282,7 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_panel .vc-dm-composer {
             background: #f8f6ff !important;
             border-top: 1px solid rgba(99,102,241,0.12) !important;
+            padding-bottom: 1.1rem !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatInput"] {
             background: #f8f6ff !important;
@@ -3611,6 +4292,7 @@ def apply(page: str = "홈") -> None:
             color: #1c1528 !important;
             border: 1px solid rgba(99,102,241,0.22) !important;
             box-shadow: 0 1px 4px rgba(99,102,241,0.06) !important;
+            padding: 0.65rem 1rem 0.65rem 16px !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatInput"] textarea::placeholder {
             color: #9ca3af !important;
@@ -3625,11 +4307,16 @@ def apply(page: str = "홈") -> None:
             border-bottom: 1px solid rgba(99,102,241,0.12) !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stMarkdownContainer"] {
-            background: transparent !important;
+            background: #f3f0ff !important;
             color: #1c1528 !important;
             border: none !important;
+            border-radius: 16px !important;
+            border-top-left-radius: 4px !important;
+            padding: 0.85rem 1rem !important;
+            max-width: 92% !important;
             max-height: none !important;
             overflow: visible !important;
+            box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08) !important;
         }
         .st-key-vc_dm_panel [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stMarkdownContainer"] {
             background: rgba(99,102,241,0.1) !important;
@@ -3645,7 +4332,7 @@ def apply(page: str = "홈") -> None:
         .st-key-vc_dm_panel .st-key-coach_pill_2 button {
             background: #ffffff !important;
             color: #4f46e5 !important;
-            border: 1px solid rgba(99,102,241,0.22) !important;
+            border: 1px solid #e0e7ff !important;
         }
         .vc-bubble-typing {
             background: #ffffff !important;
@@ -3672,6 +4359,16 @@ def apply(page: str = "홈") -> None:
             background: #f3f0ff !important;
             border: 1px solid rgba(99,102,241,0.2) !important;
             color: #4338ca !important;
+        }
+        [data-testid="stAlert"] p,
+        .stAlert p,
+        [data-testid="stAlert"] div,
+        .stAlert div {
+            color: #312e81 !important;
+        }
+        .vc-detail-panel [data-testid="stAlert"] p,
+        .vc-detail-panel [data-testid="stAlert"] {
+            color: #312e81 !important;
         }
         .st-key-top_auth_popover .stButton > button,
         .st-key-top_auth_user .stButton > button {
@@ -3719,11 +4416,11 @@ def apply(page: str = "홈") -> None:
             }
         }
         """
+        + css_extension(page)
         + sidebar_css
         + """
         </style>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -3737,8 +4434,7 @@ def login_shell() -> None:
                 <span class="vc-header-tag">로그인 · 회원가입</span>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -3754,16 +4450,15 @@ def hero(title: str, subtitle: str, badge: str = "ANALYSIS") -> None:
             <h2 class="vc-page-title">{title}</h2>
             <p class="vc-page-desc">{subtitle}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def section_title(title: str, caption: str = "") -> None:
-    st.markdown(f'<p class="vc-section">{title}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="vc-section">{title}</p>')
     if caption:
-        st.markdown(f'<p class="vc-caption">{caption}</p>', unsafe_allow_html=True)
+        render_safe_html(f'<p class="vc-caption">{caption}</p>')
 
 
 def sidebar_label(text: str) -> None:
-    st.markdown(f'<p class="vc-sidebar-label">{text}</p>', unsafe_allow_html=True)
+    render_safe_html(f'<p class="vc-sidebar-label">{text}</p>')

@@ -44,8 +44,11 @@ def save_session_cache(user_id: str, session: dict[str, Any], record_path: str |
         "note_clip_error": session.get("note_clip_error"),
         "audio_path": str(session.get("audio_path") or ""),
         "chart_path": str(session.get("chart_path") or "") if session.get("chart_path") else "",
-        "sparkline_path": str(session.get("sparkline_path") or "") if session.get("sparkline_path") else "",
-        "overall_score": report.overall_score,
+            "sparkline_path": str(session.get("sparkline_path") or "") if session.get("sparkline_path") else "",
+            "is_cropped": bool(session.get("is_cropped") or getattr(report, "is_cropped", False)),
+            "original_duration_sec": session.get("original_duration_sec")
+            or getattr(report, "original_duration_sec", None),
+            "overall_score": report.overall_score,
         "reference_source": report.reference_source,
         "mr_likely": report.mr_likely,
         "mr_message": report.mr_message,
@@ -86,7 +89,7 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
             score=float(s.get("score", 0)),
             summary=s.get("summary", ""),
             coaching_blocks=[],
-            details={},
+            details={}
         )
         for s in data.get("stage_summaries", [])
     ]
@@ -103,6 +106,8 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
         reference_source=data.get("reference_source", ""),
         mr_likely=bool(data.get("mr_likely", False)),
         mr_message=data.get("mr_message", ""),
+        is_cropped=bool(data.get("is_cropped", False)),
+        original_duration_sec=data.get("original_duration_sec")
     )
     plot_path = data.get("plot_path") or None
     heatmap_path = data.get("heatmap_path") or None
@@ -136,6 +141,8 @@ def rebuild_session_from_cache(data: dict[str, Any]) -> dict[str, Any]:
             if data.get("sparkline_path") and Path(data["sparkline_path"]).exists()
             else None
         ),
+        "is_cropped": bool(data.get("is_cropped", False)),
+        "original_duration_sec": data.get("original_duration_sec"),
     }
 
 
@@ -158,7 +165,7 @@ def rebuild_session_from_record(record: dict[str, Any], record_path: str | Path 
                 score=score,
                 summary=summary,
                 coaching_blocks=[],
-                details=detail if isinstance(detail, dict) else {},
+                details=detail if isinstance(detail, dict) else {}
             )
         )
 
@@ -174,7 +181,7 @@ def rebuild_session_from_record(record: dict[str, Any], record_path: str | Path 
         coaching_text="",
         reference_source=record.get("reference_source", ""),
         mr_likely=bool(record.get("mr_likely", False)),
-        mr_message=record.get("mr_message", ""),
+        mr_message=record.get("mr_message", "")
     )
     return {
         "report": report,

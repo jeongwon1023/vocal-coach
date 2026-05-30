@@ -274,6 +274,33 @@ def test_suggestion_pool() -> None:
     assert len(_pill_key("테스트 질문")) == 10
 
 
+def test_weakest_stage_compact_json() -> None:
+    from analysis import StageResult, weakest_stage_to_compact_json
+
+    stages = [
+        StageResult(stage=1, title="음정", score=72.0, summary="ok"),
+        StageResult(stage=2, title="박자", score=55.0, summary="weak"),
+        StageResult(stage=3, title="호흡", score=68.0, summary="ok"),
+        StageResult(stage=4, title="종합", score=70.0, summary="ok"),
+    ]
+    payload = weakest_stage_to_compact_json(stages)
+    assert payload["weakest_stage"]["stage"] == 2
+    assert payload["weakest_stage"]["score"] == 55.0
+
+
+def test_trim_silence_intervals() -> None:
+    import numpy as np
+
+    from analysis import _trim_silence_intervals
+
+    sr = 16000
+    y = np.zeros(sr * 3)
+    y[sr: sr * 2] = 0.5 * np.sin(2 * np.pi * 440 * np.linspace(0, 1, sr, endpoint=False))
+    trimmed = _trim_silence_intervals(y, sr, top_db=20.0)
+    assert len(trimmed) < len(y)
+    assert len(trimmed) >= int(0.5 * sr)
+
+
 def test_song_hints_lookup() -> None:
     from song_hints import (
         all_song_hints,
@@ -315,6 +342,116 @@ def test_song_hints_lookup() -> None:
     assert all("아이유" in h.artist for h in filtered)
 
 
+def test_trainer_language_helpers() -> None:
+    from coaching_vocab import derive_vocal_title, rhythm_summary
+    from ui.text_format import sanitize_coach_text, solution_to_checklist
+    from vocal_radar import build_vocal_radar_scores, radar_insight_text
+
+    bad = rhythm_summary(208, 1.18)
+    assert "지수" not in bad
+    assert "208" not in bad
+
+    title = derive_vocal_title(
+        [
+            type("S", (), {"stage": 1, "score": 82.0})(),
+            type("S", (), {"stage": 2, "score": 52.0})(),
+            type("S", (), {"stage": 3, "score": 70.0})(),
+        ]
+    )
+    assert "감성 발라더" in title
+
+    raw = "Superflux onset(논문 Böck 2013)으로 분석. 박 간격 들쭉날쭉 지수 1.18"
+    clean = sanitize_coach_text(raw)
+    assert "Superflux" not in clean
+    assert "Böck" not in clean
+    assert "1.18" not in clean
+
+    from ui.text_format import format_coach_rich_html, normalize_checklist_markdown, normalize_markdown_noise, solution_to_checklist
+
+    checklist = solution_to_checklist("① 메트로놈 70BPM ② 2마디 연습")
+    assert "- [ ]" in checklist
+
+    raw_gpt = "🎯 **박자를 개선해 보아요** ~~0~2초 구간~~ ① 메트로놈 70 ② 손뼉"
+    rich = format_coach_rich_html(raw_gpt)
+    assert "~~" not in rich
+    assert "vc-coach-step" in rich
+    assert "→ 1" in rich
+    assert "vc-coach-sec-focus" in rich or "vc-coach-headline" in rich
+
+    assert normalize_markdown_noise("0~2초") == "0–2초"
+
+    checklist = normalize_checklist_markdown("- [ ] a - [ ] b")
+    assert checklist.count("- [ ]") == 2
+    assert "\n" in checklist
+
+    class FakeStage:
+        def __init__(self, stage, score, details=None):
+            self.stage = stage
+            self.score = score
+            self.details = details or {}
+
+    class FakeReport:
+        stages = [
+            FakeStage(1, 74),
+            FakeStage(2, 45),
+            FakeStage(3, 45, {"timbre_score": 50}),
+            FakeStage(4, 70, {"dynamics_score": 72, "phrase_legato_score": 68}),
+        ]
+        dtw_result = None
+
+    radar = build_vocal_radar_scores(FakeReport())
+    assert set(radar.keys()) == {"음정", "박자", "호흡", "발성", "표현력"}
+    assert len(radar_insight_text(radar)) > 10
+
+
+def test_timestamp_and_guardrails() -> None:
+    from coaching_vocab import format_mmss, time_range, timestamp_at
+
+    assert format_mmss(75) == "01:15"
+    assert timestamp_at(75) == "⏱ [01:15]"
+    assert "01:15" in time_range(75, 82)
+
+    from progress_chart import compute_practice_streak
+
+    from datetime import date, datetime
+
+    today = datetime.combine(date.today(), datetime.min.time()).isoformat()
+    yesterday = datetime.combine(date.fromordinal(date.today().toordinal() - 1), datetime.min.time()).isoformat()
+    streak = compute_practice_streak(
+        [{"recorded_at": today}, {"recorded_at": yesterday}]
+    )
+    assert streak >= 2
+
+
+def test_render_safe_html_dedent() -> None:
+    from ui.utils import render_safe_html
+    import textwrap
+
+    class _Capture:
+        calls: list[tuple] = []
+
+    import ui.utils as u
+
+    old = u.st.markdown
+    u.st.markdown = lambda content, **kw: _Capture.calls.append((content, kw))
+    try:
+        render_safe_html(
+            """
+            <div class="x">
+              <p>ok</p>
+            </div>
+            """
+        )
+        assert _Capture.calls
+        body, kw = _Capture.calls[-1]
+        assert kw.get("unsafe_allow_html") is True
+        assert "<div class=\"x\">" in body
+        assert body.startswith("<div")
+        assert "  <p>ok</p>" not in body or textwrap.dedent(body) == body
+    finally:
+        u.st.markdown = old
+
+
 if __name__ == "__main__":
     test_ui_imports()
     test_navigation_pages()
@@ -330,5 +467,10 @@ if __name__ == "__main__":
     test_feedback_trainer()
     test_coach_rag()
     test_suggestion_pool()
+    test_weakest_stage_compact_json()
+    test_trim_silence_intervals()
     test_song_hints_lookup()
+    test_trainer_language_helpers()
+    test_timestamp_and_guardrails()
+    test_render_safe_html_dedent()
     print("All UI smoke tests passed.")

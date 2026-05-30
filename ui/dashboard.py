@@ -16,6 +16,7 @@ if str(PROJECT_DIR) not in sys.path:
 
 from ui.analysis_eta import format_eta, remaining_seconds
 from ui.progress import make_callback, render_stepper
+from ui.utils import render_safe_html
 
 
 def _resolve_fast_mode() -> bool:
@@ -93,7 +94,7 @@ def clear_analysis_state() -> None:
         "analysis_started_at",
         "analysis_mode_fast",
         "analysis_use_gpt",
-        "analysis_cancelled",
+        "analysis_cancelled"
     ):
         st.session_state.pop(key, None)
 
@@ -125,18 +126,17 @@ def _persist_session_cache(session: dict, opts: dict) -> None:
 
 
 def _render_analyzing_panel_header(opts: dict) -> None:
+    render_safe_html('<script>document.body.classList.add("vc-analyzing");</script>')
     mode = _mode_label(opts)
     title_col, cancel_col = st.columns([4.2, 1.3], vertical_alignment="center")
     with title_col:
-        st.markdown(
-            f"""
+        render_safe_html(f"""
             <div class="vc-analyze-panel-head">
                 <p class="vc-analyze-panel-title">잠시만요 🎵</p>
                 <p class="vc-analyze-panel-desc">선생님이 녹음을 듣고 있어요 · 창을 닫지 마세요</p>
                 <p class="vc-analyzing-mode">{mode} 진행 중</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
     with cancel_col:
         from ui.analysis_overlay import render_cancel_button
@@ -281,7 +281,7 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
                 style_preset=opts["style_preset"],
                 user_id=opts["user_id"],
                 reference_path=Path(ref) if ref else None,
-                on_progress=on_progress,
+                on_progress=on_progress
             )
         st.session_state["last_session"] = session
         st.session_state["last_log"] = buf.getvalue()
@@ -299,7 +299,7 @@ def _resolve_audio_source(
     uploaded,
     use_sample: bool,
     sample: Path,
-    upload_dir: Path,
+    upload_dir: Path
 ) -> Path | None:
     """녹음 > 업로드 > 샘플 순으로 분석용 파일 경로 결정."""
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -354,8 +354,7 @@ def _render_song_hint_banner() -> None:
             <p class="vc-song-hint-title">🎵 {hint.get("artist", "")} — {hint.get("title", "")}{genre_txt}{yt_line}</p>
             <p class="vc-song-hint-body">인기곡 DB · 검색어·가창 스타일 자동 적용{"" if yt_on else " · 유튜브는 아래 버튼으로 켤 수 있어요"}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
     if not yt_on and not st.session_state.get("auto_youtube_on_hint", True):
         if st.button("📺 유튜브 가이드 켜기", key="btn_enable_yt_from_hint", use_container_width=True):
@@ -394,7 +393,7 @@ def _render_precision_recommendation(
     uploaded,
     use_sample: bool,
     sample: Path,
-    upload_dir: Path,
+    upload_dir: Path
 ) -> None:
     """MR·믹스 녹음 시 정밀 분석 권장."""
     if not opts.get("fast_mode", True) or is_analyzing():
@@ -415,7 +414,7 @@ def _render_precision_recommendation(
             uploaded=uploaded,
             use_sample=False,
             sample=sample,
-            upload_dir=upload_dir,
+            upload_dir=upload_dir
         )
         if path and path.exists():
             likely_mr = _quick_mr_check(path)
@@ -431,13 +430,12 @@ def _render_precision_recommendation(
                     <b>정밀 분석</b>을 추천드려요.
                 </p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
         if st.button(
             "⚡ 정밀 분석으로 전환",
             key="btn_switch_precision_mode",
-            use_container_width=True,
+            use_container_width=True
         ):
             st.session_state["force_precision"] = True
             st.session_state.pop("upload_mr_likely", None)
@@ -449,14 +447,14 @@ def _render_precision_recommendation(
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
     from ui.audio_recorder import render_file_upload_fallback, render_live_recorder
 
+    st.markdown('<div id="vc-new-analysis"></div>')
     st.markdown(
         """
-        <div class="vc-new-analysis-head">
+        <div class="vc-app-card">
             <p class="vc-new-analysis-title">🎤 새 분석</p>
             <p class="vc-new-analysis-desc">녹음 → 점수 · 코치 DM까지 한 번에</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     recorded = render_live_recorder(disabled=disabled, key="analysis_live_recorder")
@@ -472,7 +470,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
         uploaded=uploaded,
         use_sample=use_sample,
         sample=sample,
-        upload_dir=upload_dir,
+        upload_dir=upload_dir
     )
 
     has_file = (
@@ -497,8 +495,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
     except Exception:
         pass
     st.markdown(
-        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 위 <b>분석 설정</b>에서 변경</p>',
-        unsafe_allow_html=True,
+        f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 위 <b>분석 설정</b>에서 변경</p>'
     )
 
     analyzing_now = disabled or is_analyzing()
@@ -509,14 +506,14 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             type="primary",
             use_container_width=True,
             key="btn_analyzing_status",
-            disabled=True,
+            disabled=True
         )
     elif st.button(
         f"🎤 {mode_label} 시작하기",
         type="primary",
         use_container_width=True,
         key="btn_start_analysis",
-        disabled=not has_file,
+        disabled=not has_file
     ):
         upload_dir = PROJECT_DIR / ".cache" / "uploads"
         sample = PROJECT_DIR / "sample.mp3"
@@ -525,7 +522,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             uploaded=uploaded,
             use_sample=use_sample,
             sample=sample,
-            upload_dir=upload_dir,
+            upload_dir=upload_dir
         )
         if audio_path is None:
             st.warning("녹음 또는 파일을 선택한 뒤 다시 시도해 주세요.")
@@ -537,6 +534,17 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             audio_path = ensure_normalized(audio_path)
         except Exception as exc:
             st.warning(f"오디오 정규화 건너뜀: {exc}")
+
+        try:
+            from audio_guardrails import AudioGuardrailError, validate_audio_file
+
+            validate_audio_file(audio_path)
+        except AudioGuardrailError as exc:
+            st.error(exc.message)
+            return
+        except Exception as exc:
+            st.error(f"⚠️ 오디오 검증 실패: {exc}")
+            return
 
         opts = _maybe_auto_precision_on_mr(audio_path, opts)
 
@@ -571,7 +579,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
                 fast_mode=opts["fast_mode"],
                 style_preset=opts["style_preset"],
                 user_id=opts["user_id"],
-                reference_path=str(opts["reference_path"]) if opts.get("reference_path") else None,
+                reference_path=str(opts["reference_path"]) if opts.get("reference_path") else None
             )
             st.session_state["pending_job_id"] = job_id
             st.rerun()
@@ -648,10 +656,39 @@ def render_analysis_section(*, show_settings: bool = True) -> None:
     _render_upload_form(opts, disabled=False)
 
 
+def render_crop_notice(session: dict) -> None:
+    """완곡 자동 컷(150초) 안내 — 결과 화면 최상단."""
+    from analysis import SMART_MAX_DURATION_SEC
+
+    is_cropped = session.get("is_cropped") or getattr(
+        session.get("report"), "is_cropped", False
+    )
+    if not is_cropped:
+        return
+    orig = session.get("original_duration_sec") or getattr(
+        session.get("report"), "original_duration_sec", None
+    )
+    extra = ""
+    if orig and float(orig) > SMART_MAX_DURATION_SEC:
+        extra = f" (전체 {float(orig):.0f}초)"
+    render_safe_html(
+        f"""\
+<div class="vc-crop-banner">
+<span class="vc-crop-icon">💡</span>
+<div>
+<p class="vc-crop-title">1절(2분 30초) 구간만 우선 진단했습니다{extra}</p>
+<p class="vc-crop-body">원활한 분석 환경을 위해 앞부분만 분석했어요. 완곡 정밀 분석은 곧 <b>프리미엄 서비스</b>로 오픈됩니다!</p>
+</div>
+</div>"""
+    )
+
+
 def render_results_view() -> None:
     from ui.coach_chat import render_coach_dm
 
-    render_coach_dm(st.session_state["last_session"])
+    session = st.session_state["last_session"]
+    render_crop_notice(session)
+    render_coach_dm(session)
 
 
 def render() -> None:

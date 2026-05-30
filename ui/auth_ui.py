@@ -6,6 +6,7 @@ import streamlit as st
 
 from auth_service import auth_base_url, google_configured, kakao_configured
 from ui.runtime_env import is_streamlit_cloud
+from ui.utils import render_safe_html
 
 
 def _oauth_hint(provider: str) -> str:
@@ -20,7 +21,7 @@ def render_trial_button(*, key_prefix: str = "trial") -> None:
         "✦ 체험 계정으로 바로 시작",
         key=f"{key_prefix}_demo",
         use_container_width=True,
-        type="primary",
+        type="primary"
     ):
         from ui.auth import start_demo
 
@@ -35,29 +36,24 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
     sm = " vc-auth-sm" if compact else ""
 
     if k_ok:
-        st.markdown(
-            f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao{sm}">'
-            f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</a>',
-            unsafe_allow_html=True,
+        render_safe_html(f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao{sm}">'
+            f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</a>'
         )
     else:
         st.markdown(
             f'<span class="vc-auth-btn vc-auth-kakao vc-auth-disabled{sm}">'
-            f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</span>',
-            unsafe_allow_html=True,
+            f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</span>'
         )
 
     if g_ok:
         st.markdown(
             f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google{sm}">'
-            f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</a>',
-            unsafe_allow_html=True,
+            f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</a>'
         )
     else:
         st.markdown(
             f'<span class="vc-auth-btn vc-auth-google vc-auth-disabled{sm}">'
-            f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</span>',
-            unsafe_allow_html=True,
+            f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</span>'
         )
 
     if not k_ok and not g_ok and not compact:
@@ -68,8 +64,7 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
         <div class="vc-auth-divider" aria-hidden="true">
             <span>또는</span>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     demo_label = "✦ 체험 계정으로 시작" if not compact else "✦ 체험 계정"
@@ -88,8 +83,7 @@ def render_login_hero(*, compact: bool = False) -> None:
                 <h2 class="vc-login-brand-title">로그인이 필요해요</h2>
                 <p class="vc-login-brand-tag">분석·기록은 로그인 후 이용할 수 있어요</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
         return
 
@@ -105,19 +99,16 @@ def render_login_hero(*, compact: bool = False) -> None:
                 <li><span>📈</span> 마이 페이지 기록 저장</li>
             </ul>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_login_card(*, key_prefix: str = "login", compact: bool = False) -> None:
     render_login_hero(compact=compact)
-    st.markdown('<div class="vc-login-card-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="vc-login-card-marker"></div>')
     with st.container(border=True):
         if not compact:
-            st.markdown(
-                '<p class="vc-login-card-heading">3초 만에 시작하기</p>',
-                unsafe_allow_html=True,
+            render_safe_html('<p class="vc-login-card-heading">3초 만에 시작하기</p>'
             )
         render_auth_buttons(key_prefix=key_prefix, compact=compact)
         foot = (
@@ -125,4 +116,4 @@ def render_login_card(*, key_prefix: str = "login", compact: bool = False) -> No
             if not compact
             else "체험 계정으로 바로 시작할 수 있어요"
         )
-        st.markdown(f'<p class="vc-login-footnote">{foot}</p>', unsafe_allow_html=True)
+        st.markdown(f'<p class="vc-login-footnote">{foot}</p>')

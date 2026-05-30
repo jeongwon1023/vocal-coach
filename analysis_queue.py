@@ -174,6 +174,9 @@ def _run_analysis_worker(job_id: str, audio_path: Path, options: dict[str, Any])
             "audio_path": str(session.get("audio_path") or ""),
             "chart_path": str(session.get("chart_path") or ""),
             "sparkline_path": str(session.get("sparkline_path") or ""),
+            "is_cropped": bool(session.get("is_cropped") or getattr(session["report"], "is_cropped", False)),
+            "original_duration_sec": session.get("original_duration_sec")
+            or getattr(session["report"], "original_duration_sec", None),
             "overall_score": session["report"].overall_score,
             "reference_source": session["report"].reference_source,
             "mr_likely": session["report"].mr_likely,
@@ -252,6 +255,8 @@ def load_session_for_job(job_id: str) -> dict[str, Any] | None:
         reference_source=data.get("reference_source", ""),
         mr_likely=bool(data.get("mr_likely", False)),
         mr_message=data.get("mr_message", ""),
+        is_cropped=bool(data.get("is_cropped", False)),
+        original_duration_sec=data.get("original_duration_sec"),
     )
     return {
         "report": report,
@@ -270,6 +275,8 @@ def load_session_for_job(job_id: str) -> dict[str, Any] | None:
         "audio_path": data.get("audio_path") or "",
         "chart_path": data.get("chart_path"),
         "sparkline_path": data.get("sparkline_path"),
+        "is_cropped": bool(data.get("is_cropped", False)),
+        "original_duration_sec": data.get("original_duration_sec"),
     }
 
 

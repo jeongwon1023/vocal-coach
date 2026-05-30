@@ -39,8 +39,7 @@ def render() -> None:
                 </div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     from ui.help_guide import render_youtube_guide_inline
@@ -55,8 +54,7 @@ def render() -> None:
                 <p class="vc-tip-soft-title">🎧 녹음 팁</p>
                 <p class="vc-tip-soft-body">MR은 이어폰으로 듣고, 마이크에는 <b>목소리만</b> 녹음하면 분석이 더 정확해요. 실시간 녹음 탭을 이용해 보세요.</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
     with c2:
         st.markdown(
@@ -65,6 +63,5 @@ def render() -> None:
                 <p class="vc-tip-soft-title">⚡ 분석 시간</p>
                 <p class="vc-tip-soft-body">빠른 분석 약 1분 · 정밀 분석 2~3분 · 결과는 DM 코치로 바로 확인</p>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )

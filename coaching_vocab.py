@@ -61,8 +61,23 @@ def hf_drop_to_words(pct: float) -> str:
     return "음색이 살짝 흐려짐"
 
 
+def format_mmss(seconds: float) -> str:
+    """유저-facing 타임스탬프 — MM:SS."""
+    s = max(0, int(round(seconds)))
+    minutes, secs = divmod(s, 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def timestamp_at(seconds: float) -> str:
+    """단일 시점 — ⏱ [01:15]"""
+    return f"⏱ [{format_mmss(seconds)}]"
+
+
 def time_range(start: float, end: float) -> str:
-    return f"{start:.1f}초~{end:.1f}초"
+    """구간 — ⏱ [01:15]–[01:22] 구간 (오디오 재생 유도용)."""
+    if abs(end - start) < 0.45:
+        return f"{timestamp_at(start)} 구간"
+    return f"{timestamp_at(start)}–[{format_mmss(end)}] 구간"
 
 
 def pitch_summary(
@@ -84,16 +99,75 @@ def pitch_summary(
 
 
 def rhythm_summary(attack_count: int, rhythm_cv: float) -> str:
+    """유저 화면용 — 내부 지수·횟수 없이 트레이너 언어로."""
+    _ = attack_count  # 내부 분석용, UI에는 노출하지 않음
+    if rhythm_cv <= 0.28:
+        return (
+            "리듬의 그루브가 안정적이에요. "
+            "음을 시작하는 첫 타점(어택)도 고르게 맞추고 있습니다."
+        )
+    if rhythm_cv <= 0.45:
+        return (
+            "리듬의 그루브가 조금씩 흔들려요. "
+            "음을 시작하는 첫 타점(어택)이 가끔 밀리거나 당겨집니다."
+        )
     return (
-        f"소리 뱉는 타이밍(어택) {attack_count}회 · "
-        f"박 간격 들쭉날쭉 지수 {rhythm_cv:.2f} "
-        f"({rhythm_cv_to_words(rhythm_cv)})"
+        "엇박자가 자주 발생하여 리듬의 그루브가 흔들리고 있습니다. "
+        "음을 시작하는 타점(어택)이 일정하지 않아요."
     )
 
 
 def breath_summary(env_cv: float, breath_issues: int, timbre_issues: int) -> str:
     return (
-        f"호흡·음량 안정도 {env_cv:.2f} ({env_cv_to_words(env_cv)}) · "
+        f"호흡 지지·음량: {env_cv_to_words(env_cv)} · "
         f"힘 빠짐/튀는 구간 {breath_issues}곳 · "
         f"음색 흐려진 구간 {timbre_issues}곳"
     )
+
+
+def derive_vocal_title(stages: list) -> str:
+    """4영역 점수 조합 → 보컬 MBTI 한 줄 타이틀."""
+    scores: dict[int, float] = {}
+    for s in stages or []:
+        if hasattr(s, "stage"):
+            scores[int(s.stage)] = float(getattr(s, "score", 0) or 0)
+        elif isinstance(s, dict):
+            scores[int(s.get("stage", 0))] = float(s.get("score", 0) or 0)
+
+    pitch = scores.get(1, 70.0)
+    rhythm = scores.get(2, 70.0)
+    breath = scores.get(3, 70.0)
+
+    strong, weak = 75.0, 58.0
+
+    def band(v: float) -> str:
+        if v >= strong:
+            return "H"
+        if v < weak:
+            return "L"
+        return "M"
+
+    p, r, b = band(pitch), band(rhythm), band(breath)
+
+    rules: list[tuple[bool, str]] = [
+        (p == "H" and r == "L", "음정은 칼같지만 리듬감이 아쉬운 '감성 발라더'"),
+        (r == "H" and p == "L", "리듬은 지배하지만 음정이 살짝 불안한 '그루브 장인'"),
+        (p == "H" and b == "L", "음정은 또렷한데 호흡 지지가 아쉬운 '감성 발라더'"),
+        (b == "H" and r == "L", "호흡과 음색은 탄탄한데 박자가 살짝 흔들리는 '롱톤 마스터'"),
+        (r == "H" and b == "L", "박자는 좋은데 호흡·음색을 더 채울 '리듬 장인'"),
+        (p == "L" and r == "H", "리듬감은 살아 있는데 음정을 다듬을 '그루브 루키'"),
+        (p == "H" and r == "H" and b == "H", "음정·박자·호흡 삼박자가 탄탄한 '올라운드 보컬리스트'"),
+        (p == "H" and r == "H", "음정과 리듬이 모두 안정적인 '무대 준비 완료형'"),
+        (b == "H" and p == "H", "음정·호흡이 탄탄한 '감성 롱톤형'"),
+        (p == "L" and r == "L", "기초를 다지는 중인 '열정 새내기'"),
+        (p == "M" and r == "M" and b == "M", "골고루 성장 중인 '밸런스형 보컬리스트'"),
+    ]
+    for ok, title in rules:
+        if ok:
+            return title
+    weakest = min(
+        ((1, pitch), (2, rhythm), (3, breath)),
+        key=lambda x: x[1],
+    )[0]
+    focus = STAGE_LABELS_SHORT.get(weakest, "보컬")
+    return f"{focus}부터 키워 나갈 '성장형 보컬리스트'"

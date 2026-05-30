@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -68,7 +69,8 @@ AUDIO_CANDIDATES = (
 )
 ANALYSIS_SR = 22050
 FAST_ANALYSIS_SR = 16000
-FAST_MAX_DURATION_SEC = 120.0  # 빠른 모드: 앞 2분만 분석
+SMART_MAX_DURATION_SEC = 150.0  # 완곡: 앞 2분 30초(1절)만 우선 진단
+FAST_MAX_DURATION_SEC = SMART_MAX_DURATION_SEC  # 하위 호환
 NORMALIZE_BEFORE_ANALYSIS = True  # 44.1kHz mono -14 LUFS 전처리
 
 from ui.runtime_env import configure_matplotlib
@@ -95,6 +97,91 @@ BREATH_SURGE_THRESHOLD = 0.42
 BREATH_MIN_DURATION_SEC = 0.22
 HF_DROP_PERCENT = 15.0
 HF_CUTOFF_HZ = 2000.0
+
+# 고음역 발성 건강 (마찰·노이즈)
+HIGH_REGISTER_HZ = 400.0
+VOCAL_NOISE_RATIO_WARN = 0.22
+VOCAL_HNR_WARN_DB = 12.0
+VOCAL_HEALTH_SCORE_PENALTY = 12.0
+
+
+def _release_matplotlib_figure(fig) -> None:
+    """Streamlit 서버 OOM 방지 — fig 해제 후 gc."""
+    try:
+        fig.clf()
+    except Exception:
+        pass
+    try:
+        plt.close(fig)
+    except Exception:
+        pass
+    gc.collect()
+
+
+def _trim_silence_intervals(y: np.ndarray, sr: int, *, top_db: float = 20.0) -> np.ndarray:
+    """librosa.effects.split로 묵음 제거 후 음성 구간만 병합."""
+    if y.size == 0:
+        return y
+    intervals = librosa.effects.split(y, top_db=top_db)
+    if len(intervals) == 0:
+        return y
+    parts = [y[start:end] for start, end in intervals if end > start]
+    if not parts:
+        return y
+    merged = np.concatenate(parts)
+    if len(merged) < int(0.35 * sr):
+        return y
+    return merged
+
+
+def _high_register_vocal_health(
+    y: np.ndarray,
+    sr: int,
+    times: np.ndarray,
+    f0: np.ndarray,
+    hop_length: int,
+) -> dict:
+    """고음역 harmonic 대비 노이즈 비율 — 목 쥐어짜기(마찰) 추정."""
+    voiced_high = np.isfinite(f0) & (f0 >= HIGH_REGISTER_HZ)
+    if not np.any(voiced_high) or y.size == 0:
+        return {
+            "high_register_noise": False,
+            "noise_ratio": None,
+            "hnr_db_est": None,
+        }
+
+    y_harm = librosa.effects.harmonic(y)
+    y_noise = y - y_harm
+    frame_half = max(hop_length // 2, 256)
+    ratios: list[float] = []
+
+    for idx in np.where(voiced_high)[0]:
+        if idx >= len(times):
+            continue
+        center = int(float(times[idx]) * sr)
+        start = max(0, center - frame_half)
+        end = min(len(y), center + frame_half)
+        if end - start < 64:
+            continue
+        h_e = float(np.sum(y_harm[start:end] ** 2) + 1e-12)
+        n_e = float(np.sum(y_noise[start:end] ** 2) + 1e-12)
+        ratios.append(n_e / (h_e + n_e))
+
+    if not ratios:
+        return {
+            "high_register_noise": False,
+            "noise_ratio": None,
+            "hnr_db_est": None,
+        }
+
+    mean_ratio = float(np.mean(ratios))
+    hnr_est = float(-10.0 * np.log10(max(mean_ratio, 1e-8)))
+    high_noise = mean_ratio >= VOCAL_NOISE_RATIO_WARN or hnr_est < VOCAL_HNR_WARN_DB
+    return {
+        "high_register_noise": high_noise,
+        "noise_ratio": round(mean_ratio, 4),
+        "hnr_db_est": round(hnr_est, 1),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -190,6 +277,8 @@ class CurriculumReport:
     style_preset_label: str = "균형 (기본)"
     analysis_engine: dict = field(default_factory=dict)
     note_segments: list = field(default_factory=list)
+    is_cropped: bool = False
+    original_duration_sec: float | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -255,8 +344,10 @@ def load_audio(
     audio_path: Path, *, fast: bool = False, skip_normalize: bool = False
 ) -> tuple[np.ndarray, int, int, float | None]:
     """
-    Returns (y, sr, hop_length, full_duration_if_truncated).
-    빠른 모드: 16kHz · 앞 2분만 로드.
+    Returns (y, sr, hop_length, original_full_duration_if_cropped).
+
+    - 16kHz 다운샘플링으로 pyin 연산 속도 확보
+    - 150초(2.5분) 초과 시 앞 구간만 자동 슬라이싱 (에러 없음)
     """
     import soundfile as sf
 
@@ -268,14 +359,15 @@ def load_audio(
 
     info = sf.info(str(src))
     full_dur = float(info.duration)
-    sr_target = FAST_ANALYSIS_SR if fast else ANALYSIS_SR
-    load_dur = (
-        FAST_MAX_DURATION_SEC if fast and full_dur > FAST_MAX_DURATION_SEC else None
-    )
+    sr_target = FAST_ANALYSIS_SR
+    should_crop = full_dur > SMART_MAX_DURATION_SEC
+    load_dur = SMART_MAX_DURATION_SEC if should_crop else None
     y, sr = librosa.load(src, sr=sr_target, mono=True, duration=load_dur)
+    if fast:
+        y = _trim_silence_intervals(y, sr, top_db=20.0)
     analyzed_dur = len(y) / sr
     hop = _hop_length(analyzed_dur, fast=fast)
-    truncated = full_dur if load_dur else None
+    truncated = full_dur if should_crop else None
     return y, sr, hop, truncated
 
 
@@ -737,7 +829,13 @@ def analyze_pitch_regions(
 
 
 def stage1_pitch_accuracy(
-    pitch: PitchAnalysis, dtw_result: object | None = None
+    pitch: PitchAnalysis,
+    dtw_result: object | None = None,
+    *,
+    y: np.ndarray | None = None,
+    sr: int | None = None,
+    hop_length: int | None = None,
+    times: np.ndarray | None = None,
 ) -> StageResult:
     blocks: list[CoachingBlock] = []
     ref_valid = np.isfinite(pitch.cents_vs_reference) & (np.abs(pitch.cents_vs_reference) < 300)
@@ -1000,6 +1098,52 @@ def stage1_pitch_accuracy(
                 f"(멜로디 일치 {match_pct:.0f}%)"
             )
 
+    vocal_health: dict = {
+        "high_register_noise": False,
+        "noise_ratio": None,
+        "hnr_db_est": None,
+    }
+    if y is not None and sr and times is not None and len(times) > 0 and pitch.f0_user.size:
+        vocal_health = _high_register_vocal_health(
+            y, sr, times, pitch.f0_user, hop_length or 512
+        )
+    elif pitch.research and pitch.research.hnr_db is not None:
+        if float(pitch.research.hnr_db) < VOCAL_HNR_WARN_DB:
+            vocal_health = {
+                "high_register_noise": True,
+                "noise_ratio": None,
+                "hnr_db_est": round(float(pitch.research.hnr_db), 1),
+            }
+
+    if vocal_health.get("high_register_noise") and match_pct >= 55:
+        score = max(0.0, score - VOCAL_HEALTH_SCORE_PENALTY)
+        hnr_txt = vocal_health.get("hnr_db_est")
+        ratio_txt = vocal_health.get("noise_ratio")
+        detail_parts = []
+        if hnr_txt is not None:
+            detail_parts.append(f"추정 HNR {hnr_txt}dB")
+        if ratio_txt is not None:
+            detail_parts.append(f"노이즈 비율 {ratio_txt * 100:.0f}%")
+        detail = " · ".join(detail_parts) if detail_parts else "고음역 마찰 성분 증가"
+        blocks.insert(
+            0,
+            CoachingBlock(
+                result="발성 건강도 경고: 고음에서 마찰 노이즈 감지",
+                cause=(
+                    f"피치는 어느 정도 맞지만 고음역({HIGH_REGISTER_HZ:.0f}Hz 이상)에서 "
+                    f"조화음 대비 잡음·마찰 성분이 높게 측정됐어요 ({detail}). "
+                    "목을 쥐어짜거나 턱·목 근육이 긴장된 발성일 수 있습니다."
+                ),
+                solution=(
+                    "① 턱·어깨 힘 빼고 'ng' 입모양으로 허밍 5초 × 5회 "
+                    "② 고음은 키를 반음 낮춰(승키) 편하게 부른 뒤 원키로 "
+                    "③ 복식호흡으로 복부 지지 유지 후 같은 구간만 3회 재녹음"
+                ),
+            ),
+        )
+        if "발성 건강" not in summary:
+            summary += " · 고음 마찰 노이즈 주의"
+
     return StageResult(
         stage=1,
         title=STAGE_TITLES[1],
@@ -1036,6 +1180,9 @@ def stage1_pitch_accuracy(
             "slightly_high": pitch.note_precision.slightly_high if pitch.note_precision else None,
             "too_high": pitch.note_precision.too_high if pitch.note_precision else None,
             "note_count": pitch.note_precision.note_count if pitch.note_precision else None,
+            "vocal_health_high_noise": vocal_health.get("high_register_noise"),
+            "vocal_health_noise_ratio": vocal_health.get("noise_ratio"),
+            "vocal_health_hnr_db_est": vocal_health.get("hnr_db_est"),
         },
     )
 
@@ -1075,6 +1222,7 @@ def stage2_rhythm_stability(
     y_harm: np.ndarray | None = None,
     dtw_result: object | None = None,
     rhythm_cv_target: float = 0.28,
+    pitch_score: float | None = None,
 ) -> StageResult:
     env_times, env = extract_vocal_energy_envelope(
         y, sr, hop_length, f0, y_harm=y_harm
@@ -1130,8 +1278,6 @@ def stage2_rhythm_stability(
     score = research_rhythm_score(cv_superflux, rhythm_cv, cv_target=rhythm_cv_target)
 
     summary = rhythm_summary(int(attack_times.size), rhythm_cv)
-    if cv_superflux is not None:
-        summary += f" · Superflux 박자 지수 {cv_superflux:.2f} ({rhythm_cv_to_words(cv_superflux)})"
 
     rhythm_cv_eval = cv_superflux if cv_superflux is not None else rhythm_cv
     if score < 30 and int(np.sum(np.isfinite(f0) & (f0 > 0))) >= 50:
@@ -1153,19 +1299,40 @@ def stage2_rhythm_stability(
 
     if rhythm_cv_eval > rhythm_cv_target:
         avg_gap = float(np.mean(gaps)) if gaps.size >= 2 else 0.0
+        if avg_gap >= 0.55:
+            timing_hint = (
+                "소리를 내기 시작하는 타이밍이 정박보다 미세하게 늦는 습관이 있으시네요. "
+            )
+        elif avg_gap > 0:
+            timing_hint = "박자를 살짝 밀어 부르는 경향이 보여요. "
+        else:
+            timing_hint = ""
+        praise = ""
+        if pitch_score is not None and pitch_score >= 70:
+            praise = "음정은 정말 정확하게 잘 잡으셨어요! 그런데 "
+        elif pitch_score is not None and pitch_score >= 58:
+            praise = "멜로디 라인은 비교적 안정적이에요. 다만 "
         blocks.append(
             CoachingBlock(
-                result=f"박자가 자주 어긋나요. {rhythm_cv_to_words(rhythm_cv)}",
+                result=(
+                    f"{praise}리듬의 그루브가 흔들리고 있어요. {rhythm_cv_to_words(rhythm_cv_eval)}"
+                    if praise
+                    else (
+                        "엇박자가 자주 발생하여 리듬의 그루브가 흔들리고 있습니다. "
+                        f"{rhythm_cv_to_words(rhythm_cv_eval)}"
+                    )
+                ),
                 cause=(
-                    f"소리를 내는 간격이 들쭉날쭉합니다 (지수 {rhythm_cv_eval:.2f}, 목표 {rhythm_cv_target:.2f} 이하). "
-                    f"{f'평균 {avg_gap:.1f}초마다 한 번씩 소리를 내는데 간격이 일정하지 않아요. ' if avg_gap else ''}"
-                    "Superflux onset(논문 Böck 2013)으로 비브라토 오검출을 줄여 분석했습니다."
+                    timing_hint
+                    + "혹시 부르실 때 호흡이 조금 부족하다고 느끼시진 않나요? "
+                    "배에 살짝만 더 긴장을 주고, 리듬을 먼저 타면서 부르는 연습을 해볼게요."
                 ),
                 solution=(
-                    "① 메트로놈 70BPM 켜기 ② 문제 구간 2마디만 골라 "
-                    "③ 손뼉 1번 → 가사 1음절 (동시에) 5세트 "
-                    "④ 맞으면 75BPM → 80BPM으로 올리기 "
-                    "⑤ 유튜브에서 '자음은 박 직전, 모음은 박에' 연습 영상 참고"
+                    "① 메트로놈 70BPM 켜기\n"
+                    "② 문제 구간 2마디만 골라 가사 없이 '스' 발음으로 박자 타기\n"
+                    "③ 손뼉과 동시에 가사 첫 글자 부르기 5세트 반복\n"
+                    "④ 맞으면 75BPM → 80BPM으로 올리기\n"
+                    "⑤ 음을 찍어 누르지 말고 리듬에 몸을 맡겨 보세요"
                 ),
             )
         )
@@ -1173,7 +1340,7 @@ def stage2_rhythm_stability(
         blocks.append(
             CoachingBlock(
                 result="박자·리듬이 비교적 안정적이에요.",
-                cause=f"박 간격 지수 {rhythm_cv:.2f} — 학원·유튜브에서 말하는 '박 잘 탄다' 수준입니다.",
+                cause="한 박 한 박 소리 내는 간격이 고르게 유지되고 있어요 — 학원에서 말하는 '박 잘 탄다' 수준입니다.",
                 solution="빠른 후렴만 0.75배속으로 5번 연습한 뒤 원템포로 돌아오세요.",
             )
         )
@@ -1740,7 +1907,14 @@ def run_curriculum(
         note_segments = _segments_to_dicts(pitch.note_precision.note_segments)
 
     _prog(0.52, "박자·리듬 분석 중…")
-    s1 = stage1_pitch_accuracy(pitch, dtw_result=dtw_result)
+    s1 = stage1_pitch_accuracy(
+        pitch,
+        dtw_result=dtw_result,
+        y=y_vocal,
+        sr=sr,
+        hop_length=hop,
+        times=times,
+    )
     s2 = stage2_rhythm_stability(
         y_vocal,
         sr,
@@ -1750,6 +1924,7 @@ def run_curriculum(
         y_harm=y_harm,
         dtw_result=dtw_result,
         rhythm_cv_target=preset.rhythm_cv_target,
+        pitch_score=s1.score,
     )
     _prog(0.65, "호흡·음색 분석 중…")
     s3, breath_issues, timbre_issues = stage3_breath_support(
@@ -1788,10 +1963,10 @@ def run_curriculum(
             f"유튜브/MR 믹스 — 보컬 강조 추출({pitch_source})으로 분석했습니다. "
             + mr_msg
         )
-    if truncated_from and fast_mode:
+    if truncated_from:
         mr_msg = (
-            f"⚡ 빠른 분석: 전체 {truncated_from:.0f}초 중 앞 {FAST_MAX_DURATION_SEC:.0f}초만 분석. "
-            f"정밀 분석으로 전체 구간 확인. "
+            "💡 원활한 환경을 위해 1절(2분 30초) 구간만 우선 진단했습니다. "
+            "완곡 정밀 분석은 곧 프리미엄 서비스로 오픈됩니다! "
             + mr_msg
         )
 
@@ -1818,6 +1993,8 @@ def run_curriculum(
         style_preset_label=preset.label,
         analysis_engine=analysis_engine,
         note_segments=note_segments,
+        is_cropped=bool(truncated_from),
+        original_duration_sec=truncated_from,
     )
 
 
@@ -1947,6 +2124,11 @@ def report_to_gpt_payload(report: CurriculumReport) -> dict:
     base["style_preset_label"] = report.style_preset_label
     base["analysis_engine"] = getattr(report, "analysis_engine", {}) or {}
     base["note_segments"] = getattr(report, "note_segments", []) or []
+    from coaching_vocab import derive_vocal_title
+    from vocal_radar import build_vocal_radar_scores
+
+    base["vocal_title"] = derive_vocal_title(report.stages)
+    base["vocal_radar_scores"] = build_vocal_radar_scores(report)
     return base
 
 
@@ -1993,6 +2175,13 @@ def run_full_session(
             on_progress(pct, msg)
 
     _prog(0.05, "오디오 불러오는 중…")
+
+    from audio_guardrails import AudioGuardrailError, validate_audio_file
+
+    try:
+        validate_audio_file(audio_path)
+    except AudioGuardrailError as exc:
+        raise RuntimeError(exc.message) from exc
 
     if use_youtube and song_title:
         _prog(0.15, "유튜브 가이드 검색 중…")
@@ -2047,6 +2236,8 @@ def run_full_session(
         "gpt_text": "",
         "plot_path": save_plot or PROJECT_DIR / "pitch_result.png",
         "audio_path": str(audio_path),
+        "is_cropped": bool(getattr(report, "is_cropped", False)),
+        "original_duration_sec": getattr(report, "original_duration_sec", None),
     }
 
     saved_path = None
@@ -2412,8 +2603,37 @@ def plot_pitch(
         print(f"\n[안내] 그래프 저장: {save_path}")
     if plt.get_backend().lower() != "agg":
         plt.show()
-    else:
-        plt.close(fig)
+    _release_matplotlib_figure(fig)
+
+
+def weakest_stage_to_compact_json(stages: list[StageResult]) -> dict:
+    """4단계 중 가장 낮은 점수 스테이지 1개 — AI 코치용 초경량 JSON."""
+    candidates = [s for s in stages if s.stage in (1, 2, 3, 4)]
+    if not candidates:
+        candidates = list(stages)
+    if not candidates:
+        return {"weakest_stage": None}
+    weakest = min(candidates, key=lambda s: float(s.score))
+    block = weakest.coaching_blocks[0] if weakest.coaching_blocks else None
+    return {
+        "weakest_stage": {
+            "stage": weakest.stage,
+            "title": weakest.title,
+            "score": round(float(weakest.score), 1),
+            "summary": weakest.summary,
+            "focus": block.result if block else weakest.summary,
+            "cause": block.cause if block else "",
+        }
+    }
+
+
+def report_to_coach_chat_payload(report: CurriculumReport) -> dict:
+    """DM 코치 채팅 — 약점 1개만 전달 (토큰·환각 절감)."""
+    payload = weakest_stage_to_compact_json(report.stages)
+    payload["overall_score"] = round(float(report.overall_score), 1)
+    if report.song_title:
+        payload["song_title"] = report.song_title
+    return payload
 
 
 def main() -> int:

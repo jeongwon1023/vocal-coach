@@ -41,7 +41,7 @@ def scroll_to_top(*, anchor_id: str = "vc-analyzing-anchor") -> None:
         }})();
         </script>
         """,
-        height=0,
+        height=0
     )
 
 

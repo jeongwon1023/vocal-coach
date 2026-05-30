@@ -42,7 +42,7 @@ def render_stepper(
     message: str = "",
     *,
     eta_label: str = "",
-    mode_label: str = "",
+    mode_label: str = ""
 ) -> None:
     chips = []
     for emoji, label, threshold in STEPS:
@@ -74,8 +74,7 @@ def render_stepper(
                 <div class="vc-chip-row">{"".join(chips)}</div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 

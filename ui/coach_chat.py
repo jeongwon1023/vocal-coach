@@ -5,13 +5,15 @@ from __future__ import annotations
 import hashlib
 import html
 import re
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
 from coaching_vocab import STAGE_NAMES
 from ui.coach_insights import build_focus_items, build_strength_items
-from ui.text_format import format_readable_paragraphs
+from ui.utils import render_safe_html
+from ui.text_format import format_readable_paragraphs, normalize_markdown_noise
 
 
 def _session_fingerprint(session: dict[str, Any]) -> str:
@@ -29,9 +31,9 @@ def _session_fingerprint(session: dict[str, Any]) -> str:
 
 
 def _analysis_payload(session: dict[str, Any]) -> dict[str, Any]:
-    from analysis import report_to_gpt_payload
+    from analysis import report_to_coach_chat_payload
 
-    return report_to_gpt_payload(session["report"])
+    return report_to_coach_chat_payload(session["report"])
 
 
 def _md_to_html(text: str) -> str:
@@ -58,13 +60,7 @@ def _normalize_chat_markdown(text: str) -> str:
     cleaned = _sanitize_chat_content(text)
     if not cleaned:
         return ""
-
-    cleaned = re.sub(r"~~([^~]*?)~~", r"\1", cleaned)
-    cleaned = cleaned.replace("~~", "")
-    # --- / *** / ___ 구분선 제거 (GPT·교재 발췌 잔여)
-    cleaned = re.sub(r"^\s*[-*_]{3,}\s*.*$", "", cleaned, flags=re.M)
-    cleaned = re.sub(r"\n[-*_]{3,}\s*", "\n", cleaned)
-    cleaned = re.sub(r"(\d+)~(\d+)", r"\1–\2", cleaned)
+    cleaned = normalize_markdown_noise(cleaned)
     return format_readable_paragraphs(cleaned)
 
 
@@ -86,52 +82,13 @@ def _rule_opening(session: dict[str, Any]) -> str:
     wlabel = STAGE_NAMES.get(weakest.stage, "음정") if weakest else "음정"
 
     lines = [
-        f"{name}님, 방금 녹음 선생님이 끝까지 들어봤어요 🎤",
+        f"{name}님, 분석을 마쳤습니다 🎤",
         "",
-        f"먼저 말씀드리면 **종합 {overall:.0f}점**이에요. "
-        f"혼자 연습할 때는 잘 되는 것 같은데, 막상 들으면 어디가 아쉬운지 감이 안 오잖아요. "
-        f"오늘 분석으로 **숫자와 구간**을 같이 짚어 볼게요.",
+        f"**종합 {overall:.0f}점** — 오늘은 **{wlabel}**부터 같이 잡아볼까요?",
+        "",
+        "아래 버튼을 누르거나, 궁금한 걸 편하게 물어보세요.",
+        "（긴 코칭은 버튼을 누를 때마다 이어서 알려드릴게요 😊）",
     ]
-
-    strengths = build_strength_items(session)
-    if strengths:
-        lines.append("")
-        lines.append("🌟 **오늘 정말 잘한 점**")
-        for s in strengths:
-            lines.append(f"· **{s['headline']}**")
-            lines.append(f"  {s['detail']}")
-
-    focus = build_focus_items(session)
-    if focus:
-        lines.append("")
-        lines.append("🎯 **오늘 먼저 잡을 연습 3가지**")
-        for f in focus:
-            lines.append(f"{f.get('priority', '?')}. **{f['headline']}**")
-            lines.append(f"   {f['detail']}")
-
-    if stages:
-        lines.append("")
-        lines.append("📊 **영역별 점수**")
-        for s in stages:
-            label = STAGE_NAMES.get(s.stage, s.title)
-            lines.append(f"· {label} **{s.score:.0f}점**")
-
-    lines.extend(
-        [
-            "",
-            "📋 **오늘 10분 루틴 (선생님 추천)**",
-            "① 2분 — 복식호흡 4-4-8 (코로 들이마시고 천천히 내쉬기)",
-            f"② 4분 — {wlabel} 약한 구간만 0.5배속 구간 루프",
-            "③ 3분 — MR 80% 속도로 한 번 통으로",
-            "④ 1분 — 오늘 잘된 한 마디만 느리게 롱톤",
-            "",
-            "📅 **1주 뒤 체크** — 같은 곡으로 다시 녹음해서 점수 비교해 보세요.",
-            "",
-            "아래 입력창에 궁금한 거 편하게 물어보세요. "
-            "「10분 루틴 더 자세히」「이 구간만 연습법」처럼 말씀해 주시면 "
-            "선생님이 이어서 코칭해 드릴게요 😊",
-        ]
-    )
     return "\n".join(lines)
 
 
@@ -149,23 +106,25 @@ def _rule_suggested_questions(session: dict[str, Any]) -> list[str]:
 
     weakest = min(stages, key=lambda s: s.score)
     if weakest.stage == 1:
-        qs.append("음정이 틀린 구간만 집중해서 연습하려면?")
+        qs.append("이 구간만 집중해서 연습할래요")
     elif weakest.stage == 2:
-        qs.append("박자가 밀릴 때 메트로놈으로 어떻게 잡으면?")
+        qs.append("박자 잡는 메트로놈 연습법")
     else:
-        qs.append("호흡이나 목소리 톤을 더 예쁘게 하려면?")
+        qs.append("호흡·목소리 톤 예쁘게 하는 법")
 
     devs = report.pitch_deviation_segments[:1]
     if devs:
+        from coaching_vocab import time_range
+
         d = devs[0]
         if isinstance(d, (tuple, list)) and len(d) >= 2:
-            qs.append(f"{float(d[0]):.0f}~{float(d[1]):.0f}초 구간 연습법")
+            qs.append(f"{time_range(float(d[0]), float(d[1]))}만 연습법")
         else:
-            qs.append(f"{d.start_sec:.0f}~{d.end_sec:.0f}초 구간 연습법")
+            qs.append(f"{time_range(d.start_sec, d.end_sec)}만 연습법")
     else:
         qs.append("오늘 10분 루틴 짜 주세요")
 
-    qs.append("다음 녹음 때 체크할 포인트 3가지")
+    qs.append("잘한 점 더 칭찬해 주세요")
     return qs[:3]
 
 
@@ -177,7 +136,7 @@ _EXTRA_SUGGESTIONS = (
     "고음 구간만 따로 연습법 알려주세요",
     "다음 녹음 전 체크리스트 3가지",
     "메트로놈 BPM은 몇부터 시작할까요?",
-    "롱톤 연습 순서 알려주세요",
+    "롱톤 연습 순서 알려주세요"
 )
 
 
@@ -338,7 +297,7 @@ def _run_stream(gen_func):
             pass
     text = "".join(gen_func())
     if text:
-        st.markdown(text)
+        render_safe_html(text)
     return text
 
 
@@ -456,6 +415,21 @@ def _opening_is_rich(text: str) -> bool:
     return has_sections and len(t) >= 280
 
 
+def _mark_chat_scroll() -> None:
+    st.session_state["coach_scroll_tick"] = int(st.session_state.get("coach_scroll_tick") or 0) + 1
+
+
+def _maybe_scroll_chat() -> None:
+    tick = int(st.session_state.get("coach_scroll_tick") or 0)
+    applied = int(st.session_state.get("coach_scroll_applied_tick") or -1)
+    if tick == applied:
+        return
+    from ui.chat_scroll import scroll_chat_to_bottom
+
+    scroll_chat_to_bottom(force=True)
+    st.session_state["coach_scroll_applied_tick"] = tick
+
+
 def _init_chat(session: dict[str, Any]) -> None:
     fp = _session_fingerprint(session)
     existing = st.session_state.get("coach_chat_messages") or []
@@ -480,40 +454,55 @@ def _init_chat(session: dict[str, Any]) -> None:
     st.session_state.pop("coach_stream_completed_id", None)
     st.session_state.pop("coach_stream_inflight_id", None)
     st.session_state["coach_opening_stream"] = _has_openai_key()
-
+    _mark_chat_scroll()
 
 
 def _render_result_hero(session: dict[str, Any]) -> None:
+    from coaching_vocab import derive_vocal_title
     from ui.auth import current_user
 
     report = session["report"]
+    full_record = session.get("full_record") or {}
     user = current_user()
     name = user.get("name", "학습자") if user else "학습자"
     overall = report.overall_score
+    vocal_title = full_record.get("vocal_title") or derive_vocal_title(report.stages)
 
     grade = "A" if overall >= 85 else "B" if overall >= 70 else "C" if overall >= 55 else "D"
-    grade_color = "#22c55e" if overall >= 85 else "#6366f1" if overall >= 70 else "#f59e0b"
+    grade_color = "#22c55e" if overall >= 85 else "#6366f1" if overall >= 70 else "#b45309"
 
-    st.markdown(
-        f"""
-        <div class="vc-result-hero">
-            <div class="vc-result-hero-glow"></div>
-            <div class="vc-result-hero-inner">
-                <div class="vc-result-hero-left">
-                    <span class="vc-result-badge">레슨 완료 ✓</span>
-                    <h2 class="vc-result-hero-title">{html.escape(name)}님, 수고했어요!</h2>
-                    <p class="vc-result-hero-focus">아래 선생님과 대화에서 코칭 · 연습법을 확인하세요</p>
-                </div>
-                <div class="vc-result-hero-score">
-                    <span class="vc-result-grade" style="color:{grade_color}">{grade}</span>
-                    <span class="vc-result-overall">{overall:.0f}</span>
-                    <span class="vc-result-overall-label">종합 점수</span>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    render_safe_html(
+        f"""\
+<div class="vc-result-hero">
+<div class="vc-result-hero-glow"></div>
+<div class="vc-result-hero-inner">
+<div class="vc-result-hero-left">
+<span class="vc-result-badge">레슨 완료 ✓</span>
+<p class="vc-vocal-mbti-badge">👑 당신의 보컬 타입: {html.escape(vocal_title)}</p>
+<h2 class="vc-result-hero-title">{html.escape(name)}님, 수고했어요!</h2>
+<p class="vc-result-hero-focus">위 <b>탭</b>으로 진단서를 확인하고, 아래 AI 코치와 대화하세요</p>
+</div>
+<div class="vc-result-hero-score">
+<span class="vc-result-grade" style="color:{grade_color}">{grade}</span>
+<span class="vc-result-overall">{overall:.0f}</span>
+<span class="vc-result-overall-label">종합 점수</span>
+</div>
+</div>
+</div>"""
     )
+
+
+def _render_recording_player(session: dict[str, Any]) -> None:
+    """분석된 녹음 — 차트·코칭과 함께 바로 들어보기."""
+    audio_path = session.get("audio_path")
+    if not audio_path or not Path(audio_path).exists():
+        return
+    st.markdown(
+        '<p class="vc-audio-player-label">🎧 내가 부른 녹음 · 아래 코칭의 ⏱ 구간으로 이동해 들어보세요</p>'
+    )
+    st.markdown('<div class="vc-audio-player-wrap">')
+    st.audio(str(audio_path))
+    render_safe_html("</div>")
 
 
 def _render_score_strip(session: dict[str, Any]) -> None:
@@ -526,9 +515,7 @@ def _render_score_strip(session: dict[str, Any]) -> None:
         chips.append(
             f'<span class="vc-score-chip">{s.score:.0f}<small>{html.escape(label)}</small></span>'
         )
-    st.markdown(
-        f'<div class="vc-score-strip">{"".join(chips)}</div>',
-        unsafe_allow_html=True,
+    render_safe_html(f'<div class="vc-score-strip">{"".join(chips)}</div>'
     )
 
 
@@ -549,7 +536,7 @@ def _render_dm_thread(
     session: dict[str, Any],
     *,
     stream_opening: bool = False,
-    stream_reply_id: str = "",
+    stream_reply_id: str = ""
 ) -> None:
     """Streamlit chat_message — 스트리밍·일반 렌더."""
     if stream_opening:
@@ -577,11 +564,9 @@ def _render_dm_thread(
             st.session_state.coach_chat_messages = messages
             st.session_state["coach_opening_stream"] = False
             _maybe_fetch_gpt_suggestions(session)
+            _mark_chat_scroll()
         finally:
             st.session_state.pop("coach_opening_inflight", None)
-        from ui.chat_scroll import scroll_chat_to_bottom
-
-        scroll_chat_to_bottom()
         return
 
     completed_id = str(st.session_state.get("coach_stream_completed_id") or "")
@@ -611,9 +596,6 @@ def _render_dm_thread(
         else:
             with st.chat_message("assistant", avatar="🎤"):
                 st.caption("답변 준비 중…")
-        from ui.chat_scroll import scroll_chat_to_bottom
-
-        scroll_chat_to_bottom()
         return
 
     if live_messages and live_messages[-1].get("role") == "assistant":
@@ -629,49 +611,43 @@ def _render_dm_thread(
         st.session_state.pop("coach_stream_inflight_id", None)
         _append_rule_reply(session)
         _render_chat_message(st.session_state.coach_chat_messages[-1])
-    finally:
-        from ui.chat_scroll import scroll_chat_to_bottom
-
-        scroll_chat_to_bottom()
 
 
 def _pill_label(q: str) -> str:
     q = q.strip()
-    if len(q) <= 11:
+    if len(q) <= 18:
         return q
-    return q[:10] + "…"
+    return q[:17] + "…"
 
 
 def _render_dm_composer(session: dict[str, Any], user_name: str, *, disabled: bool) -> None:
     """Gemini 스타일 — 추천 pill + 하단 chat_input."""
     suggestions = st.session_state.get("coach_suggested_questions") or []
 
-    st.markdown('<div class="vc-dm-composer">', unsafe_allow_html=True)
+    st.markdown('<div class="vc-dm-composer">')
 
     if suggestions and not disabled:
-        st.markdown('<div class="vc-dm-pill-row">', unsafe_allow_html=True)
-        pill_cols = st.columns(min(len(suggestions), 3))
-        for i, q in enumerate(suggestions[:3]):
-            with pill_cols[i]:
-                st.button(
-                    f"+ {_pill_label(q)}",
-                    key=f"coach_pill_{_pill_key(q)}",
-                    use_container_width=False,
-                    on_click=_on_pill_click,
-                    args=(q,),
-                )
-        st.markdown("</div>", unsafe_allow_html=True)
+        render_safe_html('<div class="vc-dm-pill-row">')
+        for q in suggestions[:3]:
+            st.button(
+                f"+ {_pill_label(q)}",
+                key=f"coach_pill_{_pill_key(q)}",
+                use_container_width=False,
+                on_click=_on_pill_click,
+                args=(q,)
+            )
+        render_safe_html("</div>")
 
     prompt = st.chat_input(
         "보컬 코치에게 물어보기",
         key="coach_chat_input",
-        disabled=disabled,
+        disabled=disabled
     )
     if prompt and prompt.strip():
         st.session_state["coach_pending_message"] = prompt.strip()
         st.rerun(scope="fragment")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_safe_html("</div>")
 
 
 def _render_dm_panel(
@@ -680,11 +656,10 @@ def _render_dm_panel(
     messages: list[dict[str, str]],
     *,
     stream_opening: bool = False,
-    stream_reply_id: str = "",
+    stream_reply_id: str = ""
 ) -> None:
     with st.container(key="vc_dm_panel"):
-        st.markdown(
-            """
+        render_safe_html("""
             <div class="vc-dm-header vc-dm-header-attached">
                 <div class="vc-dm-header-inner">
                     <span class="vc-dm-avatar">🎤</span>
@@ -694,15 +669,14 @@ def _render_dm_panel(
                     </div>
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
         with st.container(key="vc_dm_thread"):
             _render_dm_thread(
                 messages,
                 session,
                 stream_opening=stream_opening,
-                stream_reply_id=stream_reply_id,
+                stream_reply_id=stream_reply_id
             )
         messages_after = list(st.session_state.get("coach_chat_messages") or messages)
         still_opening = bool(
@@ -715,7 +689,7 @@ def _render_dm_panel(
         _render_dm_composer(
             session,
             user_name,
-            disabled=still_opening or still_reply,
+            disabled=still_opening or still_reply
         )
 
 
@@ -746,12 +720,10 @@ def _coach_chat_fragment(session: dict[str, Any], user_name: str) -> None:
         user_name,
         messages,
         stream_opening=stream_opening,
-        stream_reply_id=reply_id if need_reply else "",
+        stream_reply_id=reply_id if need_reply else ""
     )
 
-    from ui.chat_scroll import scroll_chat_to_bottom
-
-    scroll_chat_to_bottom()
+    _maybe_scroll_chat()
 
 
 def render_coach_dm(session: dict[str, Any]) -> None:
@@ -767,21 +739,24 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     user = current_user()
     user_name = user.get("name", "나") if user else "나"
 
-    st.markdown('<div id="vc-result-top"></div>', unsafe_allow_html=True)
+    st.markdown('<div id="vc-result-top"></div>')
+    render_safe_html('<script>document.body.classList.add("vc-show-result");</script>')
 
+    render_safe_html('<div class="vc-result-shell vc-layout-bound">')
     _render_result_hero(session)
+    _render_recording_player(session)
     _render_score_strip(session)
+    render_safe_html("</div>")
+
+    from ui.components import render_session_results
+
+    render_session_results(session)
 
     from ui.chat_scroll import install_chat_auto_scroll
 
     install_chat_auto_scroll()
 
     _coach_chat_fragment(session, user_name)
-
-    with st.expander("📊 상세 분석 리포트 · 그래프 · 다운로드", expanded=False):
-        from ui.components import render_session_results
-
-        render_session_results(session)
 
     st.divider()
     if st.button("💬 피드백 남기기", use_container_width=True, key="btn_coach_feedback"):

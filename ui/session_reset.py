@@ -28,7 +28,7 @@ def clear_results_state() -> None:
         "_upload_file_sig",
         "scroll_result",
         "scroll_analyze",
-        "scroll_analyze_ticks",
+        "scroll_analyze_ticks"
     ):
         st.session_state.pop(key, None)
 
@@ -40,7 +40,7 @@ def clear_analysis_session_keys() -> None:
         "analysis_started_at",
         "analysis_mode_fast",
         "analysis_use_gpt",
-        "analysis_cancelled",
+        "analysis_cancelled"
     ):
         st.session_state.pop(key, None)
 

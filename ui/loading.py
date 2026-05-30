@@ -60,5 +60,5 @@ def render_loading_overlay() -> None:
         }})();
         </script>
         """,
-        height=0,
+        height=0
     )

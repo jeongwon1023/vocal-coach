@@ -43,15 +43,23 @@ def build_action_plan(report: "CurriculumReport") -> list[ActionItem]:
         ActionItem(
             priority=1,
             title="박자·리듬 — 메트로놈 2마디 끊어치기",
-            prescription=f"메트로놈 {METRONOME_BPM}BPM · 손뼉과 가사 동시에.",
+            prescription=(
+                f"메트로놈 {METRONOME_BPM}BPM · 손뼉과 가사 동시에."
+                + (
+                    f" {time_range(pitch_seg.start_sec, pitch_seg.end_sec)}부터 — "
+                    "위 🎧 녹음을 재생해 직접 들어보세요."
+                    if pitch_seg
+                    else ""
+                )
+            ),
             practice=(
-                "곡 전체 X → AI가 지목한 구간 **2마디만** 선택.\n"
-                "  1세트: 손뼉 1번 + 첫 음절 (5회)\n"
-                "  2세트: 손뼉 + 두 음절 (5회)\n"
-                "  맞으면 BPM 75 → 80으로 올리기"
+                "- [ ] 곡 전체 X → AI가 지목한 구간 **2마디만** 선택\n"
+                "- [ ] 1세트: 손뼉 1번 + 첫 음절 (5회)\n"
+                "- [ ] 2세트: 손뼉 + 두 음절 (5회)\n"
+                "- [ ] 맞으면 BPM 75 → 80으로 올리기"
             ),
             reason=(
-                f"{rhythm_cv_to_words(rhythm_cv)} (지수 {rhythm_cv:.2f}, 목표 {RHYTHM_CV_TARGET} 이하). "
+                f"{rhythm_cv_to_words(rhythm_cv)}. "
                 f"현재 박자 {s2_score:.0f}점 — 박만 잡아도 체감 점수가 크게 오릅니다."
             ),
             stage=2,
@@ -70,9 +78,9 @@ def build_action_plan(report: "CurriculumReport") -> list[ActionItem]:
             title="호흡·음색 — 씨(S) 훈련 + 성대 닫힘",
             prescription="소리 '새는' 느낌 = 공기 반·소리 반 → 음색 탁해짐.",
             practice=(
-                "① 복식호흡 후 '씨—' 10초 × 5세트 (마지막 3초 힘 유지)\n"
-                "② 피아노 한 음 '아—' 롱톤 10분 (입술 살짝 모음)\n"
-                f"③ 음색 흐려진 구간{timbre_example} 가사만 0.75배속 5번"
+                "- [ ] 복식호흡 후 '씨—' 10초 × 5세트 (마지막 3초 힘 유지)\n"
+                "- [ ] 피아노 한 음 '아—' 롱톤 10분 (입술 살짝 모음)\n"
+                f"- [ ] 음색 흐려진 구간{timbre_example} 가사만 0.75배속 5번"
             ),
             reason=(
                 f"음색 흐려진 구간 {timbre_count}곳{timbre_example}. "
@@ -97,8 +105,8 @@ def build_action_plan(report: "CurriculumReport") -> list[ActionItem]:
             title="기록 비교 — 같은 곡 1주 후 재분석",
             prescription="웹에서 '성장 기록 저장' 켜고 분석 → 마이 페이지 확인.",
             practice=(
-                f"{focus}\n"
-                "  1주 후 같은 곡 다시 녹음 → 마이 페이지에서 점수 비교"
+                f"- [ ] {focus}\n"
+                "- [ ] 1주 후 같은 곡 다시 녹음 → 마이 페이지에서 점수 비교"
             ),
             reason=(
                 "곡 전체 100번보다 AI가 찍어준 구간 10번이 훨씬 효과적입니다. "
