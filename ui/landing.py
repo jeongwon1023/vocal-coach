@@ -38,7 +38,7 @@ def render() -> None:
     ):
         go_to("마이 페이지")
 
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-trust-banner">
             <span class="vc-trust-banner-icon">🏆</span>
@@ -50,7 +50,7 @@ def render() -> None:
         """
     )
 
-    st.markdown(
+    render_safe_html(
         """
         <section class="vc-feature-banner">
             <p class="vc-section-eyebrow">FEATURES</p>
@@ -76,7 +76,7 @@ def render() -> None:
         """
     )
 
-    st.markdown(
+    render_safe_html(
         """
         <p class="vc-section-eyebrow">WHY NOW</p>
         <h2 class="vc-section-h2">혼자 연습할 때, 이런 순간 있지 않나요?</h2>
@@ -124,4 +124,4 @@ def render() -> None:
         go_to("마이 페이지")
 
     render_floating_cta(variant="landing")
-    st.markdown(landing_scroll_script())
+    render_safe_html(landing_scroll_script())

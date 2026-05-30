@@ -4425,7 +4425,7 @@ def apply(page: str = "홈") -> None:
 
 
 def login_shell() -> None:
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-header-brand" style="justify-content:center;padding:1.5rem 0;">
             <span class="vc-header-logo">🎤</span>
@@ -4443,7 +4443,7 @@ def topbar() -> None:
 
 
 def hero(title: str, subtitle: str, badge: str = "ANALYSIS") -> None:
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-page-head">
             <span class="vc-page-badge">{badge}</span>
@@ -4455,7 +4455,7 @@ def hero(title: str, subtitle: str, badge: str = "ANALYSIS") -> None:
 
 
 def section_title(title: str, caption: str = "") -> None:
-    st.markdown(f'<p class="vc-section">{title}</p>')
+    render_safe_html(f'<p class="vc-section">{title}</p>')
     if caption:
         render_safe_html(f'<p class="vc-caption">{caption}</p>')
 

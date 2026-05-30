@@ -5,11 +5,12 @@ from __future__ import annotations
 import streamlit as st
 
 from teacher_voice import teacher_philosophy_md, youtube_guide_help_md
+from ui.utils import render_safe_html
 
 
 def render_song_title_help() -> None:
     """곡 제목 입력 — 왜 쓰는지, 어떻게 쓰는지 (사이드바)."""
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-guide-box">
             <p class="vc-guide-title">🎵 곡 제목은 왜 입력하나요?</p>
@@ -32,15 +33,15 @@ def render_song_title_help() -> None:
 def render_youtube_guide_sidebar() -> None:
     """사이드바 — 상세 유튜브 가이드."""
     with st.expander("📖 유튜브 가이드 자세히 보기", expanded=False):
-        st.markdown(youtube_guide_help_md())
+        render_safe_html(youtube_guide_help_md())
 
 
 def render_youtube_guide_inline() -> None:
     """대시보드 업로드 영역 아래."""
     with st.expander("💡 유튜브 가이드 · 선생님은 이렇게 들어요", expanded=False):
-        st.markdown(youtube_guide_help_md())
+        render_safe_html(youtube_guide_help_md())
         st.divider()
-        st.markdown(teacher_philosophy_md())
+        render_safe_html(teacher_philosophy_md())
 
 
 def render_compact_tip() -> None:

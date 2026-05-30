@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import streamlit as st
+from ui.utils import render_safe_html
 
 BETA_VERSION = "0.9.0-beta"
 BETA_SHARE_URL = "https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app/"
 
 
 def render_beta_banner() -> None:
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-beta-banner">
             <span class="vc-beta-tag">BETA {BETA_VERSION}</span>
@@ -21,7 +22,7 @@ def render_beta_banner() -> None:
 
 def render_beta_invite_card() -> None:
     """베타 초대 — 링크 공유 CTA."""
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-beta-invite">
             <p class="vc-beta-invite-title">🎤 베타 테스터 모집</p>
@@ -38,7 +39,7 @@ def render_beta_invite_card() -> None:
 
 def render_beta_footer() -> None:
     """마이 페이지 하단 — 베타 안내."""
-    st.markdown(
+    render_safe_html(
         f"""
         <p class="vc-beta-footer">
             Vocal Coach AI · BETA {BETA_VERSION}

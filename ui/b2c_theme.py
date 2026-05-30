@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from ui.navigation import go_to
+from ui.utils import render_safe_html
 
 
 def page_slug(page: str) -> str:
@@ -13,7 +14,7 @@ def page_slug(page: str) -> str:
 
 def inject_page_marker(page: str) -> None:
     slug = page_slug(page)
-    st.markdown(
+    render_safe_html(
         f"""
         <div id="vc-page-root" data-vc-page="{slug}" aria-hidden="true"></div>
         <script>document.body.setAttribute("data-vc-page", "{slug}");</script>

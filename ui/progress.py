@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 
 import streamlit as st
+from ui.utils import render_safe_html
 
 STEPS: list[tuple[str, str, float]] = [
     ("🎵", "오디오 불러오기", 0.05),
@@ -59,7 +60,7 @@ def render_stepper(
     mode_html = (
         f'<span class="vc-chat-mode-pill">{html.escape(mode_label)}</span>' if mode_label else ""
     )
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-chat-card vc-analyze-progress-card" id="vc-analyze-progress-card">
             <div class="vc-chat-avatar">🎤</div>

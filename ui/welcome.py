@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import streamlit as st
+from ui.utils import render_safe_html
 
 
 def render() -> None:
-    st.markdown(
+    render_safe_html(
         """
         <p class="vc-welcome-lead">Vocal Coach AI가 이렇게 도와드려요</p>
         <div class="vc-feature-grid">
@@ -48,7 +49,7 @@ def render() -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-tip-soft">
                 <p class="vc-tip-soft-title">🎧 녹음 팁</p>
@@ -57,7 +58,7 @@ def render() -> None:
             """
         )
     with c2:
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-tip-soft">
                 <p class="vc-tip-soft-title">⚡ 분석 시간</p>

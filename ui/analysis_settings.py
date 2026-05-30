@@ -8,6 +8,7 @@ import streamlit as st
 
 from ui import styles
 from ui.runtime_env import default_use_queue
+from ui.utils import render_safe_html
 
 
 def _render_popular_song_picker() -> None:
@@ -74,7 +75,7 @@ def render_analysis_settings() -> None:
     from style_presets import PRESETS
     from ui.help_guide import render_song_title_help, render_youtube_guide_sidebar
 
-    st.markdown(
+    render_safe_html(
         '<p class="vc-sidebar-title">옵션</p>'
     )
     styles.sidebar_label("분석 모드")
@@ -137,7 +138,7 @@ def render_analysis_settings() -> None:
     st.caption("정밀 분석 시 상세 성장 곡선 추가 생성. 기록 저장 시 기본 곡선은 자동 갱신됩니다.")
     st.checkbox("백그라운드 분석 큐", key="use_queue", value=default_use_queue())
     st.divider()
-    st.markdown(
+    render_safe_html(
         "<div class='tip-box' style='font-size:0.82rem;'>"
         "🎧 MR은 이어폰 · 마이크엔 목소리만</div>"
     )

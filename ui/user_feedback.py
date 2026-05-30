@@ -5,13 +5,14 @@ from __future__ import annotations
 import streamlit as st
 
 from ui.navigation import current_page, go_to
+from ui.utils import render_safe_html
 
 
 def render_feedback_page() -> None:
     from feedback_store import feedback_stats, list_beta_feedback, save_beta_feedback
     from ui.auth import current_user, current_user_id, is_logged_in
 
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-page-head">
             <h2 class="vc-page-title">💬 베타 피드백</h2>
@@ -21,7 +22,7 @@ def render_feedback_page() -> None:
     )
 
     stats = feedback_stats()
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-feedback-stats">
             <span class="vc-feedback-stat">📝 베타 {stats.get('beta', 0)}건</span>
@@ -121,7 +122,7 @@ def _render_recent(items: list[dict]) -> None:
         rating = item.get("rating")
         msg = (item.get("message") or "")[:120]
         stars = f"★ {rating}/5" if rating else ""
-        st.markdown(
+        render_safe_html(
             f"""
             <div class="vc-feedback-card">
                 <p class="vc-feedback-card-meta">{cat} · {stars}</p>

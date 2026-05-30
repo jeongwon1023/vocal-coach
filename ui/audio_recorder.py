@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from ui.utils import render_safe_html
 
 
 def render_live_recorder(
@@ -12,7 +13,7 @@ def render_live_recorder(
     key: str = "analysis_live_recorder"
 ) -> UploadedFile | None:
     """마이크 녹음 — 카드 UI + 녹음 위젯."""
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-app-card vc-record-card">
             <p class="vc-app-card-title">🎙️ 실시간 녹음</p>
@@ -23,7 +24,7 @@ def render_live_recorder(
     )
 
     with st.container(border=True):
-        st.markdown(
+        render_safe_html(
             '<p class="vc-record-panel-label">아래 보라색 버튼을 눌러 녹음하세요</p>'
         )
         recorded = st.audio_input(
@@ -49,7 +50,7 @@ def render_file_upload_fallback(*, disabled: bool = False) -> tuple:
     use_sample = False
 
     with st.expander("📁 녹음 파일로 올리기 (MP3 · WAV · M4A)", expanded=False):
-        st.markdown(
+        render_safe_html(
             '<p class="vc-app-card-desc" style="margin-top:0;">핸드폰 녹음 파일도 OK. 2분 30초 넘는 완곡은 1절 구간만 우선 진단해요.</p>'
         )
 

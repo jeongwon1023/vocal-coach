@@ -348,7 +348,7 @@ def _render_song_hint_banner() -> None:
     genre_txt = f" · {genre}" if genre else ""
     yt_on = st.session_state.get("use_youtube")
     yt_line = " · 유튜브 가이드 ON" if yt_on else ""
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-song-hint-banner">
             <p class="vc-song-hint-title">🎵 {hint.get("artist", "")} — {hint.get("title", "")}{genre_txt}{yt_line}</p>
@@ -421,7 +421,7 @@ def _render_precision_recommendation(
             st.session_state["upload_mr_likely"] = likely_mr
 
     if likely_mr:
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-precision-recommend">
                 <p class="vc-precision-recommend-title">🎧 반주가 함께 들려요</p>
@@ -447,8 +447,8 @@ def _render_precision_recommendation(
 def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
     from ui.audio_recorder import render_file_upload_fallback, render_live_recorder
 
-    st.markdown('<div id="vc-new-analysis"></div>')
-    st.markdown(
+    render_safe_html('<div id="vc-new-analysis"></div>')
+    render_safe_html(
         """
         <div class="vc-app-card">
             <p class="vc-new-analysis-title">🎤 새 분석</p>
@@ -494,7 +494,7 @@ def _render_upload_form(opts: dict, *, disabled: bool = False) -> None:
             st.caption(limit_msg)
     except Exception:
         pass
-    st.markdown(
+    render_safe_html(
         f'<p class="vc-start-hint">설정: <b>{mode_label}</b> · 위 <b>분석 설정</b>에서 변경</p>'
     )
 

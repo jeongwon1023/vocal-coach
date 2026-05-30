@@ -14,6 +14,7 @@ from auth_service import (
     resolve_session
 )
 from ui.runtime_env import is_streamlit_cloud
+from ui.utils import render_safe_html
 
 
 def _oauth_unconfigured_hint(provider: str) -> str:
@@ -187,7 +188,7 @@ def require_login() -> bool:
 
 def render_landing_auth_banner() -> None:
     """홈 랜딩 — 체험 CTA (소셜 로그인은 상단 팝오버)."""
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-landing-trial-banner">
             <div class="vc-landing-trial-copy">

@@ -64,5 +64,5 @@ def render_navbar() -> str:
             if st.button("💬 피드백", key="nav_menu_feedback", use_container_width=True):
                 go_to("피드백")
 
-    st.markdown('<div class="vc-header-divider"></div>')
+    render_safe_html('<div class="vc-header-divider"></div>')
     return current_page()

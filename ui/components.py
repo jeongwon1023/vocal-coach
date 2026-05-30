@@ -97,7 +97,7 @@ def render_stage_score_cards(stages: list[Any]) -> None:
         caption = stage.summary[:64] + ("…" if len(stage.summary) > 64 else "")
         pct = min(max(stage.score / 100.0, 0.0), 1.0)
         with col:
-            st.markdown(
+            render_safe_html(
                 f"""
                 <div class="vc-stage-native">
                     <p class="vc-stage-native-label">{emoji} {html.escape(title)}</p>
@@ -183,7 +183,7 @@ def render_radar_chart(
             key="vc_vocal_radar_chart"
         )
         if show_insight:
-            st.markdown(
+            render_safe_html(
                 f'<p class="vc-radar-insight">💬 {html.escape(radar_insight_text(radar))}</p>'
             )
         return
@@ -214,7 +214,7 @@ def render_radar_chart(
 
 
 def render_detail_summary_header() -> None:
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-detail-hero">
             <div class="vc-detail-hero-icon">📊</div>
@@ -252,7 +252,7 @@ def _close_card() -> None:
 def _render_coach_rich(text: str) -> None:
     html_out = format_coach_rich_html(text)
     if html_out:
-        st.markdown(html_out)
+        render_safe_html(html_out)
 
 
 def render_coaching_stages(report: Any) -> None:
@@ -299,7 +299,7 @@ def render_action_plan(items: list[dict[str, Any]]) -> None:
             practice = normalize_checklist_markdown(practice)
         reason = sanitize_coach_text(str(item.get("reason") or "").strip())
         pri = item.get("priority", "?")
-        st.markdown('<div class="coach-card">')
+        render_safe_html('<div class="coach-card">')
         render_safe_html(f'<p class="coach-card-title">{pri}. {title}</p>')
         if rx:
             _render_coach_rich(rx)
@@ -310,7 +310,7 @@ def render_action_plan(items: list[dict[str, Any]]) -> None:
                 _render_coach_rich(practice)
         if reason:
             st.caption(f"💡 왜 먼저? {reason}")
-        st.markdown("</div>")
+        render_safe_html("</div>")
 
 
 def render_score_feedback(session: dict[str, Any], full_record: dict[str, Any]) -> None:
@@ -336,7 +336,7 @@ def render_score_feedback(session: dict[str, Any], full_record: dict[str, Any]) 
     if st.session_state.get(fb_key):
         msg = st.session_state.get(f"{fb_key}_msg", feedback_agree_thanks())
         st.success(msg)
-        st.markdown("</div>")
+        render_safe_html("</div>")
         return
 
     render_safe_html(feedback_intro(overall))
@@ -413,7 +413,7 @@ def render_score_feedback(session: dict[str, Any], full_record: dict[str, Any]) 
             st.session_state.pop(f"{fb_key}_ask", None)
             st.rerun()
 
-    st.markdown("</div>")
+    render_safe_html("</div>")
 
 
 def render_deviation_table(report: Any) -> None:
@@ -436,7 +436,7 @@ def render_deviation_table(report: Any) -> None:
             </div>
             """
         )
-    st.markdown(
+    render_safe_html(
         f"""
         <p class="vc-section-label">🎯 집중 연습 구간</p>
         <div class="vc-dev-list">{"".join(rows)}</div>
@@ -487,7 +487,7 @@ def render_precision_panel(report: Any, full_record: dict[str, Any] | None = Non
             f"조 보정 {float(transposition):+.0f}¢</div>"
         )
 
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-precision-panel">
             <div class="vc-precision-head">
@@ -534,7 +534,7 @@ def render_precision_panel(report: Any, full_record: dict[str, Any] | None = Non
             if int(n or 0) > 0
         )
         if bars:
-            st.markdown(
+            render_safe_html(
                 f"""
                 <div class="vc-pitch-quality">
                     <p class="vc-pitch-quality-title">음정 분포 (프레임)</p>
@@ -559,7 +559,7 @@ def _render_pdf_download(session: dict[str, Any]) -> None:
     cache_key = session.get("record_path") or str(id(session))
     pdf_state_key = f"vc_pdf_{cache_key}"
 
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-download-card vc-download-action">
             <span class="vc-download-icon">📄</span>
@@ -605,7 +605,7 @@ def render_note_drill_panel(session: dict[str, Any], full_record: dict[str, Any]
     if not note_clips and not note_segments:
         return
 
-    st.markdown('<p class="vc-section-label">🎯 노트 선택 · 집중 연습</p>')
+    render_safe_html('<p class="vc-section-label">🎯 노트 선택 · 집중 연습</p>')
     st.caption("히트맵 박스 번호와 동일 · 틀린 노트부터 연습해 보세요.")
 
     entries: list[dict[str, Any]] = []
@@ -771,7 +771,7 @@ def _render_insight_pills(report: Any, full_record: dict[str, Any]) -> None:
             pills.append(f'<span class="vc-insight-pill vc-insight-good">🌟 {html.escape(str(s))}</span>')
 
     if pills:
-        st.markdown(f'<div class="vc-insight-row">{"".join(pills)}</div>')
+        render_safe_html(f'<div class="vc-insight-row">{"".join(pills)}</div>')
 
     if report.mr_message:
         css = "vc-mr-warn" if report.mr_likely else "vc-mr-info"
@@ -783,7 +783,7 @@ def _render_pitch_graph(session: dict[str, Any], report: Any) -> None:
     plot = session.get("plot_path")
     plot_err = session.get("plot_error")
     if plot and Path(plot).exists():
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-graph-legend">
                 <span class="vc-legend-pill vc-legend-ok">● 음정 OK</span>
@@ -792,14 +792,14 @@ def _render_pitch_graph(session: dict[str, Any], report: Any) -> None:
             </div>
             """
         )
-        st.markdown('<div class="vc-graph-frame">')
+        render_safe_html('<div class="vc-graph-frame">')
         st.image(str(plot), use_container_width=True)
         render_safe_html("</div>")
     elif plot_err:
         render_safe_html(f'<p class="vc-empty-note">음정 그래프는 생성되지 않았어요 ({plot_err}). 분석 점수·코칭은 정상이에요.</p>'
         )
     else:
-        st.markdown(
+        render_safe_html(
             '<p class="vc-empty-note">이번 분석에서는 음정 그래프 파일이 없어요.</p>'
         )
     render_deviation_table(report)
@@ -837,7 +837,7 @@ def _render_heatmap_panel(session: dict[str, Any], report: Any, full_record: dic
             st.caption(f"인터랙티브 차트 표시 불가 ({exc})")
 
     if not plotly_used and heatmap and Path(heatmap).exists():
-        st.markdown(
+        render_safe_html(
             """
             <p class="vc-graph-legend">
                 <span class="vc-legend-pill vc-legend-ok">● 녹색=정확</span>
@@ -846,7 +846,7 @@ def _render_heatmap_panel(session: dict[str, Any], report: Any, full_record: dic
             </p>
             """
         )
-        st.markdown('<div class="vc-graph-frame">')
+        render_safe_html('<div class="vc-graph-frame">')
         st.image(str(heatmap), use_container_width=True)
         render_safe_html("</div>")
 
@@ -862,7 +862,7 @@ def _render_heatmap_panel(session: dict[str, Any], report: Any, full_record: dic
 
 def _render_downloads_card(session: dict[str, Any], full_record: dict[str, Any]) -> None:
     if session.get("record_path"):
-        st.markdown(
+        render_safe_html(
             f"""
             <div class="vc-download-card">
                 <span class="vc-download-icon">💾</span>
@@ -874,7 +874,7 @@ def _render_downloads_card(session: dict[str, Any], full_record: dict[str, Any])
             """
         )
     if session.get("chart_path") and Path(session["chart_path"]).exists():
-        st.markdown('<p class="vc-section-label">📈 성장 곡선</p>')
+        render_safe_html('<p class="vc-section-label">📈 성장 곡선</p>')
         render_safe_html('<div class="vc-graph-frame">')
         st.image(str(session["chart_path"]), use_container_width=True)
         render_safe_html("</div>")
@@ -887,7 +887,7 @@ def _render_downloads_card(session: dict[str, Any], full_record: dict[str, Any])
                 )
                 st.audio(str(p), format="audio/wav")
     _render_pdf_download(session)
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-download-card vc-download-action">
             <span class="vc-download-icon">⬇️</span>
@@ -1025,7 +1025,7 @@ def _render_at_a_glance_summary(report: Any, full_record: dict[str, Any]) -> Non
     if weakest and weakest.coaching_blocks:
         focus = sanitize_coach_text((weakest.coaching_blocks[0].result or "").strip())
 
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-glance-head">
             <p class="vc-glance-kicker">5축 분석 요약</p>
@@ -1034,7 +1034,7 @@ def _render_at_a_glance_summary(report: Any, full_record: dict[str, Any]) -> Non
         """
     )
     if focus:
-        st.markdown(
+        render_safe_html(
             f"""
             <div class="vc-focus-banner">
                 <span class="vc-focus-icon" aria-hidden="true">🎯</span>
@@ -1062,7 +1062,7 @@ def render_session_results(session: dict[str, Any]) -> None:
     full_record = session.get("full_record") or {}
     actions = full_record.get("priority_actions") or []
 
-    st.markdown('<div class="vc-detail-panel vc-layout-bound">')
+    render_safe_html('<div class="vc-detail-panel vc-layout-bound">')
 
     tab_summary, tab_charts, tab_practice, tab_save = st.tabs(
         ["📊 나의 진단서", "🔍 구간별 분석", "🏋️ 맞춤 연습장", "💾 보관함"]
@@ -1100,7 +1100,7 @@ def render_session_results(session: dict[str, Any]) -> None:
     with tab_charts:
         _render_charts_sticky_bar(report)
         _render_pitch_graph(session, report)
-        st.markdown('<p class="vc-section-label">🎹 노트 히트맵</p>')
+        render_safe_html('<p class="vc-section-label">🎹 노트 히트맵</p>')
         _render_heatmap_panel(session, report, full_record)
         render_precision_panel(report, full_record)
         _render_insight_pills(report, full_record)
@@ -1114,7 +1114,7 @@ def render_session_results(session: dict[str, Any]) -> None:
         else:
             st.info("맞춤 처방전을 준비 중이에요. AI 코치에게 「10분 루틴 짜줘」라고 물어보세요.")
         if session.get("compare_text"):
-            st.markdown('<p class="vc-section-label">📊 이전 기록과 비교</p>')
+            render_safe_html('<p class="vc-section-label">📊 이전 기록과 비교</p>')
             st.code(session["compare_text"])
 
     with tab_save:

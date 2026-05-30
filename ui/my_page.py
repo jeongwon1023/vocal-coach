@@ -146,7 +146,7 @@ def _render_weekly_summary_card(user_id: str) -> None:
 
     best_txt = f"{best:.0f}점" if best is not None else "—"
 
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-weekly-card">
             <div class="vc-weekly-head">
@@ -191,7 +191,7 @@ def _render_growth_trend_chart(user_id: str) -> None:
 
     st.markdown("##### 📈 나의 보컬 히스토리")
     if streak >= 2:
-        st.markdown(
+        render_safe_html(
             f'<p class="vc-streak-badge">🔥 연속 <b>{streak}일</b> 연습 달성!</p>'
         )
     elif len(records) == 1:
@@ -266,7 +266,7 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             storage_hint += f" · 클라우드 {cloud_n}건"
     except Exception:
         storage_hint = "기기 로컬"
-    st.markdown(
+    render_safe_html(
         f"""
         <div class="vc-page-head">
             <h2 class="vc-page-title">{html.escape(name)}님의 마이 페이지 🎤</h2>
@@ -310,17 +310,17 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             st.markdown("##### 📈 연습 히스토리")
             spark = generate_history_sparkline(user_id=user_id)
             if spark and spark.exists():
-                st.markdown('<div class="vc-graph-frame vc-sparkline-frame">')
+                render_safe_html('<div class="vc-graph-frame vc-sparkline-frame">')
                 st.image(str(spark), use_container_width=True)
                 render_safe_html("</div>")
             render_safe_html("##### 📈 성장 곡선")
             chart_path = generate_growth_chart(user_id=user_id)
             if chart_path and chart_path.exists():
-                st.markdown('<div class="vc-graph-frame">')
+                render_safe_html('<div class="vc-graph-frame">')
                 st.image(str(chart_path), use_container_width=True)
                 render_safe_html("</div>")
     else:
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-empty-card">
                 <p class="vc-empty-title">아직 분석 기록이 없어요</p>

@@ -40,18 +40,18 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
             f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</a>'
         )
     else:
-        st.markdown(
+        render_safe_html(
             f'<span class="vc-auth-btn vc-auth-kakao vc-auth-disabled{sm}">'
             f'<span class="vc-auth-btn-icon">💬</span> 카카오로 시작하기</span>'
         )
 
     if g_ok:
-        st.markdown(
+        render_safe_html(
             f'<a href="{base}/auth/google" class="vc-auth-btn vc-auth-google{sm}">'
             f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</a>'
         )
     else:
-        st.markdown(
+        render_safe_html(
             f'<span class="vc-auth-btn vc-auth-google vc-auth-disabled{sm}">'
             f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</span>'
         )
@@ -59,7 +59,7 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
     if not k_ok and not g_ok and not compact:
         st.caption("소셜 로그인은 준비 중이에요 · **체험 계정**으로 바로 이용해 보세요")
 
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-auth-divider" aria-hidden="true">
             <span>또는</span>
@@ -76,7 +76,7 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
 
 def render_login_hero(*, compact: bool = False) -> None:
     if compact:
-        st.markdown(
+        render_safe_html(
             """
             <div class="vc-login-hero vc-login-hero-compact">
                 <div class="vc-login-logo-ring">🎤</div>
@@ -87,7 +87,7 @@ def render_login_hero(*, compact: bool = False) -> None:
         )
         return
 
-    st.markdown(
+    render_safe_html(
         """
         <div class="vc-login-hero">
             <div class="vc-login-logo-ring">🎤</div>
@@ -105,7 +105,7 @@ def render_login_hero(*, compact: bool = False) -> None:
 
 def render_login_card(*, key_prefix: str = "login", compact: bool = False) -> None:
     render_login_hero(compact=compact)
-    st.markdown('<div class="vc-login-card-marker"></div>')
+    render_safe_html('<div class="vc-login-card-marker"></div>')
     with st.container(border=True):
         if not compact:
             render_safe_html('<p class="vc-login-card-heading">3초 만에 시작하기</p>'
@@ -116,4 +116,4 @@ def render_login_card(*, key_prefix: str = "login", compact: bool = False) -> No
             if not compact
             else "체험 계정으로 바로 시작할 수 있어요"
         )
-        st.markdown(f'<p class="vc-login-footnote">{foot}</p>')
+        render_safe_html(f'<p class="vc-login-footnote">{foot}</p>')

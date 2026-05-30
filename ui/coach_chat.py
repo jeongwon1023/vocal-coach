@@ -497,10 +497,10 @@ def _render_recording_player(session: dict[str, Any]) -> None:
     audio_path = session.get("audio_path")
     if not audio_path or not Path(audio_path).exists():
         return
-    st.markdown(
+    render_safe_html(
         '<p class="vc-audio-player-label">🎧 내가 부른 녹음 · 아래 코칭의 ⏱ 구간으로 이동해 들어보세요</p>'
     )
-    st.markdown('<div class="vc-audio-player-wrap">')
+    render_safe_html('<div class="vc-audio-player-wrap">')
     st.audio(str(audio_path))
     render_safe_html("</div>")
 
@@ -624,7 +624,7 @@ def _render_dm_composer(session: dict[str, Any], user_name: str, *, disabled: bo
     """Gemini 스타일 — 추천 pill + 하단 chat_input."""
     suggestions = st.session_state.get("coach_suggested_questions") or []
 
-    st.markdown('<div class="vc-dm-composer">')
+    render_safe_html('<div class="vc-dm-composer">')
 
     if suggestions and not disabled:
         render_safe_html('<div class="vc-dm-pill-row">')
@@ -739,7 +739,7 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     user = current_user()
     user_name = user.get("name", "나") if user else "나"
 
-    st.markdown('<div id="vc-result-top"></div>')
+    render_safe_html('<div id="vc-result-top"></div>')
     render_safe_html('<script>document.body.classList.add("vc-show-result");</script>')
 
     render_safe_html('<div class="vc-result-shell vc-layout-bound">')
