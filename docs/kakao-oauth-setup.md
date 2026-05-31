@@ -64,3 +64,43 @@ cd vocal-coach
 ```
 
 앱에서: 상단 **로그인** → **💬 카카오로 계속하기** → 카카오 화면으로 이동하면 성공.
+
+---
+
+## KOE205 오류 해결 (`잘못된 요청`)
+
+카카오 화면에 **KOE205** / *vocal coach ai 서비스 설정 오류* 가 나오면 아래 순서로 수정하세요.
+
+### 방법 A — 이메일 없이 로그인 (개인 개발자 · 추천)
+
+**1. Supabase** → Authentication → Providers → **Kakao**
+
+- **Allow users without an email** (이메일 없는 사용자 허용) → **ON** ✅
+
+**2. Kakao Developers** → 제품 설정 → 카카오 로그인 → **동의항목**
+
+| 항목 | 설정 |
+|------|------|
+| 닉네임 (profile_nickname) | **필수 동의** 또는 선택 동의 ON |
+| 프로필 사진 (profile_image) | 선택 동의 ON |
+| 카카오계정(이메일) (account_email) | **끄기** (개인 앱은 사용 불가) |
+
+**3. Redirect URI** (다시 확인)
+
+```
+https://jwagmyyhjzjifirsglrd.supabase.co/auth/v1/callback
+```
+
+### 방법 B — 이메일도 받고 싶을 때
+
+**Kakao Developers** → 앱 설정 → **비즈니스** → **개인 개발자 등록** (또는 사업자 정보 등록)
+
+등록 후 **동의항목**에서 **account_email** 활성화 → Supabase Kakao에서 Allow users without an email **OFF** 가능
+
+### Redirect URI / 플랫폼 추가 확인
+
+- **앱 설정 → 플랫폼 → Web** 추가
+  - 사이트 도메인: `https://jwagmyyhjzjifirsglrd.supabase.co`
+- **REST API 키**를 Supabase Kakao **Client ID**에 사용 (JavaScript 키 ❌)
+
+---

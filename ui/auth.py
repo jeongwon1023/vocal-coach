@@ -351,7 +351,10 @@ def _diagnose_supabase_auth() -> bool:
         st.error("Kakao Provider가 Supabase Dashboard에서 꺼져 있습니다.")
         return False
 
-    st.caption(f"OAuth redirect: {streamlit_url()}")
+    st.caption(
+        "KOE205 오류 시: Supabase Kakao → **Allow users without an email** ON · "
+        "카카오 동의항목에서 닉네임/프로필만 켜기 (docs/kakao-oauth-setup.md)"
+    )
     return True
 
 
@@ -371,7 +374,11 @@ def _start_kakao_oauth() -> None:
         response = client.auth.sign_in_with_oauth(
             {
                 "provider": "kakao",
-                "options": {"redirect_to": streamlit_url()},
+                "options": {
+                    "redirect_to": streamlit_url(),
+                    # account_email 은 카카오 Biz/개인사업자 등록 없으면 KOE205 발생
+                    "scopes": "profile_nickname profile_image",
+                },
             }
         )
     except Exception as exc:
