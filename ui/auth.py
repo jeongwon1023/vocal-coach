@@ -165,6 +165,104 @@ def _apply_supabase_session(session: Any) -> None:
     st.session_state.supabase_refresh_token = session.refresh_token
 
 
+def _clear_oauth_query_params() -> None:
+    """OAuth 콜백 파라미터 제거 — URL 무한 루프 방지."""
+    for key in ("code", "state", "error", "error_description"):
+        try:
+            if key in st.query_params:
+                del st.query_params[key]
+        except Exception:
+            pass
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
+
+
+def _on_login_success(*, previous_anon_id: str | None = None) -> None:
+    """로그인 직후 — 게스트 분석 기록 클라우드 동기화."""
+    st.session_state.pop("analysis_completed_guest", None)
+    anon_id = previous_anon_id or st.session_state.pop("anon_analysis_id", None)
+    user_id = current_user_id()
+    if not anon_id or not user_id or not str(anon_id).startswith("anon_"):
+        return
+    try:
+        from db_store import sync_guest_records_to_user
+
+        count = sync_guest_records_to_user(anon_id=anon_id, user_id=user_id)
+        if count:
+            st.session_state["_guest_sync_count"] = count
+    except Exception as exc:
+        log_error("게스트 기록 동기화 실패", source="_on_login_success", exc=exc)
+
+
+def _exchange_oauth_code(code: str, state: str | None) -> bool:
+    """authorization code → 세션 (직접 카카오 우선 · Supabase fallback)."""
+    try:
+        if state == _KAKAO_OAUTH_STATE or kakao_direct_configured():
+            _complete_kakao_direct_login(code)
+            if st.session_state.get("user"):
+                return True
+
+        if supabase_configured():
+            client = get_supabase_client()
+            if client:
+                response = _supabase_exchange_code_once(client, code)
+                if response.session:
+                    _apply_supabase_session(response.session)
+                    return True
+        return bool(st.session_state.get("user"))
+    except Exception as exc:
+        st.session_state["_auth_last_error"] = str(exc)
+        log_error("OAuth code 교환 실패", source="_exchange_oauth_code", exc=exc)
+        return False
+
+
+def handle_oauth_callback_if_present() -> None:
+    """app.py 최상단 — URL ?code= 콜백 즉시 처리 (페이지 렌더 전)."""
+    if _qp_first(st.query_params.get("kakao_debug")) == "1":
+        return
+    if _qp_first(st.query_params.get("error")):
+        return
+
+    code = _qp_first(st.query_params.get("code"))
+    if not code:
+        st.session_state.pop("_oauth_in_progress", None)
+        return
+
+    if st.session_state.get("user"):
+        _clear_oauth_query_params()
+        st.session_state.pop("_oauth_in_progress", None)
+        st.rerun()
+
+    if st.session_state.get("_oauth_handled_code") == code:
+        _clear_oauth_query_params()
+        st.session_state.pop("_oauth_in_progress", None)
+        return
+
+    st.session_state["_oauth_in_progress"] = True
+    clear_retry_ui_state()
+
+    state = _qp_first(st.query_params.get("state"))
+    anon_before = st.session_state.get("anon_analysis_id")
+
+    with st.spinner("카카오 로그인 연동 중입니다..."):
+        success = _exchange_oauth_code(code, state)
+
+    st.session_state["_oauth_handled_code"] = code
+    st.session_state.pop("_oauth_in_progress", None)
+    _clear_oauth_query_params()
+
+    if success:
+        _on_login_success(previous_anon_id=anon_before)
+        st.rerun()
+
+    err = st.session_state.get("_auth_last_error") or "카카오 로그인에 실패했습니다. 다시 시도해 주세요."
+    st.error(err)
+    st.info("잠시 후 홈으로 이동합니다. 상단 **로그인** 또는 **체험 계정**을 이용해 주세요.")
+    st.stop()
+
+
 def render_pending_oauth_redirect() -> None:
     """다이얼로그/iframe 밖 최상위 창으로 OAuth 이동 (kauth.kakao.com iframe 차단 우회)."""
     url = st.session_state.pop("oauth_redirect_url", None)
@@ -212,8 +310,9 @@ def init_auth() -> None:
         st.stop()
 
     if oauth_callback_active():
-        st.session_state["_oauth_in_progress"] = True
         clear_retry_ui_state()
+        if _qp_first(st.query_params.get("code")):
+            return
 
     _render_oauth_callback_errors()
     render_pending_oauth_redirect()
@@ -475,7 +574,6 @@ def _complete_kakao_direct_login(code: str) -> None:
     token = create_session(user.id)
     st.session_state.auth_token = token
     st.session_state.user = user.to_dict()
-    st.session_state.pop("analysis_completed_guest", None)
 
 
 def _start_kakao_direct_oauth() -> None:
@@ -581,6 +679,13 @@ def _supabase_exchange_code(client: Any, code: str) -> Any:
     )
 
 
+def _supabase_exchange_code_once(client: Any, code: str) -> Any:
+    """OAuth 콜백 — 재시도 없이 1회 교환 (무한 스피너 방지)."""
+    return client.auth.exchange_code_for_session(
+        {"auth_code": code, "redirect_to": streamlit_url()}
+    )
+
+
 def _render_supabase_login_dialog(*, key_prefix: str) -> None:
     _render_supabase_kakao_styles()
     _render_kakao_login_button(key="supabase_kakao_login")
@@ -622,12 +727,13 @@ def start_demo() -> None:
 
 
 def _start_demo() -> None:
+    anon_before = st.session_state.get("anon_analysis_id")
     user = create_demo_user()
     token = create_session(user.id)
     st.session_state.auth_token = token
     st.session_state.user = user.to_dict()
     st.session_state.show_login = False
-    st.session_state.pop("analysis_completed_guest", None)
+    _on_login_success(previous_anon_id=anon_before)
     st.rerun()
 
 
@@ -697,65 +803,26 @@ def render_landing_auth_banner() -> None:
 
 
 def check_user_session() -> None:
-    """카카오 직접 OAuth / Supabase OAuth 콜백 처리."""
-    qp = st.query_params
-    code = _qp_first(qp.get("code"))
-    state = _qp_first(qp.get("state"))
-
-    if code:
-        st.session_state["_oauth_in_progress"] = True
-        clear_retry_ui_state()
-
-    if code and state == _KAKAO_OAUTH_STATE:
-        with st.spinner("카카오 로그인 연동 중입니다..."):
-            try:
-                _complete_kakao_direct_login(code)
-            except Exception as exc:
-                st.session_state["_auth_last_error"] = str(exc)
-                log_error("카카오 직접 로그인 콜백 실패", source="check_user_session", exc=exc)
-        st.session_state.pop("_oauth_in_progress", None)
-        st.query_params.clear()
-        st.rerun()
+    """기존 세션 복원 — OAuth ?code= 는 handle_oauth_callback_if_present()에서 처리."""
+    if _qp_first(st.query_params.get("code")):
         return
 
     if not supabase_configured():
-        st.session_state.pop("_oauth_in_progress", None)
         return
 
     try:
         client = get_supabase_client()
     except Exception as exc:
         st.session_state["_auth_last_error"] = str(exc)
-        st.session_state.pop("_oauth_in_progress", None)
         return
 
     if not client:
-        st.session_state.pop("_oauth_in_progress", None)
         return
-
-    if code and state != _KAKAO_OAUTH_STATE:
-        with st.spinner("카카오 로그인 연동 중입니다..."):
-            try:
-                response = _supabase_exchange_code(client, code)
-                if response.session:
-                    _apply_supabase_session(response.session)
-                st.query_params.clear()
-                st.session_state.pop("_oauth_in_progress", None)
-                st.rerun()
-            except Exception as exc:
-                st.session_state["_auth_last_error"] = str(exc)
-                log_error("Supabase OAuth 콜백 실패", source="check_user_session", exc=exc)
-                st.query_params.clear()
-                st.session_state.pop("_oauth_in_progress", None)
-                return
 
     try:
         session = client.auth.get_session()
     except Exception:
-        st.session_state.pop("_oauth_in_progress", None)
         return
-
-    st.session_state.pop("_oauth_in_progress", None)
 
     if session and session.user and not st.session_state.get("user"):
         _apply_supabase_session(session)

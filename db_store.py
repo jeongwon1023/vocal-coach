@@ -69,6 +69,52 @@ def _save_to_supabase(data: dict[str, Any], *, user_id: str) -> str | None:
     return None
 
 
+def _record_exists_for_user(user_id: str, recorded_at: str | None) -> bool:
+    if not recorded_at or not supabase_configured():
+        return False
+    try:
+        client = _get_client()
+        resp = (
+            client.table("analysis_records")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("recorded_at", recorded_at)
+            .limit(1)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception:
+        return False
+
+
+def upsert_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:
+    """analysis_records — recorded_at 기준 중복 방지 upsert."""
+    recorded_at = data.get("recorded_at")
+    if recorded_at and _record_exists_for_user(user_id, recorded_at):
+        return None
+    payload = {**data, "user_id": user_id}
+    return _save_to_supabase(payload, user_id=user_id)
+
+
+def sync_guest_records_to_user(*, anon_id: str, user_id: str) -> int:
+    """게스트(anon_*) 로컬 JSON → Supabase analysis_records 동기화."""
+    if not anon_id or not user_id or not str(anon_id).startswith("anon_"):
+        return 0
+    if not supabase_configured():
+        return 0
+
+    synced = 0
+    for path in list_local_records(limit=50, user_id=anon_id):
+        try:
+            record = load_local_record(path)
+            record = {**record, "user_id": user_id, "migrated_from": anon_id}
+            if upsert_analysis_record(record, user_id=user_id):
+                synced += 1
+        except Exception:
+            continue
+    return synced
+
+
 def mirror_analysis_record(data: dict[str, Any], *, user_id: str) -> str | None:
     """로컬 저장 후 Supabase 미러 (게스트·레거시)."""
     if not supabase_configured():

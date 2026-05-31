@@ -25,6 +25,11 @@ st.set_page_config(
     },
 )
 
+# OAuth ?code= 콜백 — UI 렌더 전 즉시 처리 (무한 스피너 방지)
+from ui.auth import handle_oauth_callback_if_present  # noqa: E402
+
+handle_oauth_callback_if_present()
+
 
 def _import_ui():
     from gpt_coach import load_dotenv_if_present
