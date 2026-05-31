@@ -48,6 +48,7 @@ def render_admin_page() -> None:
         return
 
     _render_admin_toolbar()
+    _render_qa_panel()
     _render_health_panel()
     _render_error_dashboard()
 
@@ -64,19 +65,62 @@ def _render_admin_login() -> None:
 
 
 def _render_admin_toolbar() -> None:
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         st.caption("접속 URL: `?admin_token=ADMIN_SECRET` 으로 바로 진입 가능")
     with col2:
+        if st.button("🤖 AI 자가 테스트", use_container_width=True):
+            st.session_state["_admin_qa_run"] = True
+            st.rerun()
+    with col3:
         if st.button("🔄 Pre-flight 재검사", use_container_width=True):
             st.session_state.pop("system_health", None)
             run_preflight()
             st.rerun()
-    with col3:
+    with col4:
         if st.button("로그아웃", use_container_width=True):
             logout_admin()
             st.session_state.nav_page = "홈"
             st.rerun()
+
+
+def _render_qa_panel() -> None:
+    if not st.session_state.pop("_admin_qa_run", False):
+        cached = st.session_state.get("_admin_qa_results")
+        if not cached:
+            return
+        _display_qa_results(cached)
+        return
+
+    with st.spinner("AI 자가 테스트 실행 중…"):
+        from test_app import log_qa_failures, qa_summary, run_app_qa
+
+        results = run_app_qa()
+        log_qa_failures(results)
+        st.session_state["_admin_qa_results"] = results
+    st.rerun()
+
+
+def _display_qa_results(results: list[dict[str, Any]]) -> None:
+    from test_app import qa_summary
+
+    ok, label = qa_summary(results)
+    color = "#22c55e" if ok and label.startswith("이상") else "#ef4444"
+    if "Yellow" in label:
+        color = "#f59e0b"
+    st.subheader("AI 자가 테스트 결과")
+    st.markdown(f"**종합:** <span style='color:{color}'>{label}</span>", unsafe_allow_html=True)
+    rows = [
+        {
+            "단계": r.get("step", "—"),
+            "상태": {"pass": "✅ Pass", "fail": "❌ Fail", "warn": "⚠️ Warn"}.get(
+                r.get("status", ""), r.get("status")
+            ),
+            "상세": r.get("detail", ""),
+        }
+        for r in results
+    ]
+    st.dataframe(rows, use_container_width=True, hide_index=True)
 
 
 def _render_health_panel() -> None:

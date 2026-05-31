@@ -17,7 +17,29 @@ MAX_PERSISTED_ERRORS = 200
 _ERROR_LOG_PATH = Path(__file__).resolve().parent.parent / "records" / "errors" / "error_log.jsonl"
 
 
+def oauth_callback_active() -> bool:
+    """카카오 OAuth code 콜백 중 — 재시도 토스트·Pre-flight ping 억제."""
+    if st.session_state.get("_oauth_in_progress"):
+        return True
+    try:
+        code = st.query_params.get("code")
+        if isinstance(code, list):
+            code = code[0] if code else None
+        if code:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def clear_retry_ui_state() -> None:
+    st.session_state.pop("_retry_in_progress", None)
+    st.session_state.pop("_retry_attempt", None)
+
+
 def _on_retry(retry_state: Any) -> None:
+    if oauth_callback_active():
+        return
     init_error_guard()
     st.session_state["_retry_in_progress"] = True
     st.session_state["_retry_attempt"] = retry_state.attempt_number
@@ -160,6 +182,9 @@ def queue_error_dialog(detail: str, *, source: str = "app") -> None:
 
 def render_retry_indicator() -> None:
     """Discord-style 재연결 안내."""
+    if oauth_callback_active():
+        clear_retry_ui_state()
+        return
     if not st.session_state.pop("_retry_in_progress", False):
         return
     attempt = int(st.session_state.pop("_retry_attempt", 1))
@@ -212,6 +237,19 @@ def httpx_post_with_retry(url: str, **kwargs: Any) -> httpx.Response:
     return resp
 
 
+def httpx_get_once(url: str, **kwargs: Any) -> httpx.Response:
+    """Pre-flight · OAuth — 재시도 UI 없이 1회 요청."""
+    resp = httpx.get(url, **kwargs)
+    resp.raise_for_status()
+    return resp
+
+
+def httpx_post_once(url: str, **kwargs: Any) -> httpx.Response:
+    resp = httpx.post(url, **kwargs)
+    resp.raise_for_status()
+    return resp
+
+
 def _secret_or_env(name: str) -> str | None:
     import os
 
@@ -254,7 +292,7 @@ def verify_system_health() -> dict[str, Any]:
     if supabase_ready:
         checks["supabase_secrets"] = True
         try:
-            httpx_get_with_retry(
+            httpx_get_once(
                 f"{supabase_url.rstrip('/')}/auth/v1/settings",
                 headers={
                     "apikey": supabase_key,

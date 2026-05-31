@@ -78,6 +78,54 @@ def _load_session_for_record(user_id: str, path: Path) -> dict:
     return rebuild_session_from_record(record, path)
 
 
+def _restore_result_session(user_id: str) -> bool:
+    """rerun 후 last_session 유실 시 캐시·최신 기록에서 결과 뷰 복원."""
+    if st.session_state.get("last_session"):
+        return True
+
+    show = st.session_state.get("mypage_show_result") or st.session_state.get(
+        "analysis_just_completed"
+    )
+    if not show:
+        return False
+
+    from ui.session_cache import load_session_cache, rebuild_session_from_record
+
+    key = st.session_state.get("last_result_record_key")
+    if key:
+        cached = load_session_cache(user_id, key)
+        if cached:
+            st.session_state["last_session"] = cached
+            st.session_state["mypage_show_result"] = True
+            return True
+        for path in list_records(limit=10, user_id=user_id):
+            if path.stem == key:
+                st.session_state["last_session"] = _load_session_for_record(user_id, path)
+                st.session_state["mypage_show_result"] = True
+                return True
+
+    if st.session_state.get("analysis_just_completed"):
+        paths = list_records(limit=1, user_id=user_id)
+        if paths:
+            st.session_state["last_session"] = _load_session_for_record(user_id, paths[0])
+            st.session_state["last_result_record_key"] = paths[0].stem
+            st.session_state["mypage_show_result"] = True
+            return True
+        try:
+            from db_store import list_analysis_records, supabase_configured
+
+            if supabase_configured() and user_id and not str(user_id).startswith("anon_"):
+                recs = list_analysis_records(limit=1, user_id=user_id)
+                if recs:
+                    st.session_state["last_session"] = rebuild_session_from_record(recs[0])
+                    st.session_state["mypage_show_result"] = True
+                    return True
+        except Exception:
+            pass
+
+    return False
+
+
 def _render_login_gate() -> None:
     from ui.auth_ui import render_login_card
 
@@ -363,10 +411,19 @@ def render() -> None:
         close_analyze_stage()
         return
 
-    if st.session_state.get("last_session") and st.session_state.get("mypage_show_result"):
+    if st.session_state.get("mypage_show_result") or st.session_state.get(
+        "analysis_just_completed"
+    ):
+        _restore_result_session(user_id)
+
+    if st.session_state.get("last_session") and (
+        st.session_state.get("mypage_show_result")
+        or st.session_state.get("analysis_just_completed")
+    ):
         from ui.analysis_overlay import clear_analyze_stage
 
         clear_analyze_stage()
+        st.session_state.pop("analysis_just_completed", None)
         if st.session_state.pop("scroll_result", False):
             from ui.scroll import scroll_to_top
 

@@ -28,7 +28,9 @@ def clear_results_state() -> None:
         "_upload_file_sig",
         "scroll_result",
         "scroll_analyze",
-        "scroll_analyze_ticks"
+        "scroll_analyze_ticks",
+        "analysis_just_completed",
+        "last_result_record_key",
     ):
         st.session_state.pop(key, None)
 

@@ -48,6 +48,14 @@ def save_record(
     *,
     user_id: str | None = None,
 ) -> Path:
+    try:
+        from db_store import is_cloud_user, save_analysis_record
+
+        if is_cloud_user(user_id):
+            return save_analysis_record(data, user_id=user_id, path=path)
+    except Exception:
+        pass
+
     path = path or default_record_path(user_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     if user_id:
@@ -66,6 +74,31 @@ def save_record(
 
 
 def list_records(limit: int = 20, *, user_id: str | None = None) -> list[Path]:
+    try:
+        from db_store import is_cloud_user, list_analysis_records
+
+        if is_cloud_user(user_id):
+            cloud = list_analysis_records(limit=limit, user_id=user_id)
+            if cloud:
+                paths: list[Path] = []
+                d = user_records_dir(user_id)
+                for idx, record in enumerate(cloud):
+                    local_path = record.get("_local_path")
+                    if local_path and Path(local_path).exists():
+                        paths.append(Path(local_path))
+                        continue
+                    ts = (record.get("recorded_at") or f"cloud_{idx}").replace(":", "").replace("-", "")
+                    virtual = d / f"record_{ts[:15]}.json"
+                    if not virtual.exists():
+                        virtual.write_text(
+                            json.dumps(record, ensure_ascii=False, indent=2),
+                            encoding="utf-8",
+                        )
+                    paths.append(virtual)
+                return paths
+    except Exception:
+        pass
+
     d = user_records_dir(user_id)
     if not d.exists():
         return []

@@ -120,6 +120,16 @@ def cancel_analysis() -> None:
     clear_analysis_state()
 
 
+def _mark_analysis_result_ready(session: dict, opts: dict) -> None:
+    """분석 완료 — 결과 페이지 플래그 + 캐시 키 (rerun 후 세션 복원용)."""
+    st.session_state["mypage_show_result"] = True
+    st.session_state["analysis_just_completed"] = True
+    record_path = session.get("record_path")
+    if record_path:
+        st.session_state["last_result_record_key"] = Path(str(record_path)).stem
+    _persist_session_cache(session, opts)
+
+
 def _persist_session_cache(session: dict, opts: dict) -> None:
     user_id = opts.get("user_id")
     if not user_id:
@@ -215,8 +225,7 @@ def _poll_queue_job(job_id: str, opts: dict) -> str:
         session = load_session_for_job(job_id)
         if session:
             st.session_state["last_session"] = session
-            _persist_session_cache(session, opts)
-            st.session_state["mypage_show_result"] = True
+            _mark_analysis_result_ready(session, opts)
             from ui.lazy_auth import mark_analysis_completed
 
             mark_analysis_completed()
@@ -298,8 +307,7 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
             )
         st.session_state["last_session"] = session
         st.session_state["last_log"] = buf.getvalue()
-        _persist_session_cache(session, opts)
-        st.session_state["mypage_show_result"] = True
+        _mark_analysis_result_ready(session, opts)
         from ui.lazy_auth import mark_analysis_completed
 
         mark_analysis_completed()
