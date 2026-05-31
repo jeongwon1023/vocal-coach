@@ -140,7 +140,10 @@ def init_auth() -> None:
     if "user" not in st.session_state:
         st.session_state.user = None
 
-    check_user_session()
+    try:
+        check_user_session()
+    except Exception as exc:
+        st.session_state["_auth_last_error"] = str(exc)
 
     qp = st.query_params
     token = qp.get("token")
@@ -425,7 +428,12 @@ def check_user_session() -> None:
     if not supabase_configured():
         return
 
-    client = get_supabase_client()
+    try:
+        client = get_supabase_client()
+    except Exception as exc:
+        st.session_state["_auth_last_error"] = str(exc)
+        return
+
     if not client:
         return
 

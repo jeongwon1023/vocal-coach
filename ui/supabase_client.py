@@ -13,13 +13,16 @@ _JWT_KEY = re.compile(r"^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"
 
 def is_supabase_key_format(key: str) -> bool:
     key = (key or "").strip()
-    if not key or len(key) < 20:
+    if not key or len(key) < 30:
         return False
-    if _JWT_KEY.match(key):
-        return True
-    if key.startswith(("sb_publishable_", "sb_secret_", "eyJ")):
-        return True
-    return False
+    lowered = key.lower()
+    if "..." in key or "your-" in lowered or "xxxx" in lowered or "또는" in key:
+        return False
+    if key.startswith("eyJ"):
+        return len(key) >= 100 and bool(_JWT_KEY.match(key))
+    if key.startswith(("sb_publishable_", "sb_secret_")):
+        return len(key) >= 30
+    return bool(_JWT_KEY.match(key))
 
 
 def create_supabase_client(url: str, key: str, *, storage) -> SyncClient:
