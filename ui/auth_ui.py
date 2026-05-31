@@ -30,15 +30,15 @@ def render_trial_button(*, key_prefix: str = "trial") -> None:
 
 def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> None:
     """카카오 → Google → 체험 (한국 앱 UX 순서)."""
-    from ui.auth import _start_kakao_oauth, supabase_configured
+    from ui.auth import _start_kakao_oauth, kakao_direct_configured, kakao_login_available
 
     base = auth_base_url()
     g_ok = google_configured()
     k_ok = kakao_configured()
-    sb_ok = supabase_configured()
+    k_login = kakao_login_available()
     sm = " vc-auth-sm" if compact else ""
 
-    if sb_ok:
+    if k_login and kakao_direct_configured():
         if st.button(
             "💬 카카오로 계속하기",
             key=f"{key_prefix}_supabase_kakao",
@@ -67,7 +67,7 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
             f'<span class="vc-auth-btn-icon vc-auth-g-icon">G</span> Google로 시작하기</span>'
         )
 
-    if not k_ok and not g_ok and not sb_ok and not compact:
+    if not k_ok and not g_ok and not k_login and not compact:
         st.caption("소셜 로그인은 준비 중이에요 · **체험 계정**으로 바로 이용해 보세요")
 
     render_safe_html(

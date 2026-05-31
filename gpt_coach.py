@@ -400,6 +400,8 @@ def load_dotenv_if_present(project_dir) -> None:
             "SUPABASE_URL",
             "SUPABASE_KEY",
             "STREAMLIT_URL",
+            "KAKAO_REST_API_KEY",
+            "KAKAO_CLIENT_SECRET",
         ):
             if key in st.secrets and key not in os.environ:
                 os.environ[key] = str(st.secrets[key])

@@ -7,7 +7,8 @@ Supabase + Kakao OAuth + Streamlit Cloud 기준입니다.
 | 항목 | URL |
 |------|-----|
 | Streamlit 앱 | `https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app` |
-| Supabase Auth 콜백 (카카오 Redirect URI) | `https://jwagmyyhjzjifirsglrd.supabase.co/auth/v1/callback` |
+| Supabase Auth 콜백 | `https://jwagmyyhjzjifirsglrd.supabase.co/auth/v1/callback` |
+| **카카오 직접 OAuth Redirect** | `https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app` |
 | 로컬 개발 | `http://localhost:8501` |
 
 ---
@@ -17,9 +18,11 @@ Supabase + Kakao OAuth + Streamlit Cloud 기준입니다.
 1. **내 애플리케이션** → 앱 선택
 2. **앱 설정 → 앱 키** → **REST API 키** 복사 (→ Supabase Client ID)
 3. **제품 설정 → 카카오 로그인** → **활성화 ON**
-4. **Redirect URI**에 아래 **한 줄** 추가 후 저장:
+4. **Redirect URI**에 아래 **두 줄** 추가 후 저장:
    ```
    https://jwagmyyhjzjifirsglrd.supabase.co/auth/v1/callback
+   https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app
+   http://localhost:8501
    ```
 5. **제품 설정 → 카카오 로그인 → 보안** → **Client Secret** 발급/확인 (→ Supabase Client Secret)
 6. **동의 항목** → 닉네임·프로필 사진 등 최소 1개 필수 동의 설정
@@ -48,11 +51,15 @@ Supabase + Kakao OAuth + Streamlit Cloud 기준입니다.
 
 ```toml
 SUPABASE_URL = "https://jwagmyyhjzjifirsglrd.supabase.co"
-SUPABASE_KEY = "본인_실제_키"   # anon(eyJ...) 또는 sb_publishable_...
+SUPABASE_KEY = "본인_실제_키"
 STREAMLIT_URL = "https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app"
+
+# ⭐ KOE205 해결 — 카카오 REST API 키 (Supabase Auth 우회)
+KAKAO_REST_API_KEY = "카카오_REST_API_키"
 ```
 
-> Kakao REST API Key / Secret은 **Streamlit Secrets에 넣지 않습니다.** Supabase Dashboard에만 넣습니다.
+> Supabase는 서버에서 **account_email** scope를 강제해 KOE205가 납니다.  
+> **KAKAO_REST_API_KEY**를 넣으면 앱이 **카카오 직접 OAuth**를 사용합니다 (이메일 scope 미요청).
 
 ---
 

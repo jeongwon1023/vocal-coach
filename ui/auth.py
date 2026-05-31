@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import os
+import urllib.parse
 from typing import Any
 
 import streamlit as st
@@ -13,6 +14,7 @@ from auth_service import (
     create_demo_user,
     create_session,
     delete_session,
+    find_or_create_oauth_user,
     google_configured,
     kakao_configured,
     resolve_session,
@@ -30,6 +32,11 @@ except ImportError:
     SyncSupportedStorage = object  # type: ignore[misc, assignment]
 
 from ui.supabase_client import create_supabase_client, is_supabase_key_format
+
+_KAKAO_OAUTH_STATE = "vc_kakao"
+KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
+KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
+KAKAO_USER_URL = "https://kapi.kakao.com/v2/user/me"
 
 
 class _StreamlitAuthStorage(SyncSupportedStorage):
@@ -70,6 +77,16 @@ def supabase_configured() -> bool:
     return bool(_SUPABASE_IMPORT_OK and url and key and is_supabase_key_format(key or ""))
 
 
+def kakao_direct_configured() -> bool:
+    """Streamlit 직접 카카오 OAuth (Supabase Auth KOE205/account_email 우회)."""
+    key = _secret_or_env("KAKAO_REST_API_KEY")
+    return bool(key and len(key) >= 20 and not key.startswith("your-"))
+
+
+def kakao_login_available() -> bool:
+    return kakao_direct_configured() or supabase_configured()
+
+
 def get_auth_config_status() -> dict[str, Any]:
     """디버그용 — Supabase/카카오 등록 상태 (키 값은 노출하지 않음)."""
     url = _secret_or_env("SUPABASE_URL")
@@ -80,6 +97,8 @@ def get_auth_config_status() -> dict[str, Any]:
         "supabase_key_set": bool(key),
         "supabase_key_valid_format": bool(key and is_supabase_key_format(key)),
         "supabase_ready": supabase_configured(),
+        "kakao_direct": kakao_direct_configured(),
+        "kakao_login_available": kakao_login_available(),
         "legacy_kakao_env": kakao_configured(),
         "redirect_url": streamlit_url(),
     }
@@ -317,6 +336,97 @@ def _render_kakao_login_button(*, key: str) -> None:
         _start_kakao_oauth()
 
 
+def _qp_first(value: str | list[str] | None) -> str | None:
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+
+def _complete_kakao_direct_login(code: str) -> None:
+    """카카오 authorization code → 앱 세션 (Supabase Auth 미사용)."""
+    import httpx
+
+    rest_key = _secret_or_env("KAKAO_REST_API_KEY")
+    if not rest_key:
+        st.session_state["_auth_last_error"] = "KAKAO_REST_API_KEY 없음"
+        return
+
+    redirect = streamlit_url()
+    payload: dict[str, str] = {
+        "grant_type": "authorization_code",
+        "client_id": rest_key,
+        "redirect_uri": redirect,
+        "code": code,
+    }
+    secret = _secret_or_env("KAKAO_CLIENT_SECRET")
+    if secret:
+        payload["client_secret"] = secret
+
+    token_resp = httpx.post(
+        KAKAO_TOKEN_URL,
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=15,
+    )
+    if token_resp.status_code != 200:
+        st.session_state["_auth_last_error"] = f"Kakao 토큰 교환 실패 ({token_resp.status_code})"
+        return
+
+    access = token_resp.json().get("access_token")
+    if not access:
+        st.session_state["_auth_last_error"] = "Kakao access_token 없음"
+        return
+
+    user_resp = httpx.get(
+        KAKAO_USER_URL,
+        headers={"Authorization": f"Bearer {access}"},
+        timeout=15,
+    )
+    if user_resp.status_code != 200:
+        st.session_state["_auth_last_error"] = f"Kakao 사용자 정보 실패 ({user_resp.status_code})"
+        return
+
+    info = user_resp.json()
+    kakao_account = info.get("kakao_account") or {}
+    profile = kakao_account.get("profile") or {}
+    user = find_or_create_oauth_user(
+        provider="kakao",
+        provider_uid=str(info.get("id", "")),
+        name=profile.get("nickname") or "카카오 사용자",
+        email=kakao_account.get("email"),
+        avatar_url=profile.get("profile_image_url"),
+    )
+    token = create_session(user.id)
+    st.session_state.auth_token = token
+    st.session_state.user = user.to_dict()
+
+
+def _start_kakao_direct_oauth() -> None:
+    """Supabase 경유 없이 카카오 OAuth (scope 미지정 → KOE205 방지)."""
+    rest_key = _secret_or_env("KAKAO_REST_API_KEY")
+    if not rest_key:
+        st.error("KAKAO_REST_API_KEY가 Secrets에 없습니다.")
+        return
+
+    params = {
+        "client_id": rest_key,
+        "redirect_uri": streamlit_url(),
+        "response_type": "code",
+        "state": _KAKAO_OAUTH_STATE,
+    }
+    url = KAKAO_AUTH_URL + "?" + urllib.parse.urlencode(params)
+    st.session_state["oauth_redirect_url"] = url
+    st.rerun()
+
+
+def _diagnose_kakao_auth() -> bool:
+    if kakao_direct_configured():
+        st.write("카카오 직접 로그인 준비 OK (이메일 scope 미요청)")
+        st.caption(f"Redirect URI: {streamlit_url()}")
+        return True
+    return _diagnose_supabase_auth()
+
+
 def _diagnose_supabase_auth() -> bool:
     """Supabase 연결 및 OAuth Provider 설정 확인."""
     import httpx
@@ -360,10 +470,14 @@ def _diagnose_supabase_auth() -> bool:
 
 def _start_kakao_oauth() -> None:
     try:
-        if not _diagnose_supabase_auth():
+        if not _diagnose_kakao_auth():
             return
     except Exception as exc:
         st.error(f"설정 에러: {exc}")
+        return
+
+    if kakao_direct_configured():
+        _start_kakao_direct_oauth()
         return
 
     client = get_supabase_client()
@@ -376,7 +490,6 @@ def _start_kakao_oauth() -> None:
                 "provider": "kakao",
                 "options": {
                     "redirect_to": streamlit_url(),
-                    # account_email 은 카카오 Biz/개인사업자 등록 없으면 KOE205 발생
                     "scopes": "profile_nickname profile_image",
                 },
             }
@@ -385,8 +498,7 @@ def _start_kakao_oauth() -> None:
         st.error(f"카카오 로그인을 시작하지 못했습니다: {exc}")
         return
 
-    url = response.url
-    st.session_state["oauth_redirect_url"] = url
+    st.session_state["oauth_redirect_url"] = response.url
     st.rerun()
 
 
@@ -402,7 +514,7 @@ def _render_supabase_login_dialog(*, key_prefix: str) -> None:
 @st.dialog("3초 만에 시작하기", width="small")
 def _show_login_dialog() -> None:
     prefix = st.session_state.get("_login_dialog_prefix", "dialog_auth")
-    if supabase_configured():
+    if kakao_login_available():
         _render_supabase_login_dialog(key_prefix=prefix)
         return
 
@@ -443,7 +555,7 @@ def render_login_page() -> None:
         open_login_dialog(key_prefix="page_login_dialog")
         return
 
-    if supabase_configured():
+    if kakao_login_available():
         _render_supabase_kakao_styles()
         _render_kakao_login_button(key="page_supabase_kakao")
         if st.button("✦ 체험 계정으로 시작", key="page_demo", use_container_width=True, type="primary"):
@@ -488,13 +600,14 @@ def render_landing_auth_banner() -> None:
         """
     )
 
-    if supabase_configured():
+    if kakao_login_available():
         _render_supabase_kakao_styles()
         _render_kakao_login_button(key="landing_kakao")
     else:
-        status = get_auth_config_status()
-        if not status["supabase_url_set"] or not status["supabase_key_set"]:
-            st.caption("카카오 로그인: Supabase Secrets 미등록 — `.streamlit/secrets.toml` 또는 Cloud Secrets 확인")
+        st.caption(
+            "카카오 로그인: Streamlit Secrets에 **KAKAO_REST_API_KEY** 추가 · "
+            "카카오 Redirect URI에 앱 URL 등록 (docs/kakao-oauth-setup.md)"
+        )
 
     from ui.auth_ui import render_trial_button
 
@@ -502,7 +615,20 @@ def render_landing_auth_banner() -> None:
 
 
 def check_user_session() -> None:
-    """Supabase OAuth 콜백(?code=) 처리 및 get_session() → st.session_state['user']."""
+    """카카오 직접 OAuth / Supabase OAuth 콜백 처리."""
+    qp = st.query_params
+    code = _qp_first(qp.get("code"))
+    state = _qp_first(qp.get("state"))
+
+    if code and state == _KAKAO_OAUTH_STATE:
+        try:
+            _complete_kakao_direct_login(code)
+        except Exception as exc:
+            st.session_state["_auth_last_error"] = str(exc)
+        st.query_params.clear()
+        st.rerun()
+        return
+
     if not supabase_configured():
         return
 
@@ -515,12 +641,7 @@ def check_user_session() -> None:
     if not client:
         return
 
-    qp = st.query_params
-    code = qp.get("code")
-    if isinstance(code, list):
-        code = code[0] if code else None
-
-    if code and isinstance(code, str):
+    if code and state != _KAKAO_OAUTH_STATE:
         try:
             response = client.auth.exchange_code_for_session(
                 {"auth_code": code, "redirect_to": streamlit_url()}
