@@ -297,6 +297,76 @@ def css_extension(page: str) -> str:
                 grid-template-columns: repeat(2, 1fr) !important;
             }}
         }}
+
+        .vc-beta-data-warn {{
+            display: flex; gap: 0.65rem; align-items: flex-start;
+            padding: 0.75rem 1rem; margin: 0.5rem 0 0.75rem;
+            background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
+            font-size: 0.82rem; color: #92400e; line-height: 1.45;
+        }}
+        .vc-upload-privacy {{
+            font-size: 0.78rem; color: #6b7280; margin: 0.25rem 0 0.75rem; line-height: 1.45;
+        }}
+        .vc-legal-footer, .vc-legal-caption {{
+            font-size: 0.75rem; color: #9ca3af; text-align: center; margin: 0.5rem 0;
+        }}
+        .vc-legal-footer a {{ color: #6366f1; text-decoration: none; }}
+        .vc-feedback-banner {{
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+            gap: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+            border-radius: 12px; border: 1px solid #e0e7ff;
+        }}
+        .vc-feedback-link {{
+            font-weight: 700; color: #4338ca; text-decoration: none;
+        }}
+        .vc-blur-preview {{
+            filter: blur(5px); opacity: 0.55; pointer-events: none; user-select: none;
+            padding: 1.25rem; margin: 0.75rem 0; border-radius: 16px;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            font-size: 0.9rem; line-height: 1.7; color: #374151;
+        }}
+        .vc-premium-lock-card {{
+            text-align: center; padding: 1.5rem 1rem; margin: 0.5rem 0 1rem;
+            background: #fff; border: 2px dashed #c7d2fe; border-radius: 16px;
+        }}
+        .vc-premium-lock-emoji {{ font-size: 2rem; margin: 0; }}
+        .vc-premium-lock-title {{ font-weight: 800; font-size: 1.05rem; margin: 0.35rem 0; }}
+        .vc-premium-lock-sub {{ font-size: 0.85rem; color: #6b7280; margin: 0; }}
+        .vc-wrapped-card {{
+            position: relative; overflow: hidden;
+            padding: 1.75rem 1.25rem 1.25rem; margin: 0.75rem 0;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #1e1b4b 0%, #312e81 45%, #0f0f14 100%);
+            color: #f8fafc; text-align: center;
+            max-width: 420px; margin-left: auto; margin-right: auto;
+        }}
+        .vc-wrapped-glow {{
+            position: absolute; inset: -40% -20% auto; height: 60%;
+            background: radial-gradient(circle, rgba(167,139,250,0.35), transparent 70%);
+            pointer-events: none;
+        }}
+        .vc-wrapped-eyebrow {{
+            font-size: 0.72rem; letter-spacing: 0.12em; opacity: 0.75; margin: 0 0 0.5rem;
+        }}
+        .vc-wrapped-title {{
+            font-size: 1.35rem; font-weight: 900; margin: 0 0 0.35rem; line-height: 1.35;
+        }}
+        .vc-wrapped-score {{
+            font-size: 3rem; font-weight: 900; margin: 0.25rem 0 0.75rem;
+            background: linear-gradient(135deg, #fde68a, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }}
+        .vc-wrapped-score span {{ font-size: 1rem; opacity: 0.8; }}
+        .vc-wrapped-stats {{
+            display: flex; justify-content: center; gap: 1rem; margin: 0.75rem 0;
+        }}
+        .vc-wrapped-stat-val {{ display: block; font-size: 1.25rem; font-weight: 800; }}
+        .vc-wrapped-stat-lbl {{ font-size: 0.72rem; opacity: 0.75; }}
+        .vc-wrapped-watermark {{
+            font-size: 0.72rem; opacity: 0.65; margin: 1rem 0 0.15rem;
+        }}
+        .vc-wrapped-url {{ font-size: 0.68rem; opacity: 0.5; margin: 0; word-break: break-all; }}
     """
 
 

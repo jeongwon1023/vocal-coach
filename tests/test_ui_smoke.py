@@ -51,8 +51,10 @@ def test_navigation_pages() -> None:
     assert "홈" in PAGES
     assert "마이 페이지" in PAGES
     assert "피드백" in PAGES
+    assert "관리자" in PAGES
     assert "분석" not in PAGES
     assert "피드백" not in NAV_PAGES
+    assert "관리자" not in NAV_PAGES
     assert len(NAV_PAGES) == 2
 
 

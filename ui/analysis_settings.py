@@ -71,77 +71,47 @@ def _render_midi_reference_upload() -> None:
         st.session_state.pop("midi_reference_path", None)
 
 
-def render_analysis_settings() -> None:
+def render_analysis_settings(*, simple: bool = True) -> None:
     from style_presets import PRESETS
-    from ui.help_guide import render_song_title_help, render_youtube_guide_sidebar
+    from ui.help_guide import render_song_title_help
 
-    render_safe_html(
-        '<p class="vc-sidebar-title">옵션</p>'
-    )
-    styles.sidebar_label("분석 모드")
+    if "fast_mode" not in st.session_state:
+        st.session_state.fast_mode = True
 
-    def _on_fast_mode_change() -> None:
-        if st.session_state.get("fast_mode", True):
-            st.session_state.pop("force_precision", None)
-
-    st.checkbox(
-        "빠른 분석 (권장)",
-        key="fast_mode",
-        value=True,
-        on_change=_on_fast_mode_change
-    )
-    st.caption("빠른: 약 1분 · 정밀(체크 해제): 더 깊은 코칭·노트별 피드백 (2~3분)")
-    st.checkbox(
-        "MR 감지 시 정밀 분석 자동",
-        key="auto_precision_on_mr",
-        value=True
-    )
-    st.caption("반주·MR이 섞인 녹음이면 분석 시작 시 자동으로 정밀 모드로 전환합니다.")
-    st.divider()
-    styles.sidebar_label("유튜브 가이드")
+    render_safe_html('<p class="vc-sidebar-title">🎤 버튼 하나로 1분 분석</p>')
     render_song_title_help()
     st.text_input(
-        "곡 제목",
+        "곡 제목 (선택)",
         key="song_title",
-        placeholder="예: 아이유 밤편지, NewJeans Ditto"
+        placeholder="예: 아이유 밤편지 — 비워도 OK",
     )
+    if simple:
+        st.caption("기본 **빠른 분석** · 약 1분 · 대부분의 녹음에 충분해요.")
+        with st.expander("⚙️ 고급 설정 (정밀·유튜브·GPT)", expanded=False):
+            _render_advanced_settings(PRESETS)
+        return
+    _render_advanced_settings(PRESETS)
+
+
+def _render_advanced_settings(PRESETS: dict) -> None:
+    from ui.help_guide import render_youtube_guide_sidebar
+
+    styles.sidebar_label("분석 모드")
+    st.checkbox("빠른 분석 (권장)", key="fast_mode", value=True)
+    st.caption("정밀 분석은 Cloud에서 2~3분+ 걸릴 수 있어요.")
     _render_popular_song_picker()
-    st.checkbox(
-        "인기곡 매칭 시 유튜브 가이드 자동",
-        key="auto_youtube_on_hint",
-        value=True
-    )
-    st.caption("DB에 있는 곡이면 유튜브 가이드를 자동으로 켭니다.")
-    st.checkbox(
-        "유튜브 가이드 사용",
-        key="use_youtube",
-        value=False
-    )
-    st.caption("켜면 곡 제목으로 MR·가이드 멜로디를 찾아 원곡과 비교합니다.")
+    st.checkbox("유튜브 가이드 사용", key="use_youtube", value=False)
     render_youtube_guide_sidebar()
     _render_midi_reference_upload()
-    st.divider()
-    styles.sidebar_label("기타 옵션")
     st.selectbox(
         "가창 스타일",
         options=list(PRESETS.keys()),
         format_func=lambda k: PRESETS[k].label,
-        key="style_preset"
+        key="style_preset",
     )
     st.checkbox("GPT 코칭", key="use_gpt", value=False)
     st.checkbox("기록 저장", key="save_record", value=True)
-    st.checkbox("이전 기록 비교", key="compare", value=True)
-    st.divider()
-    styles.sidebar_label("고급")
     st.checkbox("문제 구간 클립", key="export_clips", value=False)
-    st.checkbox("성장 그래프", key="growth_chart", value=False)
-    st.caption("정밀 분석 시 상세 성장 곡선 추가 생성. 기록 저장 시 기본 곡선은 자동 갱신됩니다.")
-    st.checkbox("백그라운드 분석 큐", key="use_queue", value=default_use_queue())
-    st.divider()
-    render_safe_html(
-        "<div class='tip-box' style='font-size:0.82rem;'>"
-        "🎧 MR은 이어폰 · 마이크엔 목소리만</div>"
-    )
 
 
 @st.dialog("⚙️ 분석 설정", width="large")
@@ -162,7 +132,7 @@ def render_settings_open_button(*, key: str = "btn_open_analysis_settings") -> N
         open_analysis_settings_dialog()
 
 
-def render_analysis_settings_expander(*, expanded: bool = True) -> None:
-    """인라인 분석 설정 — 기본 펼침."""
-    with st.expander("⚙️ 분석 설정", expanded=expanded):
-        render_analysis_settings()
+def render_analysis_settings_expander(*, expanded: bool = False) -> None:
+    """인라인 분석 설정 — 기본 접힘 (원클릭 분석 UX)."""
+    with st.expander("⚙️ 곡 제목 · 고급 설정", expanded=expanded):
+        render_analysis_settings(simple=True)

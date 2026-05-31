@@ -74,6 +74,46 @@ cd vocal-coach
 
 ---
 
+## KOE006 오류 해결 (`앱 관리자 설정 오류`)
+
+카카오 화면에 **KOE006** / *등록하지 않은 redirect_uri* 가 나오면 **Redirect URI 불일치**입니다.
+
+### 1. 앱이 보내는 URI 확인
+
+로그인 버튼 클릭 → 이동 중 화면 → **「KOE006이 뜨면?」** expander에 표시된 URI를 복사하세요.
+
+또는 Cloud Secrets:
+
+```toml
+STREAMLIT_URL = "https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app"
+```
+
+> ⚠️ 끝에 `/` 붙이면 안 됩니다. `http` vs `https`도 정확히 일치해야 합니다.
+
+### 2. 카카오 Developers 등록 (2025년 이후 콘솔)
+
+**예전 「카카오 로그인 → Redirect URI」가 아니라 아래 경로입니다:**
+
+1. [developers.kakao.com](https://developers.kakao.com/) → **내 애플리케이션**
+2. **앱** → **플랫폼 키** → **REST API 키** 클릭
+3. **리다이렉트 URI**에 아래 **한 줄** 추가 후 저장:
+
+```
+https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app
+```
+
+4. **제품 설정 → 카카오 로그인 → 활성화 ON**
+5. **앱 설정 → 플랫폼 → Web** → 사이트 도메인:
+   ```
+   https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app
+   ```
+
+### 3. REST API 키 일치 확인
+
+Secrets의 `KAKAO_REST_API_KEY` = 위 앱의 **REST API 키** (JavaScript 키 ❌)
+
+---
+
 ## KOE205 오류 해결 (`잘못된 요청`)
 
 카카오 화면에 **KOE205** / *vocal coach ai 서비스 설정 오류* 가 나오면 아래 순서로 수정하세요.

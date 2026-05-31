@@ -48,21 +48,56 @@ def auth_base_url() -> str:
     return os.environ.get("AUTH_BASE_URL", "http://localhost:8001").rstrip("/")
 
 
-def streamlit_url() -> str:
-    """OAuth redirect_to — Cloud/로컬 URL."""
+def _secret_value(name: str) -> str | None:
     try:
         import streamlit as st
 
-        if "STREAMLIT_URL" in st.secrets:
-            value = str(st.secrets["STREAMLIT_URL"]).strip().rstrip("/")
+        if name in st.secrets:
+            value = str(st.secrets[name]).strip()
             if value:
                 return value
     except Exception:
         pass
+    value = os.environ.get(name, "").strip()
+    return value or None
 
-    value = os.environ.get("STREAMLIT_URL", "").strip().rstrip("/")
-    if value:
-        return value
+
+def _origin_from_streamlit_context() -> str | None:
+    """실제 브라우저 접속 origin (Cloud에서 STREAMLIT_URL 오설정 보정)."""
+    try:
+        import streamlit as st
+
+        headers = getattr(getattr(st, "context", None), "headers", None)
+        if not headers:
+            return None
+        host = headers.get("Host") or headers.get("host")
+        if not host:
+            return None
+        proto = (
+            headers.get("X-Forwarded-Proto")
+            or headers.get("x-forwarded-proto")
+            or "https"
+        )
+        if isinstance(proto, str) and "," in proto:
+            proto = proto.split(",")[0].strip()
+        return f"{proto}://{host}".rstrip("/")
+    except Exception:
+        return None
+
+
+def streamlit_url() -> str:
+    """OAuth redirect_to — Secrets 우선 (KOE006 방지)."""
+    override = _secret_value("KAKAO_REDIRECT_URI")
+    if override:
+        return override.rstrip("/")
+
+    configured = _secret_value("STREAMLIT_URL")
+    if configured:
+        return configured.rstrip("/")
+
+    live = _origin_from_streamlit_context()
+    if live:
+        return live
 
     try:
         from ui.runtime_env import is_streamlit_cloud
@@ -73,6 +108,29 @@ def streamlit_url() -> str:
         pass
 
     return "http://localhost:8501"
+
+
+def kakao_redirect_uri() -> str:
+    """카카오 OAuth redirect_uri."""
+    return streamlit_url()
+
+
+def supabase_kakao_callback_uri() -> str | None:
+    """Supabase Auth → Kakao 콜백 (Supabase 경유 OAuth 시)."""
+    url = _secret_value("SUPABASE_URL")
+    if not url:
+        return None
+    return f"{url.rstrip('/')}/auth/v1/callback"
+
+
+def kakao_required_redirect_uris() -> list[str]:
+    """카카오 REST API 키에 등록해야 할 URI 목록."""
+    uris = [kakao_redirect_uri()]
+    cb = supabase_kakao_callback_uri()
+    if cb and cb not in uris:
+        uris.append(cb)
+    uris.append("http://localhost:8501")
+    return uris
 
 
 def google_configured() -> bool:

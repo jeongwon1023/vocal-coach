@@ -39,6 +39,9 @@ def render_beta_invite_card() -> None:
 
 def render_beta_footer() -> None:
     """마이 페이지 하단 — 베타 안내."""
+    from ui.legal_footer import render_legal_footer
+
+    render_legal_footer(compact=True)
     render_safe_html(
         f"""
         <p class="vc-beta-footer">

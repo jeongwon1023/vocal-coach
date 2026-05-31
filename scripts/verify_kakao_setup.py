@@ -39,6 +39,33 @@ def _load_secrets() -> tuple[str | None, str | None]:
 def main() -> int:
     url, key = _load_secrets()
     print("=== Vocal Coach · Kakao OAuth 검증 ===\n")
+
+    kakao_key = os.environ.get("KAKAO_REST_API_KEY", "").strip()
+    streamlit = os.environ.get("STREAMLIT_URL", "").strip()
+    secrets_path = ROOT / ".streamlit" / "secrets.toml"
+    if secrets_path.exists():
+        for line in secrets_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k, v = k.strip(), v.strip().strip('"').strip("'")
+            if k == "KAKAO_REST_API_KEY" and not kakao_key:
+                kakao_key = v
+            if k == "STREAMLIT_URL" and not streamlit:
+                streamlit = v
+
+    if kakao_key:
+        print("OK: KAKAO_REST_API_KEY 설정됨 (직접 OAuth 모드)")
+        redirect = (streamlit or "https://vocal-coach-ld3wgkgpnqu3cvnoczuf6g.streamlit.app").rstrip("/")
+        print(f"\n⭐ KOE006 방지 — Kakao REST API 키 > 리다이렉트 URI에 등록:")
+        print(f"   {redirect}")
+        print("\n   등록 위치: 앱 > 플랫폼 키 > REST API 키 > 리다이렉트 URI")
+        print(f"   REST API 키 앞 8자: {kakao_key[:8]}...")
+    else:
+        print("WARN: KAKAO_REST_API_KEY 없음 — Supabase 경유 모드 (KOE205 가능)")
+
+    print()
     if not url or not key:
         print("FAIL: SUPABASE_URL / SUPABASE_KEY 없음 (.streamlit/secrets.toml 확인)")
         return 1

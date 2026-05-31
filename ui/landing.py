@@ -10,10 +10,20 @@ from ui.utils import render_safe_html
 
 
 def render() -> None:
-    from ui.auth import is_logged_in, render_landing_auth_banner
+    from ui.auth import is_logged_in
 
     if not is_logged_in():
-        render_landing_auth_banner()
+        render_safe_html(
+            """
+            <div class="vc-landing-trial-banner">
+                <div class="vc-landing-trial-copy">
+                    <span class="vc-landing-trial-tag">100% 무료</span>
+                    <p class="vc-landing-trial-title">가입 없이 바로 분석해 보세요</p>
+                    <p class="vc-landing-trial-sub">결과 저장은 분석 후 <b>3초 로그인</b>으로 가능해요</p>
+                </div>
+            </div>
+            """
+        )
 
     render_safe_html("""
         <section id="vc-landing-hero" class="vc-landing-hero">
@@ -36,6 +46,9 @@ def render() -> None:
         use_container_width=True,
         key="landing_hero_cta"
     ):
+        from ui.lazy_auth import ensure_anonymous_analysis_id
+
+        ensure_anonymous_analysis_id()
         go_to("마이 페이지")
 
     render_safe_html(

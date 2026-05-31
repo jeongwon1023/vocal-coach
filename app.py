@@ -34,41 +34,73 @@ def _import_ui():
     return auth, landing, my_page, navbar, navigation, styles
 
 
-try:
+def main() -> None:
+    from ui.error_guard import (
+        handle_global_exception,
+        init_error_guard,
+        render_error_dialog_if_needed,
+        run_preflight,
+    )
+    from ui.runtime_env import configure_matplotlib
+
+    init_error_guard()
+    run_preflight()
+    render_error_dialog_if_needed()
+
+    from ui.analytics import inject_ga4
+    from ui.error_guard import render_retry_indicator
+    from ui.legal_footer import render_beta_data_warning
+
+    inject_ga4()
+    render_retry_indicator()
+    render_beta_data_warning()
+
     auth, landing, my_page, navbar, navigation, styles = _import_ui()
-except Exception:
-    st.error("모듈을 불러오지 못했습니다.")
-    st.code(traceback.format_exc())
+    configure_matplotlib()
+
+    auth.init_auth()
+    navigation.init_nav()
+
+    from ui.admin_auth import try_admin_url_access
+
+    try_admin_url_access()
+
+    page = navigation.current_page()
+    styles.apply(page=page)
+
+    page = navbar.render_navbar()
+
+    from ui.beta import render_beta_banner
+
+    render_beta_banner()
+
+    from ui.loading import render_loading_overlay
+
+    render_loading_overlay()
+
+    if page == "홈":
+        landing.render()
+    elif page == "피드백":
+        from ui.user_feedback import render_feedback_page
+
+        render_feedback_page()
+    elif page == "관리자":
+        from ui.admin_errors import render_admin_page
+
+        render_admin_page()
+    else:
+        my_page.render()
+
+
+try:
+    main()
+except Exception as exc:
+    try:
+        from ui.error_guard import handle_global_exception
+
+        handle_global_exception(exc, source="app.main")
+    except Exception:
+        st.warning("현재 일시적인 네트워크 지연이 발생했습니다. 잠시 후 다시 시도해 주세요.")
+        with st.expander("상세 로그 보기"):
+            st.code(traceback.format_exc())
     st.stop()
-
-from ui.runtime_env import configure_matplotlib
-
-configure_matplotlib()
-
-auth.init_auth()
-navigation.init_nav()
-
-page = navigation.current_page()
-styles.apply(page=page)
-
-page = navbar.render_navbar()
-
-from ui.beta import render_beta_banner
-
-render_beta_banner()
-
-from ui.loading import render_loading_overlay
-
-render_loading_overlay()
-
-if page == "홈":
-    landing.render()
-elif page == "피드백":
-    from ui.user_feedback import render_feedback_page
-
-    render_feedback_page()
-else:
-    if not auth.is_logged_in():
-        auth.render_login_page()
-        st.stop()
-    my_page.render()

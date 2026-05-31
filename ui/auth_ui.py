@@ -39,10 +39,15 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
     sm = " vc-auth-sm" if compact else ""
 
     if k_login and kakao_direct_configured():
+        enabled = login_actions_enabled()
+        from ui.error_guard import login_disabled_tooltip
+
         if st.button(
             "💬 카카오로 계속하기",
             key=f"{key_prefix}_supabase_kakao",
             use_container_width=True,
+            disabled=not enabled,
+            help=login_disabled_tooltip() if not enabled else None,
         ):
             _start_kakao_oauth()
     elif k_ok:

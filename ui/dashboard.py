@@ -37,11 +37,18 @@ def _analysis_options() -> dict:
     fast = _resolve_fast_mode()
     user_id = None
     try:
-        from ui.auth import current_user_id
+        from ui.lazy_auth import resolve_analysis_user_id
 
-        user_id = current_user_id()
+        user_id = resolve_analysis_user_id()
     except Exception:
         pass
+    if user_id is None:
+        try:
+            from ui.auth import current_user_id
+
+            user_id = current_user_id()
+        except Exception:
+            pass
     return {
         "song_title": song or None,
         "use_youtube": bool(st.session_state.get("use_youtube")) and bool(song),
@@ -155,6 +162,9 @@ def _render_analyzing_view(pct: float, message: str, opts: dict) -> None:
     eta = _eta_for_progress(pct, opts)
     with st.container(key="vc_analyze_panel"):
         _render_analyzing_panel_header(opts)
+        from ui.analysis_loading import render_analysis_status_block
+
+        render_analysis_status_block(pct, message, eta_label=eta, mode_label=mode)
         render_stepper(pct, message, eta_label=eta, mode_label=mode)
     from ui.scroll import scroll_analyze_panel
 
@@ -207,6 +217,9 @@ def _poll_queue_job(job_id: str, opts: dict) -> str:
             st.session_state["last_session"] = session
             _persist_session_cache(session, opts)
             st.session_state["mypage_show_result"] = True
+            from ui.lazy_auth import mark_analysis_completed
+
+            mark_analysis_completed()
             return "done"
         st.warning("결과를 불러오지 못했습니다. 다시 시도해 주세요.")
         return "failed"
@@ -287,6 +300,9 @@ def _run_sync_analysis(audio_path: Path, opts: dict, stepper_ph) -> bool:
         st.session_state["last_log"] = buf.getvalue()
         _persist_session_cache(session, opts)
         st.session_state["mypage_show_result"] = True
+        from ui.lazy_auth import mark_analysis_completed
+
+        mark_analysis_completed()
         return True
     except Exception as exc:
         st.error(f"분석 실패: {exc}")
@@ -611,7 +627,7 @@ def render_analysis_section(*, show_settings: bool = True) -> None:
     analyzing = is_analyzing()
 
     if show_settings and not analyzing:
-        render_analysis_settings_expander(expanded=True)
+        render_analysis_settings_expander(expanded=False)
 
     pending = st.session_state.get("pending_job_id")
     if pending:

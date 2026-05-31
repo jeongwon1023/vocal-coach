@@ -730,6 +730,13 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     """분석 후 DM 코치 + 리포트."""
     from ui.analysis_overlay import clear_analyze_stage
     from ui.loading import clear_loading
+    from ui.lazy_auth import (
+        is_premium_unlocked,
+        render_blurred_preview,
+        render_premium_lock_cta,
+        should_show_premium_lock,
+    )
+    from ui.legal_footer import render_result_feedback_banner
 
     clear_analyze_stage()
     clear_loading()
@@ -739,6 +746,7 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     user = current_user()
     user_name = user.get("name", "나") if user else "나"
 
+    render_result_feedback_banner()
     render_safe_html('<div id="vc-result-top"></div>')
     render_safe_html('<script>document.body.classList.add("vc-show-result");</script>')
 
@@ -748,15 +756,20 @@ def render_coach_dm(session: dict[str, Any]) -> None:
     _render_score_strip(session)
     render_safe_html("</div>")
 
-    from ui.components import render_session_results
+    locked = should_show_premium_lock() and not is_premium_unlocked()
 
-    render_session_results(session)
+    if locked:
+        render_blurred_preview()
+        render_premium_lock_cta()
+    else:
+        from ui.components import render_session_results
 
-    from ui.chat_scroll import install_chat_auto_scroll
+        render_session_results(session)
 
-    install_chat_auto_scroll()
+        from ui.chat_scroll import install_chat_auto_scroll
 
-    _coach_chat_fragment(session, user_name)
+        install_chat_auto_scroll()
+        _coach_chat_fragment(session, user_name)
 
     st.divider()
     if st.button("💬 피드백 남기기", use_container_width=True, key="btn_coach_feedback"):

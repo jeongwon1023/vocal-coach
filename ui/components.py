@@ -1071,6 +1071,9 @@ def render_session_results(session: dict[str, Any]) -> None:
     with tab_summary:
         _render_sandwich_triptych(session, report, full_record)
         _render_at_a_glance_summary(report, full_record)
+        from ui.wrapped_share import render_wrapped_share_card
+
+        render_wrapped_share_card(session)
         render_score_feedback(session, full_record)
 
         sparkline = session.get("sparkline_path")

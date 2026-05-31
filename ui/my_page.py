@@ -331,20 +331,23 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
 
     st.divider()
     st.markdown("##### 🎙️ 새 분석")
+    from ui.legal_footer import render_upload_privacy_notice
+
+    render_upload_privacy_notice()
     dashboard.render_analysis_section(show_settings=True)
 
 
 def render() -> None:
-    if not is_logged_in():
-        _render_login_gate()
-        return
+    from ui.lazy_auth import resolve_analysis_user_id
+
+    resolve_analysis_user_id()
 
     user = current_user()
-    user_id = current_user_id()
-    name = user.get("name", "학습자") if user else "학습자"
+    user_id = current_user_id() or resolve_analysis_user_id()
+    name = user.get("name", "게스트") if user else "게스트"
 
     if not user_id:
-        st.warning("로그인 정보를 확인할 수 없습니다.")
+        st.warning("세션을 시작할 수 없습니다. 페이지를 새로고침해 주세요.")
         return
 
     if not dashboard.is_analyzing():
@@ -372,6 +375,9 @@ def render() -> None:
             clear_results_state()
             st.rerun()
         dashboard.render_results_view()
+        from ui.legal_footer import render_legal_footer
+
+        render_legal_footer(compact=True)
         from ui.beta import render_beta_footer
 
         render_beta_footer()
