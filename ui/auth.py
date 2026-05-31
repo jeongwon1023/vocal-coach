@@ -37,39 +37,19 @@ from ui.error_guard import (
 )
 
 try:
-    from gotrue._sync.storage import SyncSupportedStorage
+    from gotrue._sync.storage import SyncSupportedStorage  # noqa: F401 — auth_storage
 
     _SUPABASE_IMPORT_OK = True
 except ImportError:
     _SUPABASE_IMPORT_OK = False
-    SyncSupportedStorage = object  # type: ignore[misc, assignment]
 
 from ui.supabase_client import create_supabase_client, is_supabase_key_format
+from ui.auth_storage import PersistentAuthStorage, clear_auth_cache_files
 
 _KAKAO_OAUTH_STATE = "vc_kakao"
 KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
 KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 KAKAO_USER_URL = "https://kapi.kakao.com/v2/user/me"
-
-
-class _StreamlitAuthStorage(SyncSupportedStorage):
-    """PKCE code_verifier · Supabase 세션을 st.session_state에 유지."""
-
-    _KEY = "supabase_auth_storage"
-
-    def _store(self) -> dict[str, str]:
-        if self._KEY not in st.session_state:
-            st.session_state[self._KEY] = {}
-        return st.session_state[self._KEY]
-
-    def get_item(self, key: str) -> str | None:
-        return self._store().get(key)
-
-    def set_item(self, key: str, value: str) -> None:
-        self._store()[key] = value
-
-    def remove_item(self, key: str) -> None:
-        self._store().pop(key, None)
 
 
 def _secret_or_env(name: str) -> str | None:
@@ -126,7 +106,7 @@ def get_supabase_client() -> Any | None:
     if not url or not key:
         return None
     try:
-        return create_supabase_client(url, key, storage=_StreamlitAuthStorage())
+        return create_supabase_client(url, key, storage=PersistentAuthStorage())
     except Exception:
         return None
 
@@ -196,25 +176,65 @@ def _on_login_success(*, previous_anon_id: str | None = None) -> None:
         log_error("게스트 기록 동기화 실패", source="_on_login_success", exc=exc)
 
 
-def _exchange_oauth_code(code: str, state: str | None) -> bool:
-    """authorization code → 세션 (직접 카카오 우선 · Supabase fallback)."""
+def _is_pkce_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return "code verifier" in msg or "code_verifier" in msg or (
+        "non-empty" in msg and "auth code" in msg
+    )
+
+
+def _try_supabase_code_exchange(code: str) -> bool:
+    """Supabase PKCE — 디스크에서 code_verifier 복원 후 교환."""
+    client = get_supabase_client()
+    if not client:
+        return False
     try:
-        if state == _KAKAO_OAUTH_STATE or kakao_direct_configured():
+        response = _supabase_exchange_code_once(client, code)
+        if response.session:
+            _apply_supabase_session(response.session)
+            clear_auth_cache_files()
+            return True
+    except Exception as exc:
+        if _is_pkce_error(exc):
+            st.session_state["_auth_last_error"] = (
+                "로그인 연동이 만료되었어요. 상단 **로그인**을 다시 눌러 주세요."
+            )
+            log_error("PKCE code_verifier 유실", source="_try_supabase_code_exchange", exc=exc)
+            clear_auth_cache_files()
+            return False
+        raise
+    return False
+
+
+def _exchange_oauth_code(code: str, state: str | None) -> bool:
+    """authorization code → 세션 (직접 카카오 우선 · Supabase는 PKCE 디스크 복원)."""
+    try:
+        is_direct_flow = state == _KAKAO_OAUTH_STATE or (
+            kakao_direct_configured() and state is None
+        )
+
+        if is_direct_flow and kakao_direct_configured():
             _complete_kakao_direct_login(code)
             if st.session_state.get("user"):
+                clear_auth_cache_files()
+                return True
+            return False
+
+        if supabase_configured() and state != _KAKAO_OAUTH_STATE:
+            if _try_supabase_code_exchange(code):
                 return True
 
-        if supabase_configured():
-            client = get_supabase_client()
-            if client:
-                response = _supabase_exchange_code_once(client, code)
-                if response.session:
-                    _apply_supabase_session(response.session)
-                    return True
+        if kakao_direct_configured():
+            _complete_kakao_direct_login(code)
+            if st.session_state.get("user"):
+                clear_auth_cache_files()
+                return True
+
         return bool(st.session_state.get("user"))
     except Exception as exc:
         st.session_state["_auth_last_error"] = str(exc)
         log_error("OAuth code 교환 실패", source="_exchange_oauth_code", exc=exc)
+        clear_auth_cache_files()
         return False
 
 
@@ -255,6 +275,12 @@ def handle_oauth_callback_if_present() -> None:
 
     if success:
         _on_login_success(previous_anon_id=anon_before)
+        try:
+            from ui.navigation import go_to
+
+            st.session_state["nav_page"] = "마이 페이지"
+        except Exception:
+            pass
         st.rerun()
 
     err = st.session_state.get("_auth_last_error") or "카카오 로그인에 실패했습니다. 다시 시도해 주세요."
@@ -370,6 +396,7 @@ def logout() -> None:
             except Exception:
                 pass
         st.session_state.pop("supabase_auth_storage", None)
+        clear_auth_cache_files()
         st.session_state.pop("supabase_refresh_token", None)
 
     token = st.session_state.get("auth_token")

@@ -50,19 +50,56 @@ def is_cloud_user(user_id: str | None) -> bool:
     return bool(user_id and not str(user_id).startswith("anon_") and supabase_configured())
 
 
-def _save_to_supabase(data: dict[str, Any], *, user_id: str) -> str | None:
-    client = _get_client()
-    recorded_at = data.get("recorded_at")
-    row = {
+def _extract_vocal_mbti(data: dict[str, Any]) -> str:
+    title = data.get("vocal_title") or data.get("vocal_mbti")
+    if title:
+        return str(title)
+    payload = data.get("payload") if isinstance(data.get("payload"), dict) else {}
+    return str(payload.get("vocal_title") or payload.get("vocal_mbti") or "")
+
+
+def _extract_coaching_text(data: dict[str, Any]) -> str:
+    for key in ("coaching_text", "gpt_text"):
+        if data.get(key):
+            return str(data[key])[:4000]
+    actions = data.get("priority_actions")
+    if isinstance(actions, list) and actions:
+        lines = []
+        for item in actions[:5]:
+            if isinstance(item, dict):
+                lines.append(str(item.get("title") or item.get("action") or item))
+            else:
+                lines.append(str(item))
+        return "\n".join(lines)
+    return ""
+
+
+def _build_db_row(data: dict[str, Any], *, user_id: str) -> dict[str, Any]:
+    vocal_mbti = _extract_vocal_mbti(data)
+    coaching_text = _extract_coaching_text(data)
+    payload = {
+        **data,
+        "user_id": user_id,
+        "vocal_mbti": vocal_mbti,
+        "coaching_text": coaching_text,
+    }
+    row: dict[str, Any] = {
         "user_id": user_id,
         "song_title": data.get("song_title"),
         "user_recording": data.get("user_recording"),
         "overall_score": data.get("overall_score"),
         "stage_scores": data.get("stage_scores"),
-        "payload": data,
+        "payload": payload,
     }
+    recorded_at = data.get("recorded_at")
     if recorded_at:
         row["recorded_at"] = recorded_at
+    return row
+
+
+def _save_to_supabase(data: dict[str, Any], *, user_id: str) -> str | None:
+    client = _get_client()
+    row = _build_db_row(data, user_id=user_id)
     resp = client.table("analysis_records").insert(row).execute()
     if resp.data:
         return str(resp.data[0].get("id"))
@@ -161,6 +198,8 @@ def list_analysis_records(limit: int = 20, *, user_id: str | None = None) -> lis
                 merged = {**payload}
                 merged.setdefault("recorded_at", row.get("recorded_at"))
                 merged.setdefault("overall_score", row.get("overall_score"))
+                merged.setdefault("vocal_mbti", payload.get("vocal_mbti") or payload.get("vocal_title"))
+                merged.setdefault("coaching_text", payload.get("coaching_text") or payload.get("gpt_text"))
                 merged["_storage_id"] = row.get("id")
                 merged["_source"] = "supabase"
                 out.append(merged)

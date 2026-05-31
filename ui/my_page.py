@@ -68,6 +68,23 @@ def _record_stats(records_paths: list[Path]) -> dict:
     }
 
 
+def _record_stats_from_cloud(records: list[dict]) -> dict:
+    scores: list[float] = []
+    for r in records:
+        try:
+            scores.append(float(r.get("overall_score") or 0))
+        except Exception:
+            continue
+    if not scores:
+        return {"count": 0, "best": 0, "latest": 0, "avg": 0}
+    return {
+        "count": len(scores),
+        "best": max(scores),
+        "latest": scores[0],
+        "avg": sum(scores) / len(scores),
+    }
+
+
 def _load_session_for_record(user_id: str, path: Path) -> dict:
     from ui.session_cache import load_session_cache, rebuild_session_from_record
 
@@ -171,7 +188,71 @@ def _render_history_banner(record: dict, overall: float, song: str, idx: int, pa
             st.rerun()
 
 
-def _render_weekly_summary_card(user_id: str) -> None:
+def _render_cloud_record_card(record: dict, idx: int, user_id: str) -> None:
+    """Supabase analysis_records — 카드 + 결과 보기."""
+    from ui.session_cache import rebuild_session_from_record
+
+    overall = float(record.get("overall_score") or 0)
+    song = record.get("song_title") or record.get("user_recording") or "녹음"
+    mbti = record.get("vocal_mbti") or record.get("vocal_title") or ""
+    color = _score_color(overall)
+    date_short = _format_date_short(record)
+    date_str = _format_date(record)
+    scores = record.get("stage_scores") or {}
+    pitch = float(scores.get(1) or scores.get("1") or 0)
+    rhythm = float(scores.get(2) or scores.get("2") or 0)
+    breath = float(scores.get(3) or scores.get("3") or 0)
+    mbti_line = f" · {html.escape(mbti)}" if mbti else ""
+
+    render_safe_html(
+        f"""
+        <div class="vc-history-banner" style="--banner-accent:{color}">
+            <div class="vc-history-banner-left">
+                <span class="vc-history-date">{html.escape(date_short)}</span>
+                <p class="vc-history-song">{html.escape(str(song))}{mbti_line}</p>
+                <p class="vc-history-sub">{html.escape(date_str)} · 음{pitch:.0f} · 박{rhythm:.0f} · 호{breath:.0f} · ☁️ 클라우드</p>
+            </div>
+            <div class="vc-history-score">
+                <span class="vc-history-overall">{overall:.0f}</span>
+                <span class="vc-history-score-label">점</span>
+            </div>
+        </div>
+        """
+    )
+    if st.button(
+        f"결과 보기 · {date_short}",
+        key=f"cloud_open_{idx}_{record.get('_storage_id', idx)}",
+        use_container_width=True,
+    ):
+        from ui.loading import mark_loading
+
+        mark_loading(message="클라우드에서 결과를 불러오고 있어요…")
+        clear_results_state()
+        st.session_state["last_session"] = rebuild_session_from_record(record)
+        st.session_state["mypage_show_result"] = True
+        st.rerun()
+
+
+def _render_cloud_history_expander(user_id: str) -> None:
+    """로그인 유저 — Supabase 과거 분석 기록."""
+    if not is_logged_in() or str(user_id).startswith("anon_"):
+        return
+    try:
+        from db_store import list_analysis_records, supabase_configured
+
+        if not supabase_configured():
+            return
+        records = list_analysis_records(limit=30, user_id=user_id)
+    except Exception:
+        return
+
+    with st.expander("📂 과거 분석 기록 보기", expanded=bool(records)):
+        if not records:
+            st.info("아직 분석 기록이 없습니다. 첫 노래를 녹음해 보세요! 🎤")
+            return
+        st.caption("클라우드에 저장된 기록 · 언제 어디서 로그인해도 동일하게 보입니다.")
+        for idx, record in enumerate(records):
+            _render_cloud_record_card(record, idx, user_id)
     summary = compute_weekly_summary(user_id)
     if summary.get("total_records", 0) == 0:
         return
@@ -304,7 +385,20 @@ def _render_growth_trend_chart(user_id: str) -> None:
 
 
 def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
-    stats = _record_stats(records_paths)
+    cloud_records: list[dict] = []
+    if is_logged_in() and not str(user_id).startswith("anon_"):
+        try:
+            from db_store import list_analysis_records, supabase_configured
+
+            if supabase_configured():
+                cloud_records = list_analysis_records(limit=50, user_id=user_id)
+        except Exception:
+            pass
+
+    if cloud_records:
+        stats = _record_stats_from_cloud(cloud_records)
+    else:
+        stats = _record_stats(records_paths)
     try:
         from db_store import cloud_record_count, storage_mode
 
@@ -333,6 +427,10 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
 
     if records_paths:
         _render_growth_trend_chart(user_id)
+    elif cloud_records:
+        _render_growth_trend_chart(user_id)
+
+    _render_cloud_history_expander(user_id)
 
     try:
         from ui.beta import render_beta_invite_card
