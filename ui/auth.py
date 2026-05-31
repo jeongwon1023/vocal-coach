@@ -133,8 +133,37 @@ def _apply_supabase_session(session: Any) -> None:
     st.session_state.supabase_refresh_token = session.refresh_token
 
 
+def render_pending_oauth_redirect() -> None:
+    """다이얼로그/iframe 밖 최상위 창으로 OAuth 이동 (kauth.kakao.com iframe 차단 우회)."""
+    url = st.session_state.pop("oauth_redirect_url", None)
+    if not url:
+        return
+
+    import json
+
+    import streamlit.components.v1 as components
+
+    components.html(
+        f"<script>window.top.location.href = {json.dumps(url)};</script>",
+        height=0,
+        width=0,
+    )
+    st.info("카카오 로그인 페이지로 이동 중...")
+    safe = html.escape(url, quote=True)
+    render_safe_html(
+        f'<p style="text-align:center;margin:1rem 0;">'
+        f'<a href="{safe}" target="_top" rel="noopener noreferrer" '
+        f'style="display:inline-block;padding:12px 20px;background:#FEE500;'
+        f'color:#191919;border-radius:8px;font-weight:700;text-decoration:none;">'
+        f"💬 카카오 로그인 페이지로 이동</a></p>"
+    )
+    st.stop()
+
+
 def init_auth() -> None:
     """URL ?token= / Supabase OAuth / 세션에서 사용자 복원."""
+    render_pending_oauth_redirect()
+
     if "auth_token" not in st.session_state:
         st.session_state.auth_token = None
     if "user" not in st.session_state:
@@ -288,7 +317,52 @@ def _render_kakao_login_button(*, key: str) -> None:
         _start_kakao_oauth()
 
 
+def _diagnose_supabase_auth() -> bool:
+    """Supabase 연결 및 OAuth Provider 설정 확인."""
+    import httpx
+
+    st.write("Supabase 설정 확인 중...")
+    status = get_auth_config_status()
+    if not status["supabase_ready"]:
+        st.error(
+            "Secrets 확인: SUPABASE_URL · SUPABASE_KEY · STREAMLIT_URL "
+            "(placeholder 키는 사용할 수 없습니다)"
+        )
+        st.json(status)
+        return False
+
+    url = _secret_or_env("SUPABASE_URL")
+    key = _secret_or_env("SUPABASE_KEY")
+    if not url or not key:
+        st.error("SUPABASE_URL / SUPABASE_KEY가 Secrets에 없습니다.")
+        return False
+
+    resp = httpx.get(
+        f"{url.rstrip('/')}/auth/v1/settings",
+        headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    external = (resp.json().get("external") or {})
+    enabled = sorted(name for name, on in external.items() if on)
+    st.write(f"**연결 OK** · 활성 Provider: {', '.join(enabled) or '(없음)'}")
+
+    if "kakao" not in enabled:
+        st.error("Kakao Provider가 Supabase Dashboard에서 꺼져 있습니다.")
+        return False
+
+    st.caption(f"OAuth redirect: {streamlit_url()}")
+    return True
+
+
 def _start_kakao_oauth() -> None:
+    try:
+        if not _diagnose_supabase_auth():
+            return
+    except Exception as exc:
+        st.error(f"설정 에러: {exc}")
+        return
+
     client = get_supabase_client()
     if not client:
         st.error("Supabase 설정(SUPABASE_URL, SUPABASE_KEY)이 없습니다.")
@@ -305,11 +379,8 @@ def _start_kakao_oauth() -> None:
         return
 
     url = response.url
-    safe_url = html.escape(url, quote=True)
-    render_safe_html(f'<meta http-equiv="refresh" content="0;url={safe_url}">')
-    st.link_button("💬 카카오 로그인 페이지로 이동", url, use_container_width=True)
-    st.caption("자동 이동이 안 되면 위 버튼을 눌러 주세요.")
-    st.stop()
+    st.session_state["oauth_redirect_url"] = url
+    st.rerun()
 
 
 def _render_supabase_login_dialog(*, key_prefix: str) -> None:
