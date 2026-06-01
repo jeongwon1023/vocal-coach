@@ -253,7 +253,16 @@ def _render_cloud_history_expander(user_id: str) -> None:
         st.caption("클라우드에 저장된 기록 · 언제 어디서 로그인해도 동일하게 보입니다.")
         for idx, record in enumerate(records):
             _render_cloud_record_card(record, idx, user_id)
-    summary = compute_weekly_summary(user_id)
+
+
+def _render_weekly_summary_card(user_id: str) -> None:
+    """이번 주 연습 요약 — 기록 없으면 조용히 스킵."""
+    try:
+        summary = compute_weekly_summary(user_id)
+    except Exception:
+        st.info("주간 연습 요약을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.")
+        return
+
     if summary.get("total_records", 0) == 0:
         return
 

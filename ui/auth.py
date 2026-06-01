@@ -33,6 +33,7 @@ from ui.error_guard import (
     login_actions_enabled,
     login_disabled_tooltip,
     oauth_callback_active,
+    queue_error_dialog,
     with_retry,
 )
 
@@ -542,39 +543,87 @@ def _qp_first(value: str | list[str] | None) -> str | None:
 
 def _complete_kakao_direct_login(code: str) -> None:
     """카카오 authorization code → 앱 세션 (Supabase Auth 미사용)."""
+    import httpx
+
     rest_key = _secret_or_env("KAKAO_REST_API_KEY")
-    if not rest_key:
-        st.session_state["_auth_last_error"] = "KAKAO_REST_API_KEY 없음"
-        log_error("KAKAO_REST_API_KEY 없음", source="_complete_kakao_direct_login")
+    if not rest_key or len(rest_key) < 20:
+        msg = "KAKAO_REST_API_KEY가 Secrets에 없거나 형식이 올바르지 않습니다."
+        st.session_state["_auth_last_error"] = msg
+        log_error(msg, source="_complete_kakao_direct_login")
+        queue_error_dialog(msg, source="kakao_oauth")
         return
 
-    redirect = kakao_redirect_uri()
+    redirect = (kakao_redirect_uri() or streamlit_url() or "").rstrip("/")
+    if not redirect.startswith("http"):
+        msg = "Redirect URI(STREAMLIT_URL)가 설정되지 않았습니다."
+        st.session_state["_auth_last_error"] = msg
+        log_error(msg, source="_complete_kakao_direct_login", extra={"redirect_uri": redirect})
+        queue_error_dialog(msg, source="kakao_oauth")
+        return
+
     payload: dict[str, str] = {
         "grant_type": "authorization_code",
-        "client_id": rest_key,
+        "client_id": rest_key.strip(),
         "redirect_uri": redirect,
-        "code": code,
+        "code": code.strip(),
     }
     secret = _secret_or_env("KAKAO_CLIENT_SECRET")
     if secret:
-        payload["client_secret"] = secret
+        payload["client_secret"] = secret.strip()
 
     try:
-        token_resp = httpx_post_once(
+        token_resp = httpx.post(
             KAKAO_TOKEN_URL,
             data=payload,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=15,
         )
     except Exception as exc:
-        st.session_state["_auth_last_error"] = f"Kakao 토큰 교환 실패: {exc}"
-        log_error("Kakao 토큰 교환 실패", source="_complete_kakao_direct_login", exc=exc)
+        st.session_state["_auth_last_error"] = f"Kakao 토큰 교환 네트워크 오류: {exc}"
+        log_error("Kakao 토큰 교환 네트워크 오류", source="_complete_kakao_direct_login", exc=exc)
+        queue_error_dialog(
+            "카카오 로그인 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+            source="kakao_oauth",
+        )
+        return
+
+    if token_resp.status_code >= 400:
+        body = token_resp.text[:2000]
+        user_msg = (
+            "카카오 로그인 설정 오류입니다.\n\n"
+            "· 카카오 디벨로퍼스 → 카카오 로그인 → **보안** → Client Secret **사용 안함**\n"
+            "· REST API 키 · Redirect URI(앱 URL) 등록 확인"
+        )
+        if token_resp.status_code == 401:
+            user_msg = (
+                "카카오 로그인 설정 오류 (401).\n\n"
+                "카카오 디벨로퍼스에서 **Client Secret → 사용 안함**으로 설정했는지, "
+                "REST API 키와 Redirect URI가 맞는지 확인해 주세요."
+            )
+        st.session_state["_auth_last_error"] = user_msg
+        log_error(
+            f"Kakao 토큰 교환 실패 HTTP {token_resp.status_code}",
+            source="_complete_kakao_direct_login",
+            extra={
+                "redirect_uri": redirect,
+                "client_id_prefix": rest_key[:8] + "...",
+                "client_secret_sent": bool(secret),
+                "response_body": body,
+            },
+        )
+        queue_error_dialog(f"{user_msg}\n\n(상세: {body[:400]})", source="kakao_oauth")
         return
 
     access = token_resp.json().get("access_token")
     if not access:
+        body = token_resp.text[:500]
         st.session_state["_auth_last_error"] = "Kakao access_token 없음"
-        log_error("Kakao access_token 없음", source="_complete_kakao_direct_login")
+        log_error(
+            "Kakao access_token 없음",
+            source="_complete_kakao_direct_login",
+            extra={"response_body": body},
+        )
+        queue_error_dialog("카카오 로그인 설정 오류: access_token을 받지 못했습니다.", source="kakao_oauth")
         return
 
     try:
