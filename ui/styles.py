@@ -3761,6 +3761,121 @@ def apply(page: str = "홈") -> None:
             font-weight: 800 !important;
             color: #1c1528 !important;
         }
+        /* SaaS GNB — 마이 페이지 전용 (구 navbar 숨김) */
+        body[data-vc-page="mypage"] .vc-navbar-marker,
+        body[data-vc-page="mypage"] .vc-navbar-marker + [data-testid="stHorizontalBlock"],
+        body[data-vc-page="mypage"] .vc-beta-banner,
+        body[data-vc-page="mypage"] .vc-beta-data-warn,
+        body[data-vc-page="mypage"] .vc-mobile-header-bar {
+            display: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        body[data-vc-page="mypage"] .vc-dash-gnb-marker + [data-testid="stHorizontalBlock"] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1000 !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important;
+            padding: 0.55rem 1.25rem !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+        body[data-vc-page="mypage"] .vc-dash-gnb-divider {
+            height: 4.25rem;
+        }
+        body[data-vc-page="mypage"] [data-testid="stSidebar"] > div {
+            padding-top: 4.75rem !important;
+        }
+        body[data-vc-page="mypage"] div[data-testid="stAppViewBlockContainer"] {
+            padding-top: 5rem !important;
+        }
+        .vc-gnb-profile {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+        .vc-gnb-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(99,102,241,0.2);
+        }
+        .vc-gnb-avatar-fallback {
+            font-size: 1.25rem;
+        }
+        .vc-gnb-name {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #1c1528 !important;
+        }
+        .st-key-dash_gnb_logout button {
+            font-size: 0.82rem !important;
+            min-height: 2.25rem !important;
+        }
+        /* 프리미엄 스탯 카드 */
+        .vc-stat-section {
+            margin: 1.25rem 0 1.5rem;
+        }
+        .vc-stat-section-title {
+            margin: 0 0 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #374151 !important;
+        }
+        .vc-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        @media (max-width: 768px) {
+            .vc-stat-grid { grid-template-columns: 1fr; }
+        }
+        .vc-stat-card {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.04);
+            padding: 1.1rem 0.85rem;
+            text-align: center;
+            font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        .vc-stat-label {
+            margin: 0 0 0.45rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #6b7280 !important;
+            letter-spacing: -0.01em;
+        }
+        .vc-stat-value {
+            margin: 0;
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #111827 !important;
+            line-height: 1.2;
+        }
+        .vc-stat-unit {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #6366f1 !important;
+            margin-left: 0.15rem;
+        }
+        .vc-dash-main { margin-top: 0.25rem; }
+        .vc-dash-greeting {
+            margin: 0 0 0.75rem;
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+            font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+        }
         .st-key-dash_primary_cta button {
             min-height: 3.25rem !important;
             font-size: 1.05rem !important;

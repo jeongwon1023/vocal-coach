@@ -15,7 +15,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-APP_BUILD = "2026-06-07-dash-v4"
+APP_BUILD = "2026-06-07-dash-v5"
 
 
 def _bootstrap_session_before_ui() -> None:
@@ -67,11 +67,9 @@ def main() -> None:
 
     from ui.analytics import inject_ga4
     from ui.error_guard import render_retry_indicator
-    from ui.legal_footer import render_beta_data_warning
 
     inject_ga4()
     render_retry_indicator()
-    render_beta_data_warning()
 
     auth, landing, my_page, navbar, navigation, styles = _import_ui()
     configure_matplotlib()
@@ -91,11 +89,22 @@ def main() -> None:
     page = navigation.current_page()
     styles.apply(page=page)
 
-    page = navbar.render_navbar()
+    is_dashboard = page == "마이 페이지"
 
-    from ui.beta import render_beta_banner
+    if not is_dashboard:
+        from ui.legal_footer import render_beta_data_warning
 
-    render_beta_banner()
+        render_beta_data_warning()
+
+    if is_dashboard:
+        from ui.dashboard_gnb import render_dashboard_gnb
+
+        render_dashboard_gnb()
+    else:
+        page = navbar.render_navbar()
+        from ui.beta import render_beta_banner
+
+        render_beta_banner()
 
     from ui.loading import render_loading_overlay
 

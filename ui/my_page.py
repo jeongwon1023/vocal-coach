@@ -23,13 +23,39 @@ from progress_tracker import list_records, load_record
 from weekly_summary import compute_weekly_summary
 from ui.auth import current_user, current_user_id, is_logged_in
 from ui import dashboard
-from ui.navigation import go_to
 from ui.session_reset import clear_results_state
 from ui.utils import render_safe_html
 
 _WEEKLY_GOAL = 3
 _MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
-MY_PAGE_BUILD = "2026-06-07-dash-v4"
+MY_PAGE_BUILD = "2026-06-07-dash-v5"
+
+
+def _render_premium_stat_cards(metrics: dict) -> None:
+    """토스/뱅킹 스타일 자산 카드."""
+    cards = (
+        ("이번 주 평균 점수", f"{metrics['avg']:.0f}", "점"),
+        ("누적 연습 횟수", str(metrics["count"]), "회"),
+        ("최고 스탯 점수", f"{metrics['best']:.0f}", "점"),
+    )
+    items = []
+    for label, value, unit in cards:
+        items.append(
+            f"""
+            <div class="vc-stat-card">
+                <p class="vc-stat-label">{html.escape(label)}</p>
+                <p class="vc-stat-value">{html.escape(value)}<span class="vc-stat-unit">{html.escape(unit)}</span></p>
+            </div>
+            """
+        )
+    render_safe_html(
+        f"""
+        <div class="vc-stat-section">
+            <p class="vc-stat-section-title">📊 주간 연습 흐름</p>
+            <div class="vc-stat-grid">{"".join(items)}</div>
+        </div>
+        """
+    )
 
 
 def _safe_records(records) -> list:
@@ -173,7 +199,7 @@ def _render_saas_sidebar() -> None:
         user = current_user()
         if user:
             st.divider()
-            st.caption(f"👤 {user.get('name', '학습자')}")
+            st.caption(html.escape(str(user.get("name") or "보컬러")))
 
 
 def _open_record_detail(record: dict, user_id: str, *, path: Path | None = None) -> None:
@@ -559,13 +585,13 @@ def _render_growth_trend_chart(user_id: str) -> None:
 
 def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -> None:
     """SaaS B2B 스타일 홈 대시보드 — PayLink 매핑."""
-    records = _load_merged_records(user_id, records_paths)
+    records = _safe_records(_load_merged_records(user_id, records_paths))
     metrics = _weekly_display_metrics(user_id, records)
     nickname = html.escape(name or "게스트")
 
     render_safe_html(
         f"""
-        <div class="vc-dash-header">
+        <div class="vc-dash-main">
             <h1 class="vc-dash-greeting">안녕하세요, {nickname} 보컬러님! 👋</h1>
         </div>
         """
@@ -573,7 +599,7 @@ def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -
 
     remaining = metrics["remaining_goal"]
     if remaining > 0:
-        st.info(f"이번 주 목표 연습량이 **{remaining}곡** 남았습니다.")
+        st.info(f"이번 주, 아직 분석하지 않은 목표 곡이 **{remaining}곡** 남았어요.")
     else:
         st.success("이번 주 목표 연습량을 달성했어요! 🎉")
 
@@ -586,20 +612,15 @@ def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -
         st.session_state["mypage_view"] = "analyze"
         st.rerun()
 
-    st.markdown("#### 📊 주간 연습 흐름")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("이번 주 평균 점수", f"{metrics['avg']:.0f}점")
-    with c2:
-        st.metric("누적 연습 횟수", f"{metrics['count']}회")
-    with c3:
-        st.metric("최고 스탯 점수", f"{metrics['best']:.0f}점")
+    _render_premium_stat_cards(metrics)
 
     st.markdown("#### 📝 최근 보컬 분석 내역")
     if not records:
         _render_empty_state()
     else:
         for idx, record in enumerate(records[:3]):
+            if not isinstance(record, dict):
+                continue
             song = record.get("song_title") or record.get("user_recording") or "녹음"
             overall = float(record.get("overall_score") or 0)
             badge = _record_status_badge(record)
@@ -710,11 +731,6 @@ def _render_settings_view() -> None:
         st.markdown(f"**닉네임:** {user.get('name', '학습자')}")
         if user.get("email"):
             st.markdown(f"**이메일:** {user['email']}")
-        provider = {"google": "Google", "kakao": "카카오", "demo": "체험"}.get(
-            user.get("provider", ""), user.get("provider", "")
-        )
-        if provider:
-            st.markdown(f"**로그인:** {provider}")
     try:
         from db_store import cloud_record_count, storage_mode
 
@@ -730,9 +746,10 @@ def _render_settings_view() -> None:
         pass
 
     if not is_logged_in():
-        from ui.auth_ui import render_login_card
+        from ui.auth import open_login_dialog
 
-        render_login_card(key_prefix="settings_login", compact=True)
+        if st.button("로그인", key="settings_login_btn", type="primary", use_container_width=True):
+            open_login_dialog(key_prefix="settings_login")
         return
 
     if st.button("로그아웃", key="settings_logout", use_container_width=True):
@@ -817,16 +834,6 @@ def render() -> None:
     else:
         _render_saas_dashboard(user_id, name, records_paths)
 
-    st.caption(f"빌드 {MY_PAGE_BUILD} · SaaS 대시보드")
+    from ui.legal_footer import render_legal_footer
 
-    from ui.beta import render_beta_footer
-
-    render_beta_footer()
-
-    if not dashboard.is_analyzing() and not st.session_state.get("mypage_show_result"):
-        from ui.b2c_theme import render_floating_cta
-
-        render_floating_cta(variant="mypage")
-
-    if st.button("💬 서비스 피드백 남기기", use_container_width=True, key="mypage_feedback"):
-        go_to("피드백")
+    render_legal_footer(compact=True)
