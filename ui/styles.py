@@ -3844,7 +3844,7 @@ def apply(page: str = "홈") -> None:
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             border: 1px solid rgba(0,0,0,0.04);
-            padding: 1.1rem 0.85rem;
+            padding: 1.25rem 1rem;
             text-align: center;
             font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
         }

@@ -28,23 +28,45 @@ from ui.utils import render_safe_html
 
 _WEEKLY_GOAL = 3
 _MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
-MY_PAGE_BUILD = "2026-06-07-dash-v5"
+MY_PAGE_BUILD = "2026-06-07-dash-v6"
 
 
-def _render_premium_stat_cards(metrics: dict) -> None:
-    """토스/뱅킹 스타일 자산 카드."""
+def _render_premium_stat_cards(metrics: dict | None) -> None:
+    """토스/뱅킹 스타일 자산 카드 — None-safe."""
+    metrics = metrics or {}
+    count = int(metrics.get("count") or 0)
+    avg_raw = metrics.get("avg")
+    best_raw = metrics.get("best")
+    has_data = count > 0
+
+    try:
+        avg_val = float(avg_raw) if avg_raw is not None else 0.0
+    except (TypeError, ValueError):
+        avg_val = 0.0
+    try:
+        best_val = float(best_raw) if best_raw is not None else 0.0
+    except (TypeError, ValueError):
+        best_val = 0.0
+
+    avg_txt = f"{avg_val:.0f}" if has_data and avg_val > 0 else ("0" if has_data else "-")
+    count_txt = str(count)
+    best_txt = f"{best_val:.0f}" if has_data and best_val > 0 else ("0" if has_data else "-")
+
     cards = (
-        ("이번 주 평균 점수", f"{metrics['avg']:.0f}", "점"),
-        ("누적 연습 횟수", str(metrics["count"]), "회"),
-        ("최고 스탯 점수", f"{metrics['best']:.0f}", "점"),
+        ("이번 주 평균 점수", avg_txt, "점"),
+        ("누적 연습 횟수", count_txt, "회"),
+        ("최고 스탯 점수", best_txt, "점"),
     )
     items = []
     for label, value, unit in cards:
+        unit_suffix = (
+            f'<span class="vc-stat-unit">{html.escape(unit)}</span>' if value != "-" else ""
+        )
         items.append(
             f"""
             <div class="vc-stat-card">
                 <p class="vc-stat-label">{html.escape(label)}</p>
-                <p class="vc-stat-value">{html.escape(value)}<span class="vc-stat-unit">{html.escape(unit)}</span></p>
+                <p class="vc-stat-value">{html.escape(value)}{unit_suffix}</p>
             </div>
             """
         )
@@ -154,7 +176,7 @@ def _render_empty_state(*, compact: bool = False) -> None:
         <div class="vc-empty-card vc-dash-empty">
             <p class="vc-empty-emoji">🎤</p>
             <p class="vc-empty-title">아직 분석 기록이 없습니다</p>
-            <p class="vc-empty-desc">아래 버튼을 눌러 첫 노래를 분석해 보세요! 🎤</p>
+            <p class="vc-empty-desc">위 버튼을 눌러 첫 노래를 분석해 보세요! 🎤</p>
         </div>
         """
     )
@@ -584,76 +606,84 @@ def _render_growth_trend_chart(user_id: str) -> None:
 
 
 def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -> None:
-    """SaaS B2B 스타일 홈 대시보드 — PayLink 매핑."""
-    records = _safe_records(_load_merged_records(user_id, records_paths))
-    metrics = _weekly_display_metrics(user_id, records)
-    nickname = html.escape(name or "게스트")
+    """PayLink 스타일 홈 대시보드 — TypeError 원천 차단."""
+    try:
+        records = _safe_records(_load_merged_records(user_id, _safe_paths(records_paths)))
+        metrics = _weekly_display_metrics(user_id, records)
+        nickname = html.escape(str(name or "게스트"))
 
-    render_safe_html(
-        f"""
-        <div class="vc-dash-main">
-            <h1 class="vc-dash-greeting">안녕하세요, {nickname} 보컬러님! 👋</h1>
-        </div>
-        """
-    )
+        render_safe_html(
+            f"""
+            <div class="vc-dash-main">
+                <h1 class="vc-dash-greeting">안녕하세요, {nickname} 보컬러님! 👋</h1>
+            </div>
+            """
+        )
 
-    remaining = metrics["remaining_goal"]
-    if remaining > 0:
-        st.info(f"이번 주, 아직 분석하지 않은 목표 곡이 **{remaining}곡** 남았어요.")
-    else:
-        st.success("이번 주 목표 연습량을 달성했어요! 🎉")
+        remaining = int(metrics.get("remaining_goal") or 0)
+        if remaining > 0:
+            st.info(f"이번 주, 아직 분석하지 않은 목표 곡이 **{remaining}곡** 남았어요.")
+        else:
+            st.success("이번 주 목표 연습량을 달성했어요! 🎉")
 
-    if st.button(
-        "＋ 새 노래 1분 만에 분석하기",
-        type="primary",
-        use_container_width=True,
-        key="dash_primary_cta",
-    ):
-        st.session_state["mypage_view"] = "analyze"
-        st.rerun()
+        if st.button(
+            "＋ 새 노래 1분 만에 분석하기",
+            type="primary",
+            use_container_width=True,
+            key="dash_primary_cta",
+        ):
+            st.session_state["mypage_view"] = "analyze"
+            st.rerun()
 
-    _render_premium_stat_cards(metrics)
+        _render_premium_stat_cards(metrics)
 
-    st.markdown("#### 📝 최근 보컬 분석 내역")
-    if not records:
-        _render_empty_state()
-    else:
-        for idx, record in enumerate(records[:3]):
-            if not isinstance(record, dict):
-                continue
-            song = record.get("song_title") or record.get("user_recording") or "녹음"
-            overall = float(record.get("overall_score") or 0)
-            badge = _record_status_badge(record)
-            date_short = _format_date_short(record)
-            render_safe_html(
-                f"""
-                <div class="vc-dash-recent-item">
-                    <div class="vc-dash-recent-row">
-                        <span class="vc-dash-recent-song">{html.escape(str(song))}</span>
-                        <span class="vc-dash-recent-score">{overall:.0f}점</span>
+        st.markdown("#### 📝 최근 보컬 분석 내역")
+        if records is None or len(records) == 0:
+            _render_empty_state()
+        else:
+            for idx, record in enumerate(records[:3]):
+                if not isinstance(record, dict):
+                    continue
+                song = record.get("song_title") or record.get("user_recording") or "녹음"
+                overall = float(record.get("overall_score") or 0)
+                badge = _record_status_badge(record)
+                date_short = _format_date_short(record)
+                render_safe_html(
+                    f"""
+                    <div class="vc-dash-recent-item">
+                        <div class="vc-dash-recent-row">
+                            <span class="vc-dash-recent-song">{html.escape(str(song))}</span>
+                            <span class="vc-dash-recent-score">{overall:.0f}점</span>
+                        </div>
+                        <div class="vc-dash-recent-meta">
+                            <span>{html.escape(date_short)}</span>
+                            <span class="vc-dash-recent-badge">{html.escape(badge)}</span>
+                        </div>
                     </div>
-                    <div class="vc-dash-recent-meta">
-                        <span>{html.escape(date_short)}</span>
-                        <span class="vc-dash-recent-badge">{html.escape(badge)}</span>
-                    </div>
-                </div>
-                """
-            )
-            if st.button(
-                f"상세 보기 · {str(song)[:18]}",
-                key=f"dash_recent_{idx}",
-                use_container_width=True,
-            ):
-                local_path = record.get("_local_path")
-                path = Path(local_path) if local_path else None
-                if path and path.exists():
-                    _open_record_detail(record, user_id, path=path)
-                else:
-                    _open_record_detail(record, user_id)
+                    """
+                )
+                if st.button(
+                    f"상세 보기 · {str(song)[:18]}",
+                    key=f"dash_recent_{idx}",
+                    use_container_width=True,
+                ):
+                    local_path = record.get("_local_path")
+                    path = Path(local_path) if local_path else None
+                    if path and path.exists():
+                        _open_record_detail(record, user_id, path=path)
+                    else:
+                        _open_record_detail(record, user_id)
 
-    if records:
-        _render_weekly_summary_card(user_id)
-        _render_growth_trend_chart(user_id)
+        if records:
+            try:
+                _render_weekly_summary_card(user_id)
+                _render_growth_trend_chart(user_id)
+            except Exception:
+                pass
+    except Exception as exc:
+        st.warning("대시보드를 불러오는 중 문제가 발생했습니다. 새로고침 후 다시 시도해 주세요.")
+        with st.expander("오류 상세"):
+            st.code(str(exc))
 
 
 def _render_analyze_view(user_id: str) -> None:
@@ -671,7 +701,7 @@ def _render_history_tab(user_id: str, records_paths: list[Path] | None = None) -
     records가 None이거나 비어 있으면 Empty State만 렌더 (크래시 금지).
     """
     records_paths = _safe_paths(records_paths)
-    records = _load_merged_records(user_id, records_paths)
+    records = _safe_records(_load_merged_records(user_id, records_paths))
 
     st.markdown("#### 📈 내 연습 기록")
 
@@ -760,6 +790,21 @@ def _render_settings_view() -> None:
 
 
 def render() -> None:
+    """마이 페이지 진입 — 세션·분석·대시보드 라우팅."""
+    try:
+        _render_mypage_body()
+    except TypeError as exc:
+        st.warning("기록 데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.")
+        with st.expander("오류 상세"):
+            st.code(str(exc))
+        _render_empty_state()
+    except Exception as exc:
+        st.warning("페이지를 불러오는 중 문제가 발생했습니다.")
+        with st.expander("오류 상세"):
+            st.code(str(exc))
+
+
+def _render_mypage_body() -> None:
     from ui.lazy_auth import resolve_analysis_user_id
 
     resolve_analysis_user_id()
@@ -809,9 +854,6 @@ def render() -> None:
         from ui.legal_footer import render_legal_footer
 
         render_legal_footer(compact=True)
-        from ui.beta import render_beta_footer
-
-        render_beta_footer()
         return
 
     records_paths = _safe_paths(list_records(limit=50, user_id=user_id))
