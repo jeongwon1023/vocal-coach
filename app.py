@@ -29,7 +29,7 @@ st.set_page_config(
 from ui.auth import handle_oauth_callback_if_present, restore_persisted_auth  # noqa: E402
 
 handle_oauth_callback_if_present()
-restore_persisted_auth()
+restore_persisted_auth()  # F5 새로고침 — supabase.auth.get_session() + 쿠키 복원
 
 
 def _import_ui():
@@ -65,6 +65,8 @@ def main() -> None:
     configure_matplotlib()
 
     auth.init_auth()
+    if not st.session_state.get("user"):
+        restore_persisted_auth()
     welcome = st.session_state.pop("_login_welcome", None)
     if welcome:
         st.toast(f"{welcome}님, 환영합니다! 🎤", icon="👋")

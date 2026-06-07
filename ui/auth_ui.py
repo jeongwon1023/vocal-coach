@@ -30,7 +30,7 @@ def render_trial_button(*, key_prefix: str = "trial") -> None:
 
 def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> None:
     """카카오 → Google → 체험 (한국 앱 UX 순서)."""
-    from ui.auth import _start_kakao_oauth, kakao_direct_configured, kakao_login_available
+    from ui.auth import kakao_direct_configured, kakao_login_available
 
     base = auth_base_url()
     g_ok = google_configured()
@@ -39,9 +39,9 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
     sm = " vc-auth-sm" if compact else ""
 
     if k_login and kakao_direct_configured():
-        enabled = login_actions_enabled()
-        from ui.error_guard import login_disabled_tooltip
+        from ui.error_guard import login_actions_enabled, login_disabled_tooltip
 
+        enabled = login_actions_enabled()
         if st.button(
             "💬 카카오로 계속하기",
             key=f"{key_prefix}_supabase_kakao",
@@ -49,7 +49,9 @@ def render_auth_buttons(*, key_prefix: str = "auth", compact: bool = False) -> N
             disabled=not enabled,
             help=login_disabled_tooltip() if not enabled else None,
         ):
-            _start_kakao_oauth()
+            from ui.auth import start_kakao_login_with_spinner
+
+            start_kakao_login_with_spinner()
     elif k_ok:
         render_safe_html(
             f'<a href="{base}/auth/kakao" class="vc-auth-btn vc-auth-kakao{sm}">'

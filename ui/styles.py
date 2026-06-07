@@ -3653,6 +3653,121 @@ def apply(page: str = "홈") -> None:
             color: #71717a !important;
             line-height: 1.5;
         }
+        /* SaaS 대시보드 (마이 페이지) */
+        body[data-vc-page="mypage"] [data-testid="stSidebar"],
+        body[data-vc-page="mypage"] [data-testid="stSidebarCollapsedControl"],
+        body[data-vc-page="mypage"] button[data-testid="stSidebarCollapsedControl"],
+        body[data-vc-page="mypage"] [data-testid="stSidebarHeader"] {
+            display: flex !important;
+            visibility: visible !important;
+            width: auto !important;
+            min-width: unset !important;
+            max-width: unset !important;
+            overflow: visible !important;
+        }
+        body[data-vc-page="mypage"] [data-testid="stSidebar"] {
+            min-width: 17rem !important;
+            background: #ffffff !important;
+            border-right: 1px solid rgba(99,102,241,0.12) !important;
+            box-shadow: 4px 0 24px rgba(28,21,40,0.04) !important;
+        }
+        body[data-vc-page="mypage"] [data-testid="stSidebar"] > div {
+            padding-top: 5.5rem !important;
+        }
+        body[data-vc-page="mypage"] .block-container,
+        body[data-vc-page="mypage"] div[data-testid="stAppViewBlockContainer"] {
+            max-width: 960px !important;
+        }
+        .vc-dash-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .vc-dash-sidebar-logo { font-size: 1.35rem; }
+        .vc-dash-sidebar-name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+        }
+        .vc-dash-sidebar-caption {
+            margin: 0 0 1rem;
+            font-size: 0.72rem;
+            color: #6e667d !important;
+        }
+        .vc-dash-header { margin-bottom: 0.5rem; }
+        .vc-dash-greeting {
+            margin: 0;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #1c1528 !important;
+            line-height: 1.35;
+        }
+        .vc-dash-recent-item {
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #ffffff;
+            border: 1px solid rgba(99,102,241,0.14);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(28,21,40,0.04);
+        }
+        .vc-dash-recent-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .vc-dash-recent-song {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1c1528 !important;
+        }
+        .vc-dash-recent-score {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #6366f1 !important;
+        }
+        .vc-dash-recent-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.35rem;
+            font-size: 0.78rem;
+            color: #6e667d !important;
+        }
+        .vc-dash-recent-badge {
+            font-weight: 600;
+            color: #4338ca !important;
+        }
+        .vc-empty-emoji {
+            margin: 0;
+            font-size: 2rem;
+        }
+        .vc-dash-empty {
+            background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.04)) !important;
+        }
+        body[data-vc-page="mypage"] [data-testid="stMetric"] {
+            background: #ffffff;
+            border: 1px solid rgba(99,102,241,0.12);
+            border-radius: 12px;
+            padding: 0.65rem 0.75rem;
+        }
+        body[data-vc-page="mypage"] [data-testid="stMetricLabel"] {
+            font-size: 0.72rem !important;
+            color: #6e667d !important;
+        }
+        body[data-vc-page="mypage"] [data-testid="stMetricValue"] {
+            font-size: 1.35rem !important;
+            font-weight: 800 !important;
+            color: #1c1528 !important;
+        }
+        .st-key-dash_primary_cta button {
+            min-height: 3.25rem !important;
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.28) !important;
+        }
         .vc-record-row {
             display: flex;
             align-items: center;

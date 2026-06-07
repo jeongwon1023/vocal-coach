@@ -27,6 +27,168 @@ from ui.navigation import go_to
 from ui.session_reset import clear_results_state
 from ui.utils import render_safe_html
 
+_WEEKLY_GOAL = 3
+_MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
+
+
+def _safe_records(records) -> list:
+    """None / 비 iterable 방어 — TypeError 크래시 방지."""
+    if records is None:
+        return []
+    if isinstance(records, list):
+        return records
+    try:
+        return list(records)
+    except TypeError:
+        return []
+
+
+def _safe_paths(paths) -> list[Path]:
+    if paths is None:
+        return []
+    return list(paths) if paths else []
+
+
+def _record_status_badge(record: dict) -> str:
+    scores = record.get("stage_scores") or {}
+    rhythm = float(scores.get(2) or scores.get("2") or 100)
+    pitch = float(scores.get(1) or scores.get("1") or 100)
+    overall = float(record.get("overall_score") or 0)
+    if rhythm < 60:
+        return "⚠️ 박자 주의!"
+    if pitch < 60:
+        return "⚠️ 음정 주의!"
+    if overall >= 85:
+        return "📈 성장 중!"
+    if overall >= 70:
+        return "👀 분석 완료!"
+    return "💪 더 연습해요!"
+
+
+def _load_merged_records(user_id: str, records_paths: list[Path]) -> list[dict]:
+    """클라우드 우선 + 로컬 fallback (None-safe)."""
+    records_paths = _safe_paths(records_paths)
+    cloud_records: list[dict] = []
+    if is_logged_in() and user_id and not str(user_id).startswith("anon_"):
+        try:
+            from db_store import list_analysis_records, supabase_configured
+
+            if supabase_configured():
+                cloud_records = _safe_records(list_analysis_records(limit=50, user_id=user_id))
+        except Exception:
+            cloud_records = []
+
+    if cloud_records:
+        return cloud_records
+
+    local: list[dict] = []
+    for p in records_paths:
+        try:
+            r = load_record(p)
+            r["_storage_id"] = p.stem
+            r["_local_path"] = str(p)
+            local.append(r)
+        except Exception:
+            continue
+    return local
+
+
+def _weekly_display_metrics(user_id: str, records: list[dict]) -> dict:
+    """대시보드 st.metric용 — 데이터 없으면 0."""
+    count = 0
+    avg = 0.0
+    best = 0.0
+    try:
+        summary = compute_weekly_summary(user_id) or {}
+        count = int(summary.get("count") or 0)
+        if summary.get("avg_score") is not None:
+            avg = float(summary["avg_score"])
+        if summary.get("best_score") is not None:
+            best = float(summary["best_score"])
+    except Exception:
+        summary = {}
+
+    if records:
+        scores = [float(r.get("overall_score") or 0) for r in records]
+        if scores and best == 0:
+            best = max(scores)
+        if scores and avg == 0 and count == 0:
+            avg = sum(scores) / len(scores)
+            count = len(records)
+            best = max(scores)
+
+    remaining = max(0, _WEEKLY_GOAL - count)
+    return {"avg": avg, "best": best, "count": count, "remaining_goal": remaining}
+
+
+def _render_empty_state(*, compact: bool = False) -> None:
+    render_safe_html(
+        """
+        <div class="vc-empty-card vc-dash-empty">
+            <p class="vc-empty-emoji">🎤</p>
+            <p class="vc-empty-title">아직 분석 기록이 없습니다</p>
+            <p class="vc-empty-desc">첫 노래를 녹음해 보세요! 1분이면 음정·박자·호흡 분석이 끝나요.</p>
+        </div>
+        """
+    )
+    if not compact:
+        st.caption("위 **[+ 새 노래 1분 만에 분석하기]** 버튼으로 바로 시작할 수 있어요.")
+
+
+def _render_saas_sidebar() -> None:
+    """PayLink 스타일 — 좌측 SaaS 네비게이션."""
+    view = st.session_state.get("mypage_view", "dashboard")
+    with st.sidebar:
+        render_safe_html(
+            """
+            <div class="vc-dash-sidebar-brand">
+                <span class="vc-dash-sidebar-logo">🎤</span>
+                <span class="vc-dash-sidebar-name">Vocal Coach</span>
+            </div>
+            <p class="vc-dash-sidebar-caption">보컬 실력 관리 대시보드</p>
+            """
+        )
+        menu = (
+            ("dashboard", "🏠", "홈 (대시보드)"),
+            ("analyze", "🎙️", "새 보컬 분석하기"),
+            ("history", "📋", "내 연습 기록"),
+            ("settings", "⚙️", "설정"),
+        )
+        for key, icon, label in menu:
+            active = view == key
+            if st.button(
+                f"{icon}  {label}",
+                key=f"mypage_sb_{key}",
+                use_container_width=True,
+                type="primary" if active else "secondary",
+            ):
+                if key != view:
+                    st.session_state["mypage_view"] = key
+                    if key == "analyze":
+                        st.session_state.pop("mypage_show_result", None)
+                        clear_results_state()
+                    st.rerun()
+
+        user = current_user()
+        if user:
+            st.divider()
+            st.caption(f"👤 {user.get('name', '학습자')}")
+
+
+def _open_record_detail(record: dict, user_id: str, *, path: Path | None = None) -> None:
+    from ui.loading import mark_loading
+    from ui.session_cache import rebuild_session_from_record
+
+    mark_loading(message="결과를 불러오고 있어요…")
+    clear_results_state()
+    if path is not None:
+        st.session_state["last_session"] = _load_session_for_record(user_id, path)
+        st.session_state["last_result_record_key"] = path.stem
+    else:
+        st.session_state["last_session"] = rebuild_session_from_record(record)
+    st.session_state["mypage_show_result"] = True
+    st.rerun()
+
 
 def _format_date(record: dict) -> str:
     ts = record.get("recorded_at", "")
@@ -68,7 +230,8 @@ def _record_stats(records_paths: list[Path]) -> dict:
     }
 
 
-def _record_stats_from_cloud(records: list[dict]) -> dict:
+def _record_stats_from_cloud(records: list[dict] | None) -> dict:
+    records = _safe_records(records)
     scores: list[float] = []
     for r in records:
         try:
@@ -132,7 +295,7 @@ def _restore_result_session(user_id: str) -> bool:
             from db_store import list_analysis_records, supabase_configured
 
             if supabase_configured() and user_id and not str(user_id).startswith("anon_"):
-                recs = list_analysis_records(limit=1, user_id=user_id)
+                recs = _safe_records(list_analysis_records(limit=1, user_id=user_id))
                 if recs:
                     st.session_state["last_session"] = rebuild_session_from_record(recs[0])
                     st.session_state["mypage_show_result"] = True
@@ -242,13 +405,13 @@ def _render_cloud_history_expander(user_id: str) -> None:
 
         if not supabase_configured():
             return
-        records = list_analysis_records(limit=30, user_id=user_id)
+        records = _safe_records(list_analysis_records(limit=30, user_id=user_id))
     except Exception:
         return
 
     with st.expander("📂 과거 분석 기록 보기", expanded=bool(records)):
         if not records:
-            st.info("아직 분석 기록이 없습니다. 첫 노래를 녹음해 보세요! 🎤")
+            _render_empty_state(compact=True)
             return
         st.caption("클라우드에 저장된 기록 · 언제 어디서 로그인해도 동일하게 보입니다.")
         for idx, record in enumerate(records):
@@ -393,65 +556,109 @@ def _render_growth_trend_chart(user_id: str) -> None:
         st.line_chart(pd.DataFrame({"점수": scores}, index=labels))
 
 
-def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
-    cloud_records: list[dict] = []
-    if is_logged_in() and not str(user_id).startswith("anon_"):
-        try:
-            from db_store import list_analysis_records, supabase_configured
+def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -> None:
+    """SaaS B2B 스타일 홈 대시보드 — PayLink 매핑."""
+    records = _load_merged_records(user_id, records_paths)
+    metrics = _weekly_display_metrics(user_id, records)
+    nickname = html.escape(name or "게스트")
 
-            if supabase_configured():
-                cloud_records = list_analysis_records(limit=50, user_id=user_id)
-        except Exception:
-            pass
-
-    if cloud_records:
-        stats = _record_stats_from_cloud(cloud_records)
-    else:
-        stats = _record_stats(records_paths)
-    try:
-        from db_store import cloud_record_count, storage_mode
-
-        storage_hint = "클라우드+로컬" if storage_mode() == "supabase" else "기기 로컬"
-        cloud_n = cloud_record_count(user_id) if storage_mode() == "supabase" else None
-        if cloud_n is not None:
-            storage_hint += f" · 클라우드 {cloud_n}건"
-    except Exception:
-        storage_hint = "기기 로컬"
     render_safe_html(
         f"""
-        <div class="vc-page-head">
-            <h2 class="vc-page-title">{html.escape(name)}님의 마이 페이지 🎤</h2>
-            <p class="vc-page-desc">새 분석 · 완료 기록 · 성장 곡선을 한곳에서 · 저장: {html.escape(storage_hint)}</p>
-        </div>
-        <div class="vc-mypage-stats">
-            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['count']}</span><span class="vc-mypage-stat-lbl">분석 횟수</span></div>
-            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['latest']:.0f}</span><span class="vc-mypage-stat-lbl">최근 점수</span></div>
-            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['best']:.0f}</span><span class="vc-mypage-stat-lbl">최고 점수</span></div>
-            <div class="vc-mypage-stat"><span class="vc-mypage-stat-val">{stats['avg']:.0f}</span><span class="vc-mypage-stat-lbl">평균</span></div>
+        <div class="vc-dash-header">
+            <h1 class="vc-dash-greeting">안녕하세요, {nickname} 보컬러님! 👋</h1>
         </div>
         """
     )
 
-    _render_weekly_summary_card(user_id)
+    remaining = metrics["remaining_goal"]
+    if remaining > 0:
+        st.info(f"이번 주, 아직 분석하지 않은 목표 곡이 **{remaining}곡** 남았어요!")
+    else:
+        st.success("이번 주 목표 연습량을 달성했어요! 🎉 계속 도전해 보세요.")
 
-    if records_paths:
+    if st.button(
+        "＋ 새 노래 1분 만에 분석하기",
+        type="primary",
+        use_container_width=True,
+        key="dash_primary_cta",
+    ):
+        st.session_state["mypage_view"] = "analyze"
+        st.rerun()
+
+    st.markdown("#### 📊 주간 연습 흐름")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("이번 주 평균 점수", f"{metrics['avg']:.0f}점")
+    with c2:
+        st.metric("최고 점수", f"{metrics['best']:.0f}점")
+    with c3:
+        st.metric("연습 횟수", f"{metrics['count']}회")
+
+    st.markdown("#### 📝 최근 보컬 분석 내역")
+    if not records:
+        _render_empty_state()
+    else:
+        for idx, record in enumerate(records[:3]):
+            song = record.get("song_title") or record.get("user_recording") or "녹음"
+            overall = float(record.get("overall_score") or 0)
+            badge = _record_status_badge(record)
+            date_short = _format_date_short(record)
+            render_safe_html(
+                f"""
+                <div class="vc-dash-recent-item">
+                    <div class="vc-dash-recent-row">
+                        <span class="vc-dash-recent-song">{html.escape(str(song))}</span>
+                        <span class="vc-dash-recent-score">{overall:.0f}점</span>
+                    </div>
+                    <div class="vc-dash-recent-meta">
+                        <span>{html.escape(date_short)}</span>
+                        <span class="vc-dash-recent-badge">{html.escape(badge)}</span>
+                    </div>
+                </div>
+                """
+            )
+            if st.button(
+                f"상세 보기 · {str(song)[:18]}",
+                key=f"dash_recent_{idx}",
+                use_container_width=True,
+            ):
+                local_path = record.get("_local_path")
+                path = Path(local_path) if local_path else None
+                if path and path.exists():
+                    _open_record_detail(record, user_id, path=path)
+                else:
+                    _open_record_detail(record, user_id)
+
+    if records:
+        _render_weekly_summary_card(user_id)
         _render_growth_trend_chart(user_id)
-    elif cloud_records:
-        _render_growth_trend_chart(user_id)
+
+
+def _render_analyze_view(user_id: str) -> None:
+    st.markdown("#### 🎙️ 새 보컬 분석")
+    st.caption("녹음 파일을 올리면 1분 안에 5축 보컬 분석 리포트를 받을 수 있어요.")
+    from ui.legal_footer import render_upload_privacy_notice
+
+    render_upload_privacy_notice()
+    dashboard.render_analysis_section(show_settings=True)
+
+
+def _render_history_view(user_id: str, records_paths: list[Path]) -> None:
+    records_paths = _safe_paths(records_paths)
+    records = _load_merged_records(user_id, records_paths)
+
+    st.markdown("#### 📋 내 연습 기록")
+    if not records and not records_paths:
+        _render_empty_state()
+        if st.button("첫 분석 시작하기", type="primary", key="history_empty_cta"):
+            st.session_state["mypage_view"] = "analyze"
+            st.rerun()
+        return
 
     _render_cloud_history_expander(user_id)
 
-    try:
-        from ui.beta import render_beta_invite_card
-
-        with st.expander("📣 베타 테스터 초대", expanded=False):
-            render_beta_invite_card()
-    except Exception:
-        pass
-
     if records_paths:
-        st.markdown("##### 📋 분석 완료 기록")
-        st.caption("날짜별 배너를 눌러 코치 DM · 상세 리포트를 다시 볼 수 있어요.")
+        st.markdown("##### 📂 기기 저장 기록")
         for idx, p in enumerate(records_paths[:20]):
             try:
                 r = load_record(p)
@@ -460,36 +667,62 @@ def _render_hub(user_id: str, name: str, records_paths: list[Path]) -> None:
             overall = float(r.get("overall_score") or 0)
             song = r.get("song_title") or r.get("user_recording") or "녹음"
             _render_history_banner(r, overall, song, idx, p)
+    elif records:
+        st.caption("클라우드에 저장된 기록입니다.")
+        for idx, record in enumerate(records[:20]):
+            _render_cloud_record_card(record, idx, user_id)
 
-        if len(records_paths) > 1:
-            st.markdown("##### 📈 연습 히스토리")
-            spark = generate_history_sparkline(user_id=user_id)
-            if spark and spark.exists():
-                render_safe_html('<div class="vc-graph-frame vc-sparkline-frame">')
-                st.image(str(spark), use_container_width=True)
-                render_safe_html("</div>")
-            render_safe_html("##### 📈 성장 곡선")
-            chart_path = generate_growth_chart(user_id=user_id)
-            if chart_path and chart_path.exists():
-                render_safe_html('<div class="vc-graph-frame">')
-                st.image(str(chart_path), use_container_width=True)
-                render_safe_html("</div>")
-    else:
-        render_safe_html(
-            """
-            <div class="vc-empty-card">
-                <p class="vc-empty-title">아직 분석 기록이 없어요</p>
-                <p class="vc-empty-desc">아래에서 녹음을 올리고 첫 분석을 시작해 보세요.</p>
-            </div>
-            """
+    if records_paths and len(records_paths) > 1:
+        st.markdown("##### 📈 연습 히스토리")
+        spark = generate_history_sparkline(user_id=user_id)
+        if spark and spark.exists():
+            render_safe_html('<div class="vc-graph-frame vc-sparkline-frame">')
+            st.image(str(spark), use_container_width=True)
+            render_safe_html("</div>")
+        chart_path = generate_growth_chart(user_id=user_id)
+        if chart_path and chart_path.exists():
+            render_safe_html('<div class="vc-graph-frame">')
+            st.image(str(chart_path), use_container_width=True)
+            render_safe_html("</div>")
+
+
+def _render_settings_view() -> None:
+    st.markdown("#### ⚙️ 설정")
+    user = current_user()
+    if user:
+        st.markdown(f"**닉네임:** {user.get('name', '학습자')}")
+        if user.get("email"):
+            st.markdown(f"**이메일:** {user['email']}")
+        provider = {"google": "Google", "kakao": "카카오", "demo": "체험"}.get(
+            user.get("provider", ""), user.get("provider", "")
         )
+        if provider:
+            st.markdown(f"**로그인:** {provider}")
+    try:
+        from db_store import cloud_record_count, storage_mode
 
-    st.divider()
-    st.markdown("##### 🎙️ 새 분석")
-    from ui.legal_footer import render_upload_privacy_notice
+        mode = storage_mode()
+        uid = current_user_id()
+        hint = "클라우드 + 로컬" if mode == "supabase" else "기기 로컬"
+        if mode == "supabase" and uid:
+            n = cloud_record_count(uid)
+            if n is not None:
+                hint += f" · 클라우드 {n}건"
+        st.caption(f"저장 방식: {hint}")
+    except Exception:
+        pass
 
-    render_upload_privacy_notice()
-    dashboard.render_analysis_section(show_settings=True)
+    if not is_logged_in():
+        from ui.auth_ui import render_login_card
+
+        render_login_card(key_prefix="settings_login", compact=True)
+        return
+
+    if st.button("로그아웃", key="settings_logout", use_container_width=True):
+        from ui.auth import logout
+
+        logout()
+
 
 
 def render() -> None:
@@ -547,8 +780,25 @@ def render() -> None:
         render_beta_footer()
         return
 
-    records_paths = list_records(limit=50, user_id=user_id)
-    _render_hub(user_id, name, records_paths)
+    records_paths = _safe_paths(list_records(limit=50, user_id=user_id))
+
+    if "mypage_view" not in st.session_state:
+        st.session_state["mypage_view"] = "dashboard"
+    view = st.session_state.get("mypage_view", "dashboard")
+    if view not in _MYPAGE_VIEWS:
+        view = "dashboard"
+        st.session_state["mypage_view"] = view
+
+    _render_saas_sidebar()
+
+    if view == "analyze":
+        _render_analyze_view(user_id)
+    elif view == "history":
+        _render_history_view(user_id, records_paths)
+    elif view == "settings":
+        _render_settings_view()
+    else:
+        _render_saas_dashboard(user_id, name, records_paths)
 
     from ui.beta import render_beta_footer
 

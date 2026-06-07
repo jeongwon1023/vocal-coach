@@ -166,9 +166,10 @@ def _is_already_registered_error(exc: BaseException) -> bool:
 
 def restore_persisted_auth() -> None:
     """
-    app.py 최상단 — F5 새로고침 후 로그인 복구.
+    app.py 최상단 — F5 새로고침 후 st.session_state['user'] 자동 복구.
     1) 브라우저 쿠키 → 앱 세션
-    2) Supabase get_session() → 디스크 영수증
+    2) session_state.auth_token → 앱 세션
+    3) supabase.auth.get_session() → Supabase 세션
     """
     if st.session_state.get("user"):
         return
@@ -181,6 +182,7 @@ def restore_persisted_auth() -> None:
         if user:
             st.session_state.auth_token = cookie_token
             st.session_state.user = user.to_dict()
+            persist_auth_cookie(cookie_token)
             return
 
     if st.session_state.get("auth_token") and not st.session_state.get("user"):
@@ -190,24 +192,31 @@ def restore_persisted_auth() -> None:
             persist_auth_cookie(st.session_state.auth_token)
             return
 
+    _restore_from_supabase_session()
+
+
+def _restore_from_supabase_session() -> bool:
+    """supabase.auth.get_session()으로 user 복원. 성공 시 True."""
     if not supabase_configured():
-        return
+        return False
 
     try:
         client = get_supabase_client()
     except Exception:
-        return
+        return False
     if not client:
-        return
+        return False
 
     try:
         session = client.auth.get_session()
     except Exception as exc:
         log_error("Supabase get_session 복원 실패", source="restore_persisted_auth", exc=exc)
-        return
+        return False
 
     if session and session.user:
         _apply_supabase_session(session)
+        return True
+    return False
 
 
 def _clear_oauth_query_params() -> None:
@@ -388,7 +397,7 @@ def render_pending_oauth_redirect() -> None:
         height=0,
         width=0,
     )
-    st.info("카카오 로그인 페이지로 이동 중...")
+    st.info("카카오톡으로 안전하게 연결 중입니다...")
     debug = _qp_first(st.query_params.get("kakao_debug")) == "1"
     try:
         from ui.admin_auth import is_admin_authenticated
@@ -585,6 +594,15 @@ def _render_supabase_kakao_styles() -> None:
     )
 
 
+def start_kakao_login_with_spinner() -> None:
+    """카카오 OAuth — 연결 스피너 후 리다이렉트."""
+    import time
+
+    with st.spinner("카카오톡으로 안전하게 연결 중입니다..."):
+        time.sleep(1.5)
+    _start_kakao_oauth()
+
+
 def _render_kakao_login_button(*, key: str) -> None:
     enabled = login_actions_enabled()
     if st.button(
@@ -594,7 +612,7 @@ def _render_kakao_login_button(*, key: str) -> None:
         disabled=not enabled,
         help=login_disabled_tooltip() if not enabled else None,
     ):
-        _start_kakao_oauth()
+        start_kakao_login_with_spinner()
 
 
 def _render_oauth_callback_errors() -> None:
@@ -961,36 +979,9 @@ def render_landing_auth_banner() -> None:
 
 
 def check_user_session() -> None:
-    """기존 세션 복원 — OAuth ?code= / restore_persisted_auth 에서 처리."""
+    """init_auth — restore_persisted_auth 보조 (쿠키 · get_session 재시도)."""
     if _qp_first(st.query_params.get("code")):
         return
     if st.session_state.get("user"):
         return
-
-    cookie_token = read_auth_cookie()
-    if cookie_token:
-        user = resolve_session(cookie_token)
-        if user:
-            st.session_state.auth_token = cookie_token
-            st.session_state.user = user.to_dict()
-            return
-
-    if not supabase_configured():
-        return
-
-    try:
-        client = get_supabase_client()
-    except Exception as exc:
-        st.session_state["_auth_last_error"] = str(exc)
-        return
-
-    if not client:
-        return
-
-    try:
-        session = client.auth.get_session()
-    except Exception:
-        return
-
-    if session and session.user:
-        _apply_supabase_session(session)
+    restore_persisted_auth()
