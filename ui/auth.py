@@ -46,6 +46,7 @@ except ImportError:
 
 from ui.supabase_client import create_supabase_client, is_supabase_key_format
 from ui.auth_storage import PersistentAuthStorage, clear_auth_cache_files
+from ui.session_persistence import clear_auth_cookie, persist_auth_cookie, read_auth_cookie
 
 _KAKAO_OAUTH_STATE = "vc_kakao"
 KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
@@ -141,9 +142,72 @@ def _user_from_supabase_session(session: Any) -> dict[str, Any]:
 
 
 def _apply_supabase_session(session: Any) -> None:
-    st.session_state.user = _user_from_supabase_session(session)
-    st.session_state.auth_token = session.access_token
+    user_dict = _user_from_supabase_session(session)
+    st.session_state.user = user_dict
+    st.session_state.supabase_access_token = session.access_token
     st.session_state.supabase_refresh_token = session.refresh_token
+    app_token = create_session(user_dict["id"])
+    st.session_state.auth_token = app_token
+    persist_auth_cookie(app_token)
+
+
+def _apply_app_user(user_dict: dict[str, Any], *, app_token: str | None = None) -> None:
+    """직접 카카오 / 체험 — 앱 세션 + 쿠키."""
+    st.session_state.user = user_dict
+    token = app_token or create_session(user_dict["id"])
+    st.session_state.auth_token = token
+    persist_auth_cookie(token)
+
+
+def _is_already_registered_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return "already registered" in msg or "user already exists" in msg
+
+
+def restore_persisted_auth() -> None:
+    """
+    app.py 최상단 — F5 새로고침 후 로그인 복구.
+    1) 브라우저 쿠키 → 앱 세션
+    2) Supabase get_session() → 디스크 영수증
+    """
+    if st.session_state.get("user"):
+        return
+    if _qp_first(st.query_params.get("code")):
+        return
+
+    cookie_token = read_auth_cookie()
+    if cookie_token:
+        user = resolve_session(cookie_token)
+        if user:
+            st.session_state.auth_token = cookie_token
+            st.session_state.user = user.to_dict()
+            return
+
+    if st.session_state.get("auth_token") and not st.session_state.get("user"):
+        user = resolve_session(st.session_state.auth_token)
+        if user:
+            st.session_state.user = user.to_dict()
+            persist_auth_cookie(st.session_state.auth_token)
+            return
+
+    if not supabase_configured():
+        return
+
+    try:
+        client = get_supabase_client()
+    except Exception:
+        return
+    if not client:
+        return
+
+    try:
+        session = client.auth.get_session()
+    except Exception as exc:
+        log_error("Supabase get_session 복원 실패", source="restore_persisted_auth", exc=exc)
+        return
+
+    if session and session.user:
+        _apply_supabase_session(session)
 
 
 def _clear_oauth_query_params() -> None:
@@ -185,7 +249,7 @@ def _is_pkce_error(exc: BaseException) -> bool:
 
 
 def _try_supabase_code_exchange(code: str) -> bool:
-    """Supabase PKCE — 디스크에서 code_verifier 복원 후 교환."""
+    """Supabase OAuth — exchange_code_for_session (sign_up 금지 · 기존 유저는 세션만 발급)."""
     client = get_supabase_client()
     if not client:
         return False
@@ -193,33 +257,46 @@ def _try_supabase_code_exchange(code: str) -> bool:
         response = _supabase_exchange_code_once(client, code)
         if response.session:
             _apply_supabase_session(response.session)
-            clear_auth_cache_files()
             return True
     except Exception as exc:
-        if _is_pkce_error(exc):
-            st.session_state["_auth_last_error"] = (
-                "로그인 연동이 만료되었어요. 상단 **로그인**을 다시 눌러 주세요."
+        if _is_already_registered_error(exc) or _is_pkce_error(exc):
+            log_error(
+                "OAuth exchange 특수 케이스 — get_session fallback",
+                source="_try_supabase_code_exchange",
+                exc=exc,
             )
-            log_error("PKCE code_verifier 유실", source="_try_supabase_code_exchange", exc=exc)
-            clear_auth_cache_files()
+            try:
+                session = client.auth.get_session()
+                if session and session.user:
+                    _apply_supabase_session(session)
+                    return True
+            except Exception as inner:
+                log_error("get_session fallback 실패", source="_try_supabase_code_exchange", exc=inner)
+            if _is_pkce_error(exc):
+                st.session_state["_auth_last_error"] = (
+                    "로그인 연동이 만료되었어요. 상단 **로그인**을 다시 눌러 주세요."
+                )
+            elif _is_already_registered_error(exc):
+                st.session_state["_auth_last_error"] = (
+                    "이미 가입된 계정입니다. 잠시 후 다시 로그인해 주세요."
+                )
             return False
         raise
     return False
 
 
 def _exchange_oauth_code(code: str, state: str | None) -> bool:
-    """authorization code → 세션 (직접 카카오 우선 · Supabase는 PKCE 디스크 복원)."""
+    """authorization code → 세션 (직접 카카오 우선 · Supabase는 sign-in only)."""
     try:
-        is_direct_flow = state == _KAKAO_OAUTH_STATE or (
-            kakao_direct_configured() and state is None
-        )
+        # vc_kakao = 직접 카카오 — Supabase exchange 절대 호출하지 않음 (already registered 방지)
+        if state == _KAKAO_OAUTH_STATE and kakao_direct_configured():
+            _complete_kakao_direct_login(code)
+            return bool(st.session_state.get("user"))
 
-        if is_direct_flow and kakao_direct_configured():
+        if kakao_direct_configured() and state is None:
             _complete_kakao_direct_login(code)
             if st.session_state.get("user"):
-                clear_auth_cache_files()
                 return True
-            return False
 
         if supabase_configured() and state != _KAKAO_OAUTH_STATE:
             if _try_supabase_code_exchange(code):
@@ -227,15 +304,23 @@ def _exchange_oauth_code(code: str, state: str | None) -> bool:
 
         if kakao_direct_configured():
             _complete_kakao_direct_login(code)
-            if st.session_state.get("user"):
-                clear_auth_cache_files()
-                return True
+            return bool(st.session_state.get("user"))
 
         return bool(st.session_state.get("user"))
     except Exception as exc:
+        if _is_already_registered_error(exc):
+            log_error("User already registered — sign-in fallback", source="_exchange_oauth_code", exc=exc)
+            try:
+                client = get_supabase_client()
+                if client:
+                    session = client.auth.get_session()
+                    if session and session.user:
+                        _apply_supabase_session(session)
+                        return True
+            except Exception:
+                pass
         st.session_state["_auth_last_error"] = str(exc)
         log_error("OAuth code 교환 실패", source="_exchange_oauth_code", exc=exc)
-        clear_auth_cache_files()
         return False
 
 
@@ -276,12 +361,9 @@ def handle_oauth_callback_if_present() -> None:
 
     if success:
         _on_login_success(previous_anon_id=anon_before)
-        try:
-            from ui.navigation import go_to
-
-            st.session_state["nav_page"] = "마이 페이지"
-        except Exception:
-            pass
+        st.session_state["nav_page"] = "마이 페이지"
+        name = (st.session_state.get("user") or {}).get("name", "학습자")
+        st.session_state["_login_welcome"] = name
         st.rerun()
 
     err = st.session_state.get("_auth_last_error") or "카카오 로그인에 실패했습니다. 다시 시도해 주세요."
@@ -399,10 +481,12 @@ def logout() -> None:
         st.session_state.pop("supabase_auth_storage", None)
         clear_auth_cache_files()
         st.session_state.pop("supabase_refresh_token", None)
+        st.session_state.pop("supabase_access_token", None)
 
     token = st.session_state.get("auth_token")
-    if token and not supabase_configured():
+    if token:
         delete_session(token)
+    clear_auth_cookie()
     st.session_state.auth_token = None
     st.session_state.user = None
     from ui.session_reset import reset_user_session_state
@@ -648,8 +732,7 @@ def _complete_kakao_direct_login(code: str) -> None:
         avatar_url=profile.get("profile_image_url"),
     )
     token = create_session(user.id)
-    st.session_state.auth_token = token
-    st.session_state.user = user.to_dict()
+    _apply_app_user(user.to_dict(), app_token=token)
 
 
 def _start_kakao_direct_oauth() -> None:
@@ -806,8 +889,7 @@ def _start_demo() -> None:
     anon_before = st.session_state.get("anon_analysis_id")
     user = create_demo_user()
     token = create_session(user.id)
-    st.session_state.auth_token = token
-    st.session_state.user = user.to_dict()
+    _apply_app_user(user.to_dict(), app_token=token)
     st.session_state.show_login = False
     _on_login_success(previous_anon_id=anon_before)
     st.rerun()
@@ -879,9 +961,19 @@ def render_landing_auth_banner() -> None:
 
 
 def check_user_session() -> None:
-    """기존 세션 복원 — OAuth ?code= 는 handle_oauth_callback_if_present()에서 처리."""
+    """기존 세션 복원 — OAuth ?code= / restore_persisted_auth 에서 처리."""
     if _qp_first(st.query_params.get("code")):
         return
+    if st.session_state.get("user"):
+        return
+
+    cookie_token = read_auth_cookie()
+    if cookie_token:
+        user = resolve_session(cookie_token)
+        if user:
+            st.session_state.auth_token = cookie_token
+            st.session_state.user = user.to_dict()
+            return
 
     if not supabase_configured():
         return
@@ -900,5 +992,5 @@ def check_user_session() -> None:
     except Exception:
         return
 
-    if session and session.user and not st.session_state.get("user"):
+    if session and session.user:
         _apply_supabase_session(session)

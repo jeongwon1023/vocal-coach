@@ -26,9 +26,10 @@ st.set_page_config(
 )
 
 # OAuth ?code= 콜백 — UI 렌더 전 즉시 처리 (무한 스피너 방지)
-from ui.auth import handle_oauth_callback_if_present  # noqa: E402
+from ui.auth import handle_oauth_callback_if_present, restore_persisted_auth  # noqa: E402
 
 handle_oauth_callback_if_present()
+restore_persisted_auth()
 
 
 def _import_ui():
@@ -64,6 +65,9 @@ def main() -> None:
     configure_matplotlib()
 
     auth.init_auth()
+    welcome = st.session_state.pop("_login_welcome", None)
+    if welcome:
+        st.toast(f"{welcome}님, 환영합니다! 🎤", icon="👋")
     navigation.init_nav()
 
     from ui.admin_auth import try_admin_url_access
