@@ -143,20 +143,26 @@ def _user_from_supabase_session(session: Any) -> dict[str, Any]:
 
 def _apply_supabase_session(session: Any) -> None:
     user_dict = _user_from_supabase_session(session)
+    from ui.safe_user import normalize_session_user
+
     st.session_state.user = user_dict
     st.session_state.supabase_access_token = session.access_token
     st.session_state.supabase_refresh_token = session.refresh_token
     app_token = create_session(user_dict["id"])
     st.session_state.auth_token = app_token
     persist_auth_cookie(app_token)
+    normalize_session_user()
 
 
 def _apply_app_user(user_dict: dict[str, Any], *, app_token: str | None = None) -> None:
     """직접 카카오 / 체험 — 앱 세션 + 쿠키."""
+    from ui.safe_user import normalize_session_user
+
     st.session_state.user = user_dict
     token = app_token or create_session(user_dict["id"])
     st.session_state.auth_token = token
     persist_auth_cookie(token)
+    normalize_session_user()
 
 
 def _is_already_registered_error(exc: BaseException) -> bool:
@@ -171,7 +177,10 @@ def restore_persisted_auth() -> None:
     2) session_state.auth_token → 앱 세션
     3) supabase.auth.get_session() → Supabase 세션
     """
+    from ui.safe_user import normalize_session_user
+
     if st.session_state.get("user"):
+        normalize_session_user()
         return
     if _qp_first(st.query_params.get("code")):
         return
@@ -183,6 +192,7 @@ def restore_persisted_auth() -> None:
             st.session_state.auth_token = cookie_token
             st.session_state.user = user.to_dict()
             persist_auth_cookie(cookie_token)
+            normalize_session_user()
             return
 
     if st.session_state.get("auth_token") and not st.session_state.get("user"):
@@ -190,6 +200,7 @@ def restore_persisted_auth() -> None:
         if user:
             st.session_state.user = user.to_dict()
             persist_auth_cookie(st.session_state.auth_token)
+            normalize_session_user()
             return
 
     _restore_from_supabase_session()
@@ -506,9 +517,11 @@ def logout() -> None:
 
 def render_topbar_auth() -> None:
     """우측 상단 — 로그인 모달 또는 사용자 메뉴."""
+    from ui.safe_user import safe_nickname
+
     user = current_user()
     if user:
-        name = user.get("name", "학습자")
+        name = safe_nickname(user)
         with st.popover(f"👤 {name}", use_container_width=False, key="top_auth_user"):
             _render_user_popover_body(user)
         return
@@ -537,7 +550,9 @@ def render_menu_auth(*, key_prefix: str = "nav_menu") -> None:
 
 
 def _render_user_popover_body(user: dict, *, logout_key: str = "btn_logout_top") -> None:
-    name = user.get("name", "학습자")
+    from ui.safe_user import safe_nickname
+
+    name = safe_nickname(user)
     st.markdown(f"**{name}**")
     if user.get("email"):
         st.caption(user["email"])

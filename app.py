@@ -1,6 +1,6 @@
 """
-보컬 코치 AI — Streamlit 앱 진입점.
-UI 렌더 전 Supabase 세션 동기 가드 → F5 새로고침 로그아웃 방지.
+Vocal Coach AI — Streamlit 진입점.
+UI 렌더 전 Supabase 세션 복구 → 로그인 시 대시보드, 미로그인 시 로그인 화면만.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-APP_BUILD = "2026-06-07-dash-v7"
+APP_BUILD = "2026-06-07-dash-v9"
 
 st.set_page_config(
     page_title="Vocal Coach AI — 무료 보컬 분석",
@@ -27,37 +27,20 @@ st.set_page_config(
     },
 )
 
-# ── UI 렌더 전: OAuth 콜백 + 세션 동기 (supabase.auth.get_session) ──
 from ui.auth import (  # noqa: E402
     handle_oauth_callback_if_present,
+    init_auth,
+    kakao_login_available,
+    open_login_dialog,
     restore_persisted_auth,
 )
+from ui.safe_user import normalize_session_user  # noqa: E402
 
 
 def _init_session_state() -> None:
-    if "user" not in st.session_state:
-        st.session_state.user = None
-    if "auth_token" not in st.session_state:
-        st.session_state.auth_token = None
-
-
-def sync_session_guard(*, force: bool = False) -> bool:
-    """
-    동기식 세션 홀딩 가드.
-    F5 / 페이지 전환 시 쿠키 → auth_token → supabase.auth.get_session() 순으로 복원.
-    user가 이미 있으면 True. force=True면 get_session 재시도.
-    """
-    _init_session_state()
-    if st.session_state.get("user") and not force:
-        return True
-    if _qp_has_oauth_code():
-        return bool(st.session_state.get("user"))
-    restore_persisted_auth()
-    if st.session_state.get("user"):
-        return True
-    if st.session_state.get("auth_token"):
-        restore_persisted_auth()
-    return bool(st.session_state.get("user"))
+    for key, val in (("user", None), ("auth_token", None)):
+        if key not in st.session_state:
+            st.session_state[key] = val
 
 
 def _qp_has_oauth_code() -> bool:
@@ -70,19 +53,66 @@ def _qp_has_oauth_code() -> bool:
         return False
 
 
+def sync_session_guard(*, force: bool = False) -> bool:
+    """쿠키 · auth_token · supabase.auth.get_session() — UI 그리기 전 세션 복구."""
+    _init_session_state()
+    normalize_session_user()
+
+    if st.session_state.get("user") and not force:
+        return True
+    if _qp_has_oauth_code():
+        normalize_session_user()
+        return bool(st.session_state.get("user"))
+
+    restore_persisted_auth()
+    normalize_session_user()
+    if st.session_state.get("user"):
+        return True
+
+    if st.session_state.get("auth_token"):
+        restore_persisted_auth()
+        normalize_session_user()
+    return bool(st.session_state.get("user"))
+
+
+# ── UI 그리기 전 세션 복구 (OAuth → Supabase get_session) ──
 handle_oauth_callback_if_present()
 sync_session_guard(force=True)
 
 
-def _import_ui():
-    from gpt_coach import load_dotenv_if_present
-    from ui import auth, landing, my_page, navbar, navigation, styles
+def _render_login_screen() -> None:
+    """미로그인 — 카카오/로그인만 (체험 배너·디버그 출력 없음)."""
+    from ui.auth import _render_kakao_login_button, _render_supabase_kakao_styles
+    from ui.utils import render_safe_html
 
-    load_dotenv_if_present(PROJECT_DIR)
-    return auth, landing, my_page, navbar, navigation, styles
+    render_safe_html(
+        f'<div aria-hidden="true" data-vc-build="{APP_BUILD}"></div>'
+    )
+    st.markdown("### ⚡️ Vocal Coach AI")
+    st.markdown(
+        "**무료로 내 보컬 분석** — 녹음 한 번이면 1분 안에 "
+        "음정 · 박자 · 호흡 · AI 코칭 리포트를 받을 수 있어요."
+    )
+    st.caption("로그인하면 분석 기록이 클라우드에 안전하게 저장됩니다.")
+
+    if kakao_login_available():
+        _render_supabase_kakao_styles()
+        _render_kakao_login_button(key="landing_hero_cta")
+    else:
+        if st.button(
+            "🔐 카카오 / 로그인으로 시작",
+            type="primary",
+            use_container_width=True,
+            key="landing_hero_cta",
+        ):
+            open_login_dialog(key_prefix="app_login_dialog")
+
+    if st.button("로그인", type="secondary", use_container_width=True, key="app_login_secondary"):
+        open_login_dialog(key_prefix="app_login_secondary_dialog")
 
 
 def main() -> None:
+    from gpt_coach import load_dotenv_if_present
     from ui.error_guard import (
         init_error_guard,
         render_error_dialog_if_needed,
@@ -91,6 +121,7 @@ def main() -> None:
     )
     from ui.runtime_env import configure_matplotlib
 
+    load_dotenv_if_present(PROJECT_DIR)
     init_error_guard()
     run_preflight()
     render_error_dialog_if_needed()
@@ -99,57 +130,35 @@ def main() -> None:
 
     inject_ga4()
     render_retry_indicator()
-
-    auth, landing, my_page, navbar, navigation, styles = _import_ui()
     configure_matplotlib()
 
-    auth.init_auth()
+    init_auth()
     sync_session_guard(force=not bool(st.session_state.get("user")))
+    normalize_session_user()
 
     welcome = st.session_state.pop("_login_welcome", None)
     if welcome:
         st.toast(f"{welcome}님, 환영합니다! 🎤", icon="👋")
 
-    navigation.init_nav()
-
     from ui.admin_auth import try_admin_url_access
 
     try_admin_url_access()
 
-    page = navigation.current_page()
-    styles.apply(page=page)
+    logged_in = bool(st.session_state.get("user"))
+    from ui import styles
 
-    is_dashboard = page == "마이 페이지"
-
-    if not is_dashboard:
-        from ui.legal_footer import render_beta_data_warning
-
-        render_beta_data_warning()
-        page = navbar.render_navbar()
-        from ui.beta import render_beta_banner
-
-        render_beta_banner()
-    else:
-        from ui.dashboard_gnb import render_dashboard_gnb
-
-        render_dashboard_gnb()
+    styles.apply(page="마이 페이지" if logged_in else "홈")
 
     from ui.loading import render_loading_overlay
 
     render_loading_overlay()
 
-    if page == "홈":
-        landing.render()
-    elif page == "피드백":
-        from ui.user_feedback import render_feedback_page
+    if logged_in:
+        from ui import my_page
 
-        render_feedback_page()
-    elif page == "관리자":
-        from ui.admin_errors import render_admin_page
-
-        render_admin_page()
-    else:
         my_page.render()
+    else:
+        _render_login_screen()
 
 
 try:

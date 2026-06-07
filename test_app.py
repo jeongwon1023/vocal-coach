@@ -36,6 +36,23 @@ def _page_text(block: Any) -> str:
         return ""
 
 
+def _walk_block(block: Any, parts: list[str]) -> None:
+    if block is None:
+        return
+    text = _page_text(getattr(block, "value", block))
+    if text and text.strip():
+        parts.append(text)
+    children = getattr(block, "children", None)
+    if not children:
+        return
+    if isinstance(children, dict):
+        for child in children.values():
+            _walk_block(child, parts)
+    elif isinstance(children, list):
+        for child in children:
+            _walk_block(child, parts)
+
+
 def _collect_text(at: Any) -> str:
     parts: list[str] = []
     for attr in ("markdown", "title", "caption", "text", "button", "info", "warning", "error"):
@@ -51,6 +68,10 @@ def _collect_text(at: Any) -> str:
                     parts.append(text)
         except Exception:
             continue
+    try:
+        _walk_block(getattr(at, "main", None), parts)
+    except Exception:
+        pass
     return "\n".join(parts)
 
 
