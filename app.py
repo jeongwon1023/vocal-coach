@@ -15,7 +15,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-APP_BUILD = "2026-06-07-dash-v6"
+APP_BUILD = "2026-06-07-dash-v7"
 
 st.set_page_config(
     page_title="Vocal Coach AI — 무료 보컬 분석",

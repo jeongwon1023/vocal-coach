@@ -28,7 +28,7 @@ from ui.utils import render_safe_html
 
 _WEEKLY_GOAL = 3
 _MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
-MY_PAGE_BUILD = "2026-06-07-dash-v6"
+MY_PAGE_BUILD = "2026-06-07-dash-v7"
 
 
 def _render_premium_stat_cards(metrics: dict | None) -> None:
@@ -63,20 +63,16 @@ def _render_premium_stat_cards(metrics: dict | None) -> None:
             f'<span class="vc-stat-unit">{html.escape(unit)}</span>' if value != "-" else ""
         )
         items.append(
-            f"""
-            <div class="vc-stat-card">
-                <p class="vc-stat-label">{html.escape(label)}</p>
-                <p class="vc-stat-value">{html.escape(value)}{unit_suffix}</p>
-            </div>
-            """
+            "<div class=\"vc-stat-card\">"
+            f"<p class=\"vc-stat-label\">{html.escape(label)}</p>"
+            f"<p class=\"vc-stat-value\">{html.escape(value)}{unit_suffix}</p>"
+            "</div>"
         )
     render_safe_html(
-        f"""
-        <div class="vc-stat-section">
-            <p class="vc-stat-section-title">📊 주간 연습 흐름</p>
-            <div class="vc-stat-grid">{"".join(items)}</div>
-        </div>
-        """
+        "<div class=\"vc-stat-section\">"
+        "<p class=\"vc-stat-section-title\">📊 주간 연습 흐름</p>"
+        f"<div class=\"vc-stat-grid\">{''.join(items)}</div>"
+        "</div>"
     )
 
 
