@@ -12,8 +12,12 @@ from ui.utils import render_safe_html
 def render() -> None:
     from ui.auth import is_logged_in
 
-    if not is_logged_in():
-        render_safe_html(
+    # 로그인 사용자 → SaaS 대시보드(마이 페이지)가 홈
+    if is_logged_in():
+        go_to("마이 페이지")
+        return
+
+    render_safe_html(
             """
             <div class="vc-landing-trial-banner">
                 <div class="vc-landing-trial-copy">

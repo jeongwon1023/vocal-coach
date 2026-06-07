@@ -29,7 +29,7 @@ from ui.utils import render_safe_html
 
 _WEEKLY_GOAL = 3
 _MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
-MY_PAGE_BUILD = "2026-06-07-dash-v3"
+MY_PAGE_BUILD = "2026-06-07-dash-v4"
 
 
 def _safe_records(records) -> list:

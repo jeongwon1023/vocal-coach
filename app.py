@@ -15,7 +15,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-APP_BUILD = "2026-06-07-dash-v3"
+APP_BUILD = "2026-06-07-dash-v4"
 
 
 def _bootstrap_session_before_ui() -> None:

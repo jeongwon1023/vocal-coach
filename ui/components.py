@@ -423,14 +423,23 @@ def render_deviation_table(report: Any) -> None:
         return
 
     rows = []
+    from ui.coach_insights import _seg_times
+
     for seg in report.pitch_deviation_segments[:10]:
-        sev, label = _dev_severity(seg.max_deviation_cents)
+        t0, t1 = _seg_times(seg)
+        cents = getattr(seg, "max_deviation_cents", None)
+        if cents is None and isinstance(seg, dict):
+            cents = seg.get("max_deviation_cents", 0)
+        sev, label = _dev_severity(cents or 0)
+        note_hint = getattr(seg, "note_hint", None) if not isinstance(seg, (tuple, list)) else "—"
+        if isinstance(seg, dict):
+            note_hint = seg.get("note_hint") or "—"
         rows.append(
             f"""
             <div class="vc-dev-item vc-dev-{sev}">
                 <div class="vc-dev-main">
-                    <span class="vc-dev-time">{seg.start_sec:.1f}s – {seg.end_sec:.1f}s</span>
-                    <span class="vc-dev-note">{seg.note_hint or "—"}</span>
+                    <span class="vc-dev-time">{t0:.1f}s – {t1:.1f}s</span>
+                    <span class="vc-dev-note">{note_hint or "—"}</span>
                 </div>
                 <span class="vc-dev-badge">{label}</span>
             </div>
@@ -937,10 +946,12 @@ def _render_sandwich_triptych(
     listen_hint = ""
     if report.pitch_deviation_segments:
         from coaching_vocab import time_range
+        from ui.coach_insights import _seg_times
 
         seg = report.pitch_deviation_segments[0]
+        t0, t1 = _seg_times(seg)
         listen_hint = (
-            f"{time_range(seg.start_sec, seg.end_sec)}에서 주의 — "
+            f"{time_range(t0, t1)}에서 주의 — "
             "위 🎧 녹음을 재생해 직접 들어보세요."
         )
 
@@ -994,11 +1005,13 @@ def _render_charts_sticky_bar(report: Any) -> None:
     alert = "—"
     if report.pitch_deviation_segments:
         from coaching_vocab import time_range
+        from ui.coach_insights import _seg_times
 
         d = report.pitch_deviation_segments[0]
-        t0 = getattr(d, "start_sec", 0)
-        t1 = getattr(d, "end_sec", 0)
-        hint = getattr(d, "note_hint", "") or ""
+        t0, t1 = _seg_times(d)
+        hint = getattr(d, "note_hint", "") if not isinstance(d, (tuple, list)) else ""
+        if isinstance(d, dict):
+            hint = d.get("note_hint", "") or hint
         alert = f"{time_range(t0, t1)} {hint}".strip()
 
     render_safe_html(
