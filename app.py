@@ -15,11 +15,23 @@ PROJECT_DIR = Path(__file__).resolve().parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
+APP_BUILD = "2026-06-07-dash-v3"
+
+
+def _bootstrap_session_before_ui() -> None:
+    """F5 새로고침 — UI 렌더 전 user 세션 강제 복구 (supabase.auth.get_session)."""
+    if "user" not in st.session_state:
+        st.session_state.user = None
+    if "auth_token" not in st.session_state:
+        st.session_state.auth_token = None
+    restore_persisted_auth()
+
+
 st.set_page_config(
     page_title="Vocal Coach AI — 무료 보컬 분석",
     page_icon="🎤",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
     menu_items={
         "About": "Vocal Coach AI — 녹음 한 번으로 음정·박자·호흡 분석 + AI 코칭. 무료 체험 가능.",
     },
@@ -29,7 +41,7 @@ st.set_page_config(
 from ui.auth import handle_oauth_callback_if_present, restore_persisted_auth  # noqa: E402
 
 handle_oauth_callback_if_present()
-restore_persisted_auth()  # F5 새로고침 — supabase.auth.get_session() + 쿠키 복원
+_bootstrap_session_before_ui()
 
 
 def _import_ui():
@@ -66,7 +78,7 @@ def main() -> None:
 
     auth.init_auth()
     if not st.session_state.get("user"):
-        restore_persisted_auth()
+        _bootstrap_session_before_ui()
     welcome = st.session_state.pop("_login_welcome", None)
     if welcome:
         st.toast(f"{welcome}님, 환영합니다! 🎤", icon="👋")

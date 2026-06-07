@@ -29,6 +29,7 @@ from ui.utils import render_safe_html
 
 _WEEKLY_GOAL = 3
 _MYPAGE_VIEWS = ("dashboard", "analyze", "history", "settings")
+MY_PAGE_BUILD = "2026-06-07-dash-v3"
 
 
 def _safe_records(records) -> list:
@@ -127,7 +128,7 @@ def _render_empty_state(*, compact: bool = False) -> None:
         <div class="vc-empty-card vc-dash-empty">
             <p class="vc-empty-emoji">🎤</p>
             <p class="vc-empty-title">아직 분석 기록이 없습니다</p>
-            <p class="vc-empty-desc">첫 노래를 녹음해 보세요! 1분이면 음정·박자·호흡 분석이 끝나요.</p>
+            <p class="vc-empty-desc">아래 버튼을 눌러 첫 노래를 분석해 보세요! 🎤</p>
         </div>
         """
     )
@@ -150,8 +151,8 @@ def _render_saas_sidebar() -> None:
         )
         menu = (
             ("dashboard", "🏠", "홈 (대시보드)"),
-            ("analyze", "🎙️", "새 보컬 분석하기"),
-            ("history", "📋", "내 연습 기록"),
+            ("analyze", "🎤", "새 보컬 분석"),
+            ("history", "📈", "내 연습 기록"),
             ("settings", "⚙️", "설정"),
         )
         for key, icon, label in menu:
@@ -572,9 +573,9 @@ def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -
 
     remaining = metrics["remaining_goal"]
     if remaining > 0:
-        st.info(f"이번 주, 아직 분석하지 않은 목표 곡이 **{remaining}곡** 남았어요!")
+        st.info(f"이번 주 목표 연습량이 **{remaining}곡** 남았습니다.")
     else:
-        st.success("이번 주 목표 연습량을 달성했어요! 🎉 계속 도전해 보세요.")
+        st.success("이번 주 목표 연습량을 달성했어요! 🎉")
 
     if st.button(
         "＋ 새 노래 1분 만에 분석하기",
@@ -590,9 +591,9 @@ def _render_saas_dashboard(user_id: str, name: str, records_paths: list[Path]) -
     with c1:
         st.metric("이번 주 평균 점수", f"{metrics['avg']:.0f}점")
     with c2:
-        st.metric("최고 점수", f"{metrics['best']:.0f}점")
+        st.metric("누적 연습 횟수", f"{metrics['count']}회")
     with c3:
-        st.metric("연습 횟수", f"{metrics['count']}회")
+        st.metric("최고 스탯 점수", f"{metrics['best']:.0f}점")
 
     st.markdown("#### 📝 최근 보컬 분석 내역")
     if not records:
@@ -643,14 +644,25 @@ def _render_analyze_view(user_id: str) -> None:
     dashboard.render_analysis_section(show_settings=True)
 
 
-def _render_history_view(user_id: str, records_paths: list[Path]) -> None:
+def _render_history_tab(user_id: str, records_paths: list[Path] | None = None) -> None:
+    """
+    내 연습 기록 탭 — TypeError 원천 차단.
+    records가 None이거나 비어 있으면 Empty State만 렌더 (크래시 금지).
+    """
     records_paths = _safe_paths(records_paths)
     records = _load_merged_records(user_id, records_paths)
 
-    st.markdown("#### 📋 내 연습 기록")
-    if not records and not records_paths:
-        _render_empty_state()
-        if st.button("첫 분석 시작하기", type="primary", key="history_empty_cta"):
+    st.markdown("#### 📈 내 연습 기록")
+
+    if records is None or len(records) == 0:
+        if not records_paths:
+            _render_empty_state()
+            if st.button("첫 분석 시작하기", type="primary", key="history_empty_cta"):
+                st.session_state["mypage_view"] = "analyze"
+                st.rerun()
+            return
+        st.info("아직 분석 기록이 없습니다. 아래 버튼을 눌러 첫 노래를 분석해 보세요! 🎤")
+        if st.button("＋ 새 노래 분석하기", type="primary", key="history_empty_cta2"):
             st.session_state["mypage_view"] = "analyze"
             st.rerun()
         return
@@ -667,7 +679,7 @@ def _render_history_view(user_id: str, records_paths: list[Path]) -> None:
             overall = float(r.get("overall_score") or 0)
             song = r.get("song_title") or r.get("user_recording") or "녹음"
             _render_history_banner(r, overall, song, idx, p)
-    elif records:
+    else:
         st.caption("클라우드에 저장된 기록입니다.")
         for idx, record in enumerate(records[:20]):
             _render_cloud_record_card(record, idx, user_id)
@@ -684,6 +696,11 @@ def _render_history_view(user_id: str, records_paths: list[Path]) -> None:
             render_safe_html('<div class="vc-graph-frame">')
             st.image(str(chart_path), use_container_width=True)
             render_safe_html("</div>")
+
+
+def _render_history_view(user_id: str, records_paths: list[Path]) -> None:
+    """하위 호환 — _render_history_tab 위임."""
+    _render_history_tab(user_id, records_paths)
 
 
 def _render_settings_view() -> None:
@@ -794,11 +811,13 @@ def render() -> None:
     if view == "analyze":
         _render_analyze_view(user_id)
     elif view == "history":
-        _render_history_view(user_id, records_paths)
+        _render_history_tab(user_id, records_paths)
     elif view == "settings":
         _render_settings_view()
     else:
         _render_saas_dashboard(user_id, name, records_paths)
+
+    st.caption(f"빌드 {MY_PAGE_BUILD} · SaaS 대시보드")
 
     from ui.beta import render_beta_footer
 

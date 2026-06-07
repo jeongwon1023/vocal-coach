@@ -79,6 +79,13 @@ def list_records(limit: int = 20, *, user_id: str | None = None) -> list[Path]:
 
         if is_cloud_user(user_id):
             cloud = list_analysis_records(limit=limit, user_id=user_id)
+            if cloud is None:
+                cloud = []
+            if not isinstance(cloud, list):
+                try:
+                    cloud = list(cloud)
+                except TypeError:
+                    cloud = []
             if cloud:
                 paths: list[Path] = []
                 d = user_records_dir(user_id)
